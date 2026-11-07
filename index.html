@@ -104,9 +104,17 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .dtime{height:4px}#dTime{background:var(--gold)}
 .dbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 #dLog{margin:0;color:var(--dim);font-size:10px;line-height:1.5;min-height:3em}
-#dockKingdom{align-items:center;gap:10px}.msel{display:flex;gap:6px;align-items:center;font-size:10px;letter-spacing:.06em;color:var(--dim)}
-.msel select{background:#1c1730;border:1px solid var(--line);padding:8px;border-radius:2px;text-transform:uppercase;font-size:10px}
-#chal{align-items:center;gap:8px;padding:8px 10px}#chalTxt{color:var(--gold);font-weight:700;font-size:11px}
+#dockKingdom{align-items:center;gap:10px}.khint{font-family:var(--f-term);font-size:16px;color:#857aa0}
+#campPanel{padding:10px 12px;display:grid;gap:8px;width:min(440px,100%);max-height:52vh;overflow:auto;box-sizing:border-box}
+.cphead{display:flex;flex-direction:column;gap:2px}.cphead b{font-family:var(--f-display);font-size:18px}.cphead span{font-size:10px;color:var(--dim);letter-spacing:.06em}
+#cpList{display:grid;gap:6px}.cpnote{margin:0;color:var(--dim);font-size:10px;align-self:center}
+.grow{display:grid;grid-template-columns:auto 34px minmax(0,1fr);gap:8px;align-items:center;padding:6px;border:1px solid var(--line);background:#16121f;cursor:pointer}
+.grow.ro{grid-template-columns:34px minmax(0,1fr);cursor:default}.grow input{accent-color:var(--gold);width:16px;height:16px}
+.grow img{width:34px;height:45px;image-rendering:pixelated;background:#1a1426;border:1px solid var(--line)}
+.gi{display:grid;gap:3px;min-width:0}.gi .gn{font-weight:700;font-size:12px}.gi .gn em{font-style:normal;font-weight:400;color:var(--gold);font-size:10px}
+.gi .gt{font-size:10px;color:var(--dim)}.gi .gb{font-family:var(--f-term);font-size:14px;color:#857aa0;line-height:1.1}
+.gbars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.cb{height:4px;background:#221b33;display:block;position:relative}.cb i{position:absolute;inset:0 auto 0 0;display:block}
+.cpbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}#chal{align-items:center;gap:8px;padding:8px 10px}#chalTxt{color:var(--gold);font-weight:700;font-size:11px}
 /* end panel */
 #endp{position:fixed;inset:0;display:grid;place-items:center;z-index:7;padding:16px;background:rgba(7,6,12,.35)}
 #endp .panel{padding:22px 24px;max-width:420px;text-align:center;display:grid;gap:12px}
@@ -181,7 +189,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   </div>
   <div id="kbar" class="panel" hidden>
     <div class="place" id="kPlace">The Kingdom of Aldmere</div>
-    <div class="line" id="kLine">Year 1043 of the Eternal War · Kaelen marches on Cindervault</div>
+    <div class="line" id="kStats"></div>
+    <div class="line" id="kLine">Year 1043 of the Eternal War</div>
   </div>
 </div>
 
@@ -223,9 +232,15 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <div class="dbtns"><button data-duel="strike">J Strike</button><button data-duel="guard">K Guard</button><button data-duel="power">L Power</button></div>
     <p id="dLog">Strike beats Power. Guard beats Strike. Power breaks Guard. A golden glow means a Power blow is coming.</p>
   </div>
+  <div class="panel" id="campPanel" hidden>
+    <div class="cphead"><b id="cpName"></b><span id="cpSub"></span></div>
+    <div id="cpList"></div>
+    <div class="cpbtns" id="cpBtns"></div>
+  </div>
   <div class="dock panel" id="dockKingdom" hidden>
-    <label class="msel" for="mapSel">Battlefield <select id="mapSel"></select></label>
-    <button id="engageBtn">Engage at Thornfield</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="spdBtn">Speed 1×</button>
+    <span class="khint">Click a castle to command it</span>
   </div>
 </div>
 
@@ -313,7 +328,8 @@ function poly(x,pts,col){x.fillStyle=col;x.beginPath();x.moveTo(pts[0],pts[1]);f
 
 const PAL={
   a:{skin:'#f0b98a',metal:'#c9d3e0',metalD:'#6b7a92',cloth:'#2f5fc4',clothD:'#1d3a80',accent:'#f2c94c',wood:'#8a5a2b',shield:'#2f5fc4',horse:'#e6dfcf',horseD:'#a39a88',hood:'#3d7a3a',hoof:'#3a2e24'},
-  b:{skin:'#bda894',metal:'#6a6272',metalD:'#2f2a35',cloth:'#a3262a',clothD:'#5e1418',accent:'#f07a2a',wood:'#4d3624',shield:'#3a3340',horse:'#3d3439',horseD:'#221c20',hood:'#6e1a1e',hoof:'#0f0b0d'}
+  b:{skin:'#bda894',metal:'#6a6272',metalD:'#2f2a35',cloth:'#a3262a',clothD:'#5e1418',accent:'#f07a2a',wood:'#4d3624',shield:'#3a3340',horse:'#3d3439',horseD:'#221c20',hood:'#6e1a1e',hoof:'#0f0b0d'},
+  c:{skin:'#e0c0a0',metal:'#9a9ab8',metalD:'#4a4a68',cloth:'#5a3a8a',clothD:'#341f5a',accent:'#7fe8c8',wood:'#5a4030',shield:'#5a3a8a',horse:'#8a8070',horseD:'#5a5246',hood:'#2a6a5a',hoof:'#2a2018'}
 };
 const GPAL={
   a:{cape:'#2f5fc4',capeD:'#1d3a80',metal:'#d8b450',metalL:'#f6dc8a',metalD:'#8a6a24',dark:'#2a1e10',accent:'#ffffff',eye:'#9fe8ff',blade:'#e8f0ff',gem:'#4fd0ff',horn:'#fff'},
@@ -472,9 +488,9 @@ function cardGeo(cx,cy){const k=cx+','+cy;if(!geoCache[k]){const g=new THREE.Pla
 function card(mat,cx=0.5,cy=0,tilt=TILT){const m=new THREE.Mesh(cardGeo(cx,cy),mat);m.rotation.x=-tilt;return m;}
 const PX=0.055;
 
-const UM=[[],[]],UCV=[{},{}];// UM[side][type] -> frames [{m,w,h}]
+const UM=[[],[],[]],UCV=[{},{},{}];// UM[side][type] -> frames [{m,w,h}]
 ['inf','arc','cav'].forEach(type=>{
-  ['a','b'].forEach((k,s)=>{
+  ['a','b','c'].forEach((k,s)=>{
     const p=PAL[k],dims=type==='cav'?[28,24]:[18,22],fn={inf:drawInf,arc:drawArc,cav:drawCav}[type];
     const frames=[0,1,2].map(f=>{const c=cv(dims[0],dims[1]);fn(rectFn(c.getContext('2d')),f,p);return finish(c);});
     frames.push(type==='cav'?flipV(frames[0]):rot90(frames[0],-1));
@@ -487,13 +503,30 @@ Object.assign(GPAL,{
   brannoch:{cape:'#c46a1a',capeD:'#7a3a0e',metal:'#a8763a',metalL:'#d8a860',metalD:'#5e3a18',dark:'#2a1a0e',accent:'#ffe39a',eye:'#ffe39a',blade:'#e8f0ff',gem:'#ffd23a',horn:'#e8dcc0'},
   hask:{cape:'#5a4a3a',capeD:'#3a2e24',metal:'#7a7068',metalL:'#9a9088',metalD:'#3e3832',dark:'#1a1612',accent:'#c84a1a',eye:'#ff7a2a',blade:'#c8c0b8',gem:'#c84a1a',horn:'#d8ccb0'},
   mordrae:{cape:'#5a2a7a',capeD:'#341848',metal:'#4a4458',metalL:'#6e6684',metalD:'#262230',dark:'#140f1a',accent:'#c08aff',eye:'#e0a0ff',blade:'#d8d0e8',gem:'#c08aff',horn:'#fff'}});
+Object.assign(GPAL,{
+  ivo:{cape:'#2a7a6a',capeD:'#184a40',metal:'#c8b070',metalL:'#ecd8a0',metalD:'#7a6430',dark:'#1e1a10',accent:'#ffffff',eye:'#9fe8ff',blade:'#e8f0ff',gem:'#7fe8c8',horn:'#fff'},
+  maelis:{cape:'#e8e0d0',capeD:'#a8a090',metal:'#b8c8d8',metalL:'#e8f0f8',metalD:'#5a6a7a',dark:'#1a1e24',accent:'#5b8cff',eye:'#9fe8ff',blade:'#f0f8ff',gem:'#5b8cff',horn:'#fff'},
+  skarn:{cape:'#3a2a24',capeD:'#22160f',metal:'#5a4a40',metalL:'#7a6a5e',metalD:'#2a201a',dark:'#140e0a',accent:'#ff8a3a',eye:'#ffb03a',blade:'#c8b8a8',gem:'#ff8a3a',horn:'#b8a890'},
+  veyra:{cape:'#c84a1a',capeD:'#7a2a0e',metal:'#4a3a3a',metalL:'#6a5858',metalD:'#241a1a',dark:'#120a0a',accent:'#ffd23a',eye:'#ffd23a',blade:'#e0d0c8',gem:'#ffd23a',horn:'#fff'},
+  ysolde:{cape:'#3a1f5a',capeD:'#22103a',metal:'#9a9ab8',metalL:'#cacaea',metalD:'#4a4a68',dark:'#140f1e',accent:'#7fe8c8',eye:'#7fe8c8',blade:'#e8e8ff',gem:'#7fe8c8',horn:'#fff'},
+  corvin:{cape:'#2a2a3a',capeD:'#16161e',metal:'#6a6a80',metalL:'#8a8aa0',metalD:'#34344a',dark:'#0e0e16',accent:'#b48aff',eye:'#b48aff',blade:'#d8d8f0',gem:'#b48aff',horn:'#d8d0c0'},
+  brisa:{cape:'#2a6a5a',capeD:'#184038',metal:'#8a9a9a',metalL:'#b8c8c8',metalD:'#4a5a5a',dark:'#101818',accent:'#e8dcc0',eye:'#9fe8ff',blade:'#e8f0ff',gem:'#7fe8c8',horn:'#fff'},
+  odric:{cape:'#5a5a4a',capeD:'#3a3a2e',metal:'#8a8478',metalL:'#aaa498',metalD:'#4a463e',dark:'#16140f',accent:'#b48aff',eye:'#ffe39a',blade:'#d8d0c0',gem:'#b48aff',horn:'#e8dcc0'}});
 const GENDEFS=[
-  {key:'kaelen',side:0,name:'Kaelen the Unbowed',short:'Kaelen',troop:'inf',hp:64,atk:10,def:8,spell:'starfall',pal:GPAL.a,horned:false},
-  {key:'seren',side:0,name:'Seren Ashwillow',short:'Seren',troop:'arc',hp:46,atk:8,def:5,spell:'volley',pal:GPAL.seren,horned:false},
-  {key:'brannoch',side:0,name:'Brannoch Stormhelm',short:'Brannoch',troop:'cav',hp:56,atk:11,def:6,spell:'thunder',pal:GPAL.brannoch,horned:true},
-  {key:'hask',side:1,name:'Hask the Grinder',short:'Hask',troop:'inf',hp:58,atk:9,def:8,spell:'ashrain',pal:GPAL.hask,horned:true},
-  {key:'mordrae',side:1,name:'Mordrae of the Veil',short:'Mordrae',troop:'arc',hp:44,atk:8,def:4,spell:'volley',pal:GPAL.mordrae,horned:false},
-  {key:'vorgrath',side:1,name:'Vorgrath, Ashen Tyrant',short:'Vorgrath',troop:'cav',hp:76,atk:13,def:9,spell:'breath',pal:GPAL.b,horned:true}];
+  {key:'kaelen',side:0,nat:'aldmere',lvl:7,name:'Kaelen the Unbowed',short:'Kaelen',troop:'inf',hp:64,atk:10,def:8,spell:'starfall',pal:GPAL.a,horned:false,bio:'King of Aldmere. Swore never to kneel to the Ashen throne.'},
+  {key:'seren',side:0,nat:'aldmere',lvl:4,name:'Seren Ashwillow',short:'Seren',troop:'arc',hp:46,atk:8,def:5,spell:'volley',pal:GPAL.seren,horned:false,bio:'A ranger from the western woods who never misses twice.'},
+  {key:'brannoch',side:0,nat:'aldmere',lvl:5,name:'Brannoch Stormhelm',short:'Brannoch',troop:'cav',hp:56,atk:11,def:6,spell:'thunder',pal:GPAL.brannoch,horned:true,bio:'Thunder-touched horse lord, loud in battle and louder after.'},
+  {key:'ivo',side:0,nat:'aldmere',lvl:2,name:'Ivo Larkspur',short:'Ivo',troop:'arc',hp:40,atk:7,def:4,spell:'volley',pal:GPAL.ivo,horned:false,bio:'A young bowman desperate to prove himself.'},
+  {key:'maelis',side:0,nat:'aldmere',lvl:3,name:'Maelis Thorne',short:'Maelis',troop:'cav',hp:48,atk:9,def:5,spell:'thunder',pal:GPAL.maelis,horned:false,bio:'Knight-captain of the Highmere lancers.'},
+  {key:'vorgrath',side:1,nat:'ashen',lvl:8,name:'Vorgrath, Ashen Tyrant',short:'Vorgrath',troop:'cav',hp:76,atk:13,def:9,spell:'breath',pal:GPAL.b,horned:true,bio:'The Ashen Tyrant. Rides with a dragon at his back.'},
+  {key:'hask',side:1,nat:'ashen',lvl:5,name:'Hask the Grinder',short:'Hask',troop:'inf',hp:58,atk:9,def:8,spell:'ashrain',pal:GPAL.hask,horned:true,bio:'Grinds armies down one rank at a time.'},
+  {key:'mordrae',side:1,nat:'ashen',lvl:4,name:'Mordrae of the Veil',short:'Mordrae',troop:'arc',hp:44,atk:8,def:4,spell:'volley',pal:GPAL.mordrae,horned:false,bio:'Her arrows fall from a sky only she can see.'},
+  {key:'skarn',side:1,nat:'ashen',lvl:3,name:'Skarn Ashjaw',short:'Skarn',troop:'inf',hp:54,atk:9,def:7,spell:'ashrain',pal:GPAL.skarn,horned:true,bio:'Pit-fighter turned war chief.'},
+  {key:'veyra',side:1,nat:'ashen',lvl:3,name:'Veyra Cinder',short:'Veyra',troop:'arc',hp:42,atk:8,def:4,spell:'volley',pal:GPAL.veyra,horned:false,bio:'Archer of the burning dunes.'},
+  {key:'ysolde',side:1,nat:'dusk',lvl:7,name:'Ysolde Marrow',short:'Ysolde',troop:'cav',hp:70,atk:12,def:9,spell:'thunder',pal:GPAL.ysolde,horned:false,bio:'Queen of Duskmarch. Patient, cold and rarely wrong.'},
+  {key:'corvin',side:1,nat:'dusk',lvl:4,name:'Corvin Gall',short:'Corvin',troop:'inf',hp:56,atk:10,def:7,spell:'starfall',pal:GPAL.corvin,horned:true,bio:'Her sworn shield. Calls the stars down when the line breaks.'},
+  {key:'brisa',side:1,nat:'dusk',lvl:3,name:'Brisa Fenwright',short:'Brisa',troop:'arc',hp:42,atk:7,def:4,spell:'volley',pal:GPAL.brisa,horned:false,bio:'Fen-born scout who knows every bog path.'},
+  {key:'odric',side:1,nat:'dusk',lvl:3,name:'Odric Stoneward',short:'Odric',troop:'inf',hp:58,atk:9,def:8,spell:'ashrain',pal:GPAL.odric,horned:true,bio:'Holds a pass the way a mountain holds snow.'}];
 const GCV={},GM={},GMF={};
 GENDEFS.forEach(d=>{const base=[0,1,2].map(f=>{const c=cv(30,40);drawGen(rectFn(c.getContext('2d')),f,d.pal,d.horned);finish(c);return c;});
   const mk=sd=>{const fr=base.map(c=>sd?mirror(c):c);fr.push(rot90(fr[0],sd?1:-1));return fr.map(c=>({m:smat(c),w:c.width*PX*1.25,h:c.height*PX*1.25}));};
@@ -719,20 +752,20 @@ function ember(){const L=[];for(const r of MAP.rivers)if(r.kind==='lava')L.push(
   spawn({x,y:Hb(x,z)+0.3,z,vy:R(1.5,3.5),vx:R(-0.4,0.4),frames:FLAME,w:R(0.6,1.3),h:R(0.6,1.3),life:R(0.6,1.2),grow:0.3});}
 
 /* ---------- units ---------- */
-const ATL_C=8,ATL_R=4,CELL=32,atlasC=cv(ATL_C*CELL,ATL_R*CELL);
-{const x=atlasC.getContext('2d');for(let s=0;s<2;s++)['inf','arc','cav'].forEach((t,ti)=>UCV[s][t].forEach((c,f)=>{const idx=(s*3+ti)*4+f,col=idx%ATL_C,row=Math.floor(idx/ATL_C);x.drawImage(c,col*CELL+Math.round((CELL-c.width)/2),row*CELL+CELL-c.height);}));}
+const ATL_C=8,ATL_R=5,CELL=32,atlasC=cv(ATL_C*CELL,ATL_R*CELL);
+{const x=atlasC.getContext('2d');for(let s=0;s<3;s++)['inf','arc','cav'].forEach((t,ti)=>UCV[s][t].forEach((c,f)=>{const idx=(s*3+ti)*4+f,col=idx%ATL_C,row=Math.floor(idx/ATL_C);x.drawImage(c,col*CELL+Math.round((CELL-c.width)/2),row*CELL+CELL-c.height);}));}
 const uGeo=new THREE.PlaneGeometry(1,1);uGeo.translate(0,0.48,0);uGeo.rotateX(-TILT);
 const uMat=new THREE.MeshBasicMaterial({map:tex(atlasC),alphaTest:0.5,side:THREE.DoubleSide});
 uMat.onBeforeCompile=sh=>{sh.vertexShader='attribute vec2 aCell;\n'+sh.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\nvUv=(vUv+aCell)*vec2('+(1/ATL_C).toFixed(6)+','+(1/ATL_R).toFixed(6)+');');};
 const UN=NPS*2,uCellAttr=new THREE.InstancedBufferAttribute(new Float32Array(UN*2),2);uCellAttr.setUsage(THREE.DynamicDrawUsage);uGeo.setAttribute('aCell',uCellAttr);
 const uMesh=new THREE.InstancedMesh(uGeo,uMat,UN);uMesh.frustumCulled=false;uMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);battle.add(uMesh);
-const UMAT=uMesh.instanceMatrix.array,UCELL=uCellAttr.array,USCL=CELL*PX,TI={inf:0,arc:1,cav:2};
+const sidePal=[0,1],UMAT=uMesh.instanceMatrix.array,UCELL=uCellAttr.array,USCL=CELL*PX,TI={inf:0,arc:1,cav:2};
 const units=[];
 for(let s=0;s<2;s++)for(let i=0;i<NPS;i++)units.push({uid:s*NPS+i,side:s,type:'inf',i,state:'gone',vis:false,x:0,z:0,y:0,rx:0,rz:0});
 function writeUnit(u,f){const o=u.uid*16;UMAT.fill(0,o,o+16);UMAT[o+15]=1;
   if(!u.vis){UMAT[o+13]=-999;return;}
   UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y;UMAT[o+14]=u.z;
-  const idx=(u.side*3+TI[u.type])*4+f;UCELL[u.uid*2]=idx%ATL_C;UCELL[u.uid*2+1]=ATL_R-1-Math.floor(idx/ATL_C);}
+  const idx=(sidePal[u.side]*3+TI[u.type])*4+f;UCELL[u.uid*2]=idx%ATL_C;UCELL[u.uid*2+1]=ATL_R-1-Math.floor(idx/ATL_C);}
 units.forEach(u=>writeUnit(u,0));
 /* spatial grid for targeting and spacing */
 const GC=2,GW=Math.ceil((FW+10)/GC),GD=Math.ceil((FD+10)/GC),GB=[[],[]],GA=[];
@@ -822,26 +855,226 @@ kingdom.add(buildTerrain(Hk,(c,x,z,y)=>{
 }));
 kingdom.add(buildBase());
 const PASS={x:0,z:1.2};
-const K_CASTLES=[{n:'HIGHMERE',x:-15,z:5.5,c:castleBlue},{n:'CINDERVAULT',x:15,z:-3,c:castleRed},{n:"ORRIN'S KEEP",x:-5,z:-8,c:castleGrey},{n:'SALTMARSH',x:8,z:9.5,c:castleGrey},{n:'GREYWATCH',x:-15.5,z:-5.5,c:castleGrey}];
-const castleMats={blue:smat(castleBlue),red:smat(castleRed),grey:smat(castleGrey)};
-K_CASTLES.forEach(k=>{k.sp=sprite(k.c===castleBlue?castleMats.blue:k.c===castleRed?castleMats.red:castleMats.grey,3.4,4);k.sp.position.set(k.x,Hk(k.x,k.z),k.z);kingdom.add(k.sp);});
-const swords=sprite(drawSwords(),1.6,1.6,0.5,0);swords.position.set(PASS.x,Hk(PASS.x,PASS.z)+0.2,PASS.z);kingdom.add(swords);
-_s=133;for(let i=0;i<90;i++){const x=-19+srand()*38,z=-11+srand()*22;const y=Hk(x,z),rz=4*Math.sin(x*0.18)+3;if(Math.abs(z-rz)<1.6||y>1.5)continue;
-  if(K_CASTLES.some(k=>Math.hypot(k.x-x,k.z-z)<2.4)||Math.hypot(x-PASS.x,z-PASS.z)<2.5)continue;
+/* ---------- campaign: nations, castles, roads ---------- */
+const castleMats={blue:smat(castleBlue),red:smat(castleRed),grey:smat(castleGrey),purple:smat(drawCastle('#5a3a8a','#7fe8c8'))};
+const NATIONS={aldmere:{name:'Aldmere',col:'#5b8cff',mat:'blue',pal:0,ruler:'kaelen'},ashen:{name:'Ashen Legion',col:'#ff5a3a',mat:'red',pal:1,ruler:'vorgrath'},dusk:{name:'Duskmarch',col:'#b48aff',mat:'purple',pal:2,ruler:'ysolde'},none:{name:'Unclaimed',col:'#a99fb8',mat:'grey'}};
+const CASTLES=[
+  {n:'Highmere',x:-16,z:6.5,b:'river',o0:'aldmere',cap:1},{n:'Thornwick',x:-12,z:-2.5,b:'forest',o0:'aldmere'},{n:'Saltmarsh',x:-10,z:9.5,b:'marsh',o0:'aldmere'},{n:'Greenhollow',x:-17,z:-4,b:'forest',o0:'aldmere'},
+  {n:'Thornfield Keep',x:-5,z:3.5,b:'river',o0:'none'},{n:"Orrin's Keep",x:-7,z:-5.5,b:'highland',o0:'none'},{n:'Sunscar',x:-1,z:9.5,b:'desert',o0:'none'},{n:'Mirewater',x:4,z:7.8,b:'marsh',o0:'none'},
+  {n:'Eldwood Hold',x:2,z:-2,b:'forest',o0:'none'},{n:'Frostmere',x:8,z:-10,b:'winter',o0:'none'},
+  {n:'Greywatch',x:-2,z:-9.5,b:'highland',o0:'dusk',cap:1},{n:'Ravenspire',x:3,z:-6.5,b:'winter',o0:'dusk'},{n:'Coldbrook',x:-11,z:-9.5,b:'highland',o0:'dusk'},
+  {n:'Cindervault',x:15.5,z:-2.5,b:'ashen',o0:'ashen',cap:1},{n:'Emberfall',x:11,z:2.5,b:'ashen',o0:'ashen'},{n:'Blackmoor',x:12,z:-6.5,b:'ashen',o0:'ashen'},{n:'Duneholt',x:10,z:9.5,b:'desert',o0:'ashen'},{n:'Scorchgate',x:17,z:6.5,b:'ashen',o0:'ashen'}];
+CASTLES.forEach((c,i)=>{c.id=i;c.adj=[];c.y=Hk(c.x,c.z);c.o=c.o0;});
+const ROADS=[];
+{const E=[];for(let i=0;i<CASTLES.length;i++)for(let j=i+1;j<CASTLES.length;j++)E.push([Math.hypot(CASTLES[i].x-CASTLES[j].x,CASTLES[i].z-CASTLES[j].z),i,j]);E.sort((a,b)=>a[0]-b[0]);
+  const par=CASTLES.map((_,i)=>i),f=i=>par[i]===i?i:(par[i]=f(par[i]));
+  for(const[d,i,j]of E){if(f(i)!==f(j)){par[f(i)]=f(j);ROADS.push([i,j]);}else if(d<6.6)ROADS.push([i,j]);}
+  ROADS.forEach(([i,j])=>{CASTLES[i].adj.push(j);CASTLES[j].adj.push(i);});
+  const P=[],W=0.2;for(const[i,j]of ROADS){const a=CASTLES[i],b=CASTLES[j],L=Math.hypot(b.x-a.x,b.z-a.z),nx=-(b.z-a.z)/L*W,nz=(b.x-a.x)/L*W,N=Math.ceil(L*2);
+    for(let k=0;k<N;k++){const t0=k/N,t1=(k+1)/N,x0=a.x+(b.x-a.x)*t0,z0=a.z+(b.z-a.z)*t0,x1=a.x+(b.x-a.x)*t1,z1=a.z+(b.z-a.z)*t1,y0=Hk(x0,z0)+0.06,y1=Hk(x1,z1)+0.06;
+      P.push(x0-nx,y0,z0-nz,x0+nx,y0,z0+nz,x1+nx,y1,z1+nz, x0-nx,y0,z0-nz,x1+nx,y1,z1+nz,x1-nx,y1,z1-nz);}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));kingdom.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xc8b07a,side:THREE.DoubleSide})));}
+const roadNear=(x,z)=>ROADS.some(([i,j])=>segD(x,z,{x1:CASTLES[i].x,z1:CASTLES[i].z,x2:CASTLES[j].x,z2:CASTLES[j].z})<0.9);
+const pickables=[];
+CASTLES.forEach(c=>{c.sp=sprite(castleMats.grey,c.cap?3.7:3,c.cap?4.4:3.6);c.sp.position.set(c.x,c.y,c.z);c.sp.userData.castle=c;kingdom.add(c.sp);pickables.push(c.sp);});
+_s=133;for(let i=0;i<110;i++){const x=-19+srand()*38,z=-11+srand()*22;const y=Hk(x,z),rz=4*Math.sin(x*0.18)+3;if(Math.abs(z-rz)<1.6||y>1.5)continue;
+  if(CASTLES.some(k=>Math.hypot(k.x-x,k.z-z)<2.2)||roadNear(x,z))continue;
   const pine=srand()<0.55,sp=sprite(pine?pineM:oakM,pine?0.75:0.9,pine?1.3:1,0.5,0.02);sp.position.set(x,y,z);kingdom.add(sp);}
 const kClouds=[];for(let i=0;i<5;i++){const s=sprite(cloudM,4.4,1.65,0.5,0.5,0);s.position.set(-18+i*9,R(7,10),R(-9,9));kingdom.add(s);kClouds.push(s);}
 const kDragonMat=new THREE.MeshBasicMaterial({map:DRAG.r[0],alphaTest:0.5,side:THREE.DoubleSide});const kDragon=card(kDragonMat,0.5,0.5,0);kDragon.scale.set(3.2,2.1,1);kingdom.add(kDragon);
-const tokens=[0,1].map(s=>{const gk=s?'vorgrath':'kaelen',sp=card(GM[gk][0].m,0.5,0.02);sp.scale.set(GM[gk][0].w*0.75,GM[gk][0].h*0.75,1);kingdom.add(sp);return{sp,from:s?{x:13.5,z:-1.5}:{x:-13,z:4.5},to:s?{x:1.5,z:PASS.z}:{x:-1.5,z:PASS.z}};});
-const labelSprites=[];
+const selRing=new THREE.Mesh(new THREE.RingGeometry(1.5,1.85,32),new THREE.MeshBasicMaterial({color:0xf0c055,side:THREE.DoubleSide,depthTest:false,transparent:true,opacity:0.9}));
+selRing.rotation.x=-Math.PI/2;selRing.renderOrder=9;selRing.visible=false;kingdom.add(selRing);
+const hoverRing=selRing.clone();hoverRing.material=selRing.material.clone();hoverRing.material.color.set(0xffffff);hoverRing.material.opacity=0.5;kingdom.add(hoverRing);
 function makeLabel(text,color){
   const fs=16,m=cv(4,4).getContext('2d');m.font=`700 ${fs}px Silkscreen, monospace`;const w=Math.ceil(m.measureText(text).width)+12,h=fs+10;
   const c=cv(w,h),x=c.getContext('2d');x.fillStyle='#120e1c';x.fillRect(0,0,w,h);x.fillStyle=color;x.fillRect(0,h-2,w,2);x.font=m.font;x.fillStyle='#f1e8d4';x.textBaseline='middle';x.fillText(text,6,h/2);
   const t=tex(c,true),s=card(new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}),0.5,0);s.scale.set(w*0.034,h*0.034,1);return s;
 }
-function buildLabels(){
-  labelSprites.forEach(s=>kingdom.remove(s));labelSprites.length=0;
-  K_CASTLES.forEach(k=>{const col=k.n==='CINDERVAULT'&&!conquered?'#ff5a3a':(k.n==='HIGHMERE'||(k.n==='CINDERVAULT'&&conquered))?'#5b8cff':'#a99fb8';const l=makeLabel(k.n,col);l.position.set(k.x,Hk(k.x,k.z)+4.3,k.z);kingdom.add(l);labelSprites.push(l);});
-  const p=makeLabel('THORNFIELD PASS','#f0c055');p.position.set(PASS.x,Hk(PASS.x,PASS.z)+2.1,PASS.z);kingdom.add(p);labelSprites.push(p);
+function dropLabel(o){if(o&&o.lab){kingdom.remove(o.lab);o.lab.geometry!==undefined;o.lab.material.map.dispose();o.lab.material.dispose();o.lab=null;}}
+function buildLabels(){CASTLES.forEach(refreshCastle);}
+function refreshCastle(c){c.sp.material=castleMats[NATIONS[c.o||'none'].mat];dropLabel(c);const g=garrison(c).length;
+  c.lab=makeLabel(c.n.toUpperCase()+(g?' ·'+g:''),NATIONS[c.o||'none'].col);c.lab.position.set(c.x,c.y+(c.cap?4.7:3.9),c.z);kingdom.add(c.lab);}
+
+/* ---------- generals that grow ---------- */
+const troopCap=l=>Math.min(NPS,110+l*35);
+const RANKS=['Captain','Captain','Commander','Commander','General','General','Marshal','Marshal','Warlord','Warlord'];
+const rankOf=l=>RANKS[clamp(l,1,10)-1];
+const xpNeed=l=>60+l*40;
+let GENS=[],levelUps=[];
+function mkRec(d){const cp=Object.assign({},d);const tm=troopCap(d.lvl);return{d:cp,nat:d.nat,lvl:d.lvl,xp:0,hp:cp.hp,troops:tm,troopsMax:tm,out:false,captor:null,turned:false,tried:-1,loc:null,alive:true};}
+function turnRec(r,side,nat){return Object.assign({},r,{d:Object.assign({},r.d,{side}),nat,hp:Math.max(10,r.d.hp*0.6),troops:Math.round((r.troopsMax||NPS)*0.6),out:false,captor:null,turned:false,tried:-1,alive:true,loc:null});}
+function gainXP(r,n){if(!r||r.lvl===undefined||!r.alive)return;r.xp+=n;
+  while(r.lvl<10&&r.xp>=xpNeed(r.lvl)){r.xp-=xpNeed(r.lvl);r.lvl++;r.d.hp+=5;r.hp=Math.min(r.d.hp,r.hp+5);r.d.atk+=0.7;r.d.def+=0.5;r.troopsMax=troopCap(r.lvl);levelUps.push(r);}}
+const power=r=>r.troops*(1+r.lvl*0.08)+Math.max(0,r.hp)*r.d.atk*0.8;
+const ready=r=>r.alive&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
+
+/* ---------- campaign state ---------- */
+const WEEK=24;
+const CAMP={on:false,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false,nextId:1};
+const garrison=c=>GENS.filter(r=>r.alive&&r.loc===c.id);
+const nationOf=r=>r.nat;
+function clog(t){CAMP.log=t;if(state==='kingdom')updateModeUI();}
+function bfs(a,b){const prev=new Map([[a,-1]]),q=[a];while(q.length){const v=q.shift();if(v===b)break;for(const w of CASTLES[v].adj)if(!prev.has(w)){prev.set(w,v);q.push(w);}}
+  if(!prev.has(b))return null;const p=[];for(let v=b;v!==-1;v=prev.get(v))p.unshift(v);return p;}
+function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.length){const v=q.shift();if(CASTLES[v].o===nat&&v!==from)return v;for(const w of CASTLES[v].adj)if(!seen.has(w)){seen.add(w);q.push(w);}}
+  const any=CASTLES.find(c=>c.o===nat);return any?any.id:null;}
+function initCampaign(){
+  CAMP.armies.forEach(a=>{kingdom.remove(a.tok);dropLabel(a);pickables.splice(pickables.indexOf(a.tok),1);});
+  Object.assign(CAMP,{on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'Week 1. Aldmere stands between the Ashen Legion and Duskmarch.',sel:null,target:false,picked:new Set(),over:false});
+  CASTLES.forEach(c=>{c.o=c.o0;});
+  GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
+  at('kaelen','Highmere');at('seren','Highmere');at('brannoch','Thornwick');at('ivo','Greenhollow');at('maelis','Saltmarsh');
+  at('vorgrath','Cindervault');at('mordrae','Cindervault');at('hask','Emberfall');at('skarn','Blackmoor');at('veyra','Scorchgate');
+  at('ysolde','Greywatch');at('corvin','Greywatch');at('brisa','Coldbrook');at('odric','Ravenspire');
+  buildLabels();updateCampPanel();
+}
+function makeArmy(nat,gens,path){
+  const a={id:CAMP.nextId++,nat,gens,path,seg:0,t:0,from:path[0],x:CASTLES[path[0]].x,z:CASTLES[path[0]].z};
+  gens.forEach(r=>r.loc='army'+a.id);
+  a.tok=card(GMF[gens[0].d.key][0][0].m,0.5,0.02);a.tok.userData.army=a;kingdom.add(a.tok);pickables.push(a.tok);
+  CAMP.armies.push(a);refreshArmy(a);refreshCastle(CASTLES[path[0]]);return a;}
+function refreshArmy(a){dropLabel(a);const lead=a.gens[0];if(!lead){return;}a.lab=makeLabel(lead.d.short+(a.gens.length>1?' +'+(a.gens.length-1):''),NATIONS[a.nat].col);kingdom.add(a.lab);}
+function removeArmy(a){kingdom.remove(a.tok);dropLabel(a);const i=pickables.indexOf(a.tok);if(i>=0)pickables.splice(i,1);CAMP.armies.splice(CAMP.armies.indexOf(a),1);if(CAMP.sel&&CAMP.sel.army===a)CAMP.sel=null;}
+function dispatch(nat,gens,from,to){const path=bfs(from,to);if(!path||path.length<2||!gens.length)return null;return makeArmy(nat,gens,path);}
+function hostile(a,b){return a&&b&&a!==b&&a!=='none'&&b!=='none';}
+function campTick(dt,now){
+  if(!CAMP.on||CAMP.over||CAMP.paused||state!=='kingdom')return;
+  const sdt=dt*CAMP.speed;
+  CAMP.t+=sdt;if(CAMP.t>=WEEK){CAMP.t-=WEEK;CAMP.week++;
+    for(const r of GENS)if(r.alive&&typeof r.loc==='number'){r.hp=Math.min(r.d.hp,r.hp+r.d.hp*0.25);r.troops=Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*0.3));}
+    clog('Week '+CAMP.week+'. Garrisons rest and muster fresh troops.');marchBeat();updateCampPanel();}
+  for(const a of CAMP.armies.slice()){
+    const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]],L=Math.hypot(B.x-A.x,B.z-A.z);
+    a.t+=sdt*0.9/L;a.x=A.x+(B.x-A.x)*Math.min(1,a.t);a.z=A.z+(B.z-A.z)*Math.min(1,a.t);a.dir=B.x>=A.x?0:1;
+    if(a.t>=1){a.seg++;a.t=0;const c=B;
+      if(a.seg>=a.path.length-1||c.o!==a.nat){arrive(a,c);if(state!=='kingdom')return;}}
+  }
+  for(let i=0;i<CAMP.armies.length;i++)for(let j=i+1;j<CAMP.armies.length;j++){const a=CAMP.armies[i],b=CAMP.armies[j];
+    if(!hostile(a.nat,b.nat))continue;const ea=[a.path[a.seg],a.path[a.seg+1]],eb=[b.path[b.seg],b.path[b.seg+1]];
+    if(!((ea[0]===eb[1]&&ea[1]===eb[0])||(ea[0]===eb[0]&&ea[1]===eb[1])))continue;
+    if(Math.hypot(a.x-b.x,a.z-b.z)<0.9){clash({kind:'road',att:a,defArmy:b,x:(a.x+b.x)/2,z:(a.z+b.z)/2,b:CASTLES[ea[1]].b});if(state!=='kingdom')return;}}
+  CAMP.aiT+=sdt;if(CAMP.aiT>3.5){CAMP.aiT=0;aiCampaign('ashen');aiCampaign('dusk');}
+}
+function arrive(a,c){
+  if(c.o===a.nat){a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);updateCampPanel();return;}
+  const def=garrison(c).filter(r=>r.troops>0||r.hp>0);
+  if(!def.length){const was=c.o;c.o=a.nat;a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);
+    if(a.nat==='aldmere'||was==='aldmere')clog(`${NATIONS[a.nat].name} takes ${c.n}${was!=='none'?' from '+NATIONS[was].name:''}.`);checkCampaignEnd();updateCampPanel();return;}
+  clash({kind:'castle',att:a,castle:c,x:c.x,z:c.z,b:c.b});
+}
+function clash(ctx){
+  const attN=ctx.att.nat,defN=ctx.kind==='castle'?ctx.castle.o:ctx.defArmy.nat;
+  const A=ctx.att.gens.filter(r=>r.alive),D=(ctx.kind==='castle'?garrison(ctx.castle):ctx.defArmy.gens).filter(r=>r.alive);
+  ctx.A=A;ctx.D=D;ctx.attN=attN;ctx.defN=defN;
+  if(attN==='aldmere'||defN==='aldmere'){startCampaignBattle(ctx);return;}
+  const sA=A.reduce((s,r)=>s+power(r),0)*R(0.75,1.25),sD=D.reduce((s,r)=>s+power(r),0)*R(0.75,1.25)*(ctx.kind==='castle'?1.15:1);
+  const aw=sA>=sD,W=aw?A:D,L=aw?D:A,ratio=Math.min(1,(aw?sD:sA)/Math.max(1,aw?sA:sD)),wn=aw?attN:defN;
+  W.forEach(r=>{r.troops=Math.max(5,Math.round(r.troops*(1-0.6*ratio)));gainXP(r,30);});
+  L.forEach(r=>{if(Math.random()<(r.d.key===NATIONS[r.nat].ruler?0.08:0.22)){r.alive=false;r.prisonerOf=wn;}else{r.troops=Math.round(r.troops*0.15);r.hp=Math.max(5,r.hp*0.6);}});
+  resolveOutcome(ctx,aw);
+}
+function resolveOutcome(ctx,attWon){
+  const A=ctx.A.filter(r=>r.alive),D=ctx.D.filter(r=>r.alive).concat(ctx.extraD||[]),Ax=A.concat(ctx.extraA||[]);
+  const home=(list,nat,from)=>{const h=nearestOwned(nat,from);list.forEach(r=>{if(h===null){r.alive=false;}else r.loc=h;});if(h!==null)refreshCastle(CASTLES[h]);};
+  if(ctx.kind==='castle'){const c=ctx.castle,was=c.o;
+    if(attWon&&Ax.length){c.o=ctx.attN;Ax.forEach(r=>r.loc=c.id);home(D,was,c.id);if(ctx.attN==='aldmere'||was==='aldmere')clog(`${NATIONS[ctx.attN].name} storms ${c.n}.`);}
+    else{home(Ax,ctx.attN,ctx.att.from);D.forEach(r=>r.loc=c.id);if(ctx.attN==='aldmere'||was==='aldmere')clog(`${c.n} holds against ${NATIONS[ctx.attN].name}.`);}
+    removeArmy(ctx.att);refreshCastle(c);}
+  else{const a=ctx.att,b=ctx.defArmy,winA=attWon,W=winA?a:b,Lr=winA?b:a,Wl=winA?Ax:D,Ll=winA?D:Ax;
+    if(Wl.length){W.gens=Wl;Wl.forEach(r=>r.loc='army'+W.id);refreshArmy(W);}else removeArmy(W);
+    home(Ll,Lr.nat,Lr.from);removeArmy(Lr);if(a.nat==='aldmere'||b.nat==='aldmere')clog(`${NATIONS[W.nat].name} wins the clash on the road.`);}
+  for(const n of['ashen','dusk','aldmere']){const ru=GENS.find(r=>r.d.key===NATIONS[n].ruler&&r.nat===n);if(ru&&!ru.alive&&CASTLES.some(c=>c.o===n))collapse(n);}
+  checkCampaignEnd();updateCampPanel();
+}
+function collapse(n){if(n==='aldmere')return;CASTLES.forEach(c=>{if(c.o===n){c.o='none';refreshCastle(c);}});GENS.forEach(r=>{if(r.nat===n&&r.alive){r.alive=false;r.scattered=true;}});
+  CAMP.armies.filter(a=>a.nat===n).forEach(removeArmy);clog(`${NATIONS[n].name} collapses without its ruler. Its castles stand empty.`);}
+function checkCampaignEnd(){if(CAMP.over)return;
+  const mine=CASTLES.filter(c=>c.o==='aldmere').length,k=GENS.find(r=>r.d.key==='kaelen');
+  const foes=CASTLES.filter(c=>c.o==='ashen'||c.o==='dusk').length+CAMP.armies.filter(a=>a.nat!=='aldmere').length;
+  if(!mine||(k&&!k.alive&&k.nat==='aldmere')){CAMP.over=true;campaignOver(false);}else if(!foes){CAMP.over=true;campaignOver(true);}}
+function campaignOver(win){
+  $('endTitle').textContent=win?'The Realm Is Yours':'Aldmere Falls';
+  $('endText').textContent=win?`In week ${CAMP.week} the last banner of your enemies came down. Aldmere rules the realm. Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.`:`In week ${CAMP.week} the last of Aldmere's castles fell. The Eternal War goes on without you.`;
+  $('againBtn').textContent='New campaign';$('againBtn').hidden=false;$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
+function aiCampaign(n){
+  const own=CASTLES.filter(c=>c.o===n);if(!own.length)return;
+  for(const c of own){const G=garrison(c).filter(ready).sort((a,b)=>power(b)-power(a)),keep=c.cap?1:0;if(G.length<=keep)continue;
+    const targeted=new Set(CAMP.armies.filter(a=>a.nat===n).map(a=>a.path[a.path.length-1]));
+    const opts=c.adj.map(i=>CASTLES[i]).filter(t=>t.o!==n&&!targeted.has(t.id));
+    const send=G.slice(0,Math.min(3,G.length-keep)),my=send.reduce((s,r)=>s+power(r),0);
+    let best=null,bs=0;for(const t of opts){const g=garrison(t).reduce((s,r)=>s+power(r),0);const sc=(t.o==='none'&&!g?3:g?my/(g*1.2):2)+(t.cap?0.6:0)+(t.o==='aldmere'?0.3:0)+Math.random()*0.5;if((g===0||my>g*1.3)&&sc>bs){bs=sc;best=t;}}
+    if(best&&Math.random()<0.3){const a=dispatch(n,send,c.id,best.id);if(a&&best.o==='aldmere')clog(`${NATIONS[n].name} marches on ${best.n}!`);refreshCastle(c);continue;}
+    if(!opts.length&&G.length>keep&&Math.random()<0.15){const front=own.find(o=>o.adj.some(i=>CASTLES[i].o!==n));if(front&&front!==c)dispatch(n,[G[0]],c.id,front.id);refreshCastle(c);}}
+}
+let pendingBattle=null;
+function startCampaignBattle(ctx){
+  const pAtt=ctx.attN==='aldmere',P=pAtt?ctx.A:ctx.D,E=pAtt?ctx.D:ctx.A,eNat=pAtt?ctx.defN:ctx.attN;
+  const canP=P.some(r=>r.troops>0&&r.hp>0),canE=E.some(r=>r.troops>0&&r.hp>0);
+  if(!canP||!canE){const pw=canP;if(!pw)P.forEach(r=>{r.troops=0;});resolveOutcome(ctx,pAtt?pw:!pw);clog(pw?'The enemy has no strength to fight.':'Your generals have no troops to fight with.');return;}
+  [...P,...E].forEach(r=>Object.assign(r,{out:false,captor:null,turned:false,tried:-1}));
+  pendingBattle={ctx,p:P.slice(),e:E.slice(),eNat};
+  sidePal[1]=NATIONS[eNat].pal;castleB.material=castleMats[NATIONS[eNat].mat];
+  PASS.x=ctx.x;PASS.z=ctx.z;mapChoice=ctx.b;CAMP.sel=null;CAMP.target=false;
+  clog(ctx.kind==='castle'?`Battle for ${ctx.castle.n}!`:'Armies clash on the road!');showBanner(ctx.kind==='castle'?ctx.castle.n:'Ambush on the road',!pAtt);
+  state='transition';trT=0;swapped=false;sfx('fanfare');updateModeUI();updateCampPanel();
+  setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);
+}
+function applyCampaignBattle(win){
+  const B=pendingBattle;if(!B)return;pendingBattle=null;const ctx=B.ctx,pAtt=ctx.attN==='aldmere';
+  const newP=roster[0].filter(r=>!B.p.includes(r)),newE=roster[1].filter(r=>!B.e.includes(r));
+  newP.forEach(r=>{r.nat='aldmere';r.alive=true;GENS.push(r);});newE.forEach(r=>{r.nat=B.eNat;r.alive=true;GENS.push(r);});
+  B.p.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1){r.alive=false;r.prisonerOf=B.eNat;}});
+  B.e.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0){r.alive=false;r.prisonerOf='aldmere';}});
+  [...B.p,...B.e,...newP,...newE].forEach(r=>{r.out=false;r.captor=null;r.turned=false;});
+  if(pAtt){ctx.extraA=newP;ctx.extraD=newE;}else{ctx.extraA=newE;ctx.extraD=newP;}
+  resolveOutcome(ctx,pAtt?win:!win);
+}
+/* ---------- campaign UI ---------- */
+function genRow(r,own,checked){
+  const bar=(f,c)=>`<span class="cb"><i style="width:${clamp(f*100,0,100)}%;background:${c}"></i></span>`;
+  return `<label class="grow${own?'':' ro'}">${own?`<input type="checkbox" data-g="${GENS.indexOf(r)}"${checked?' checked':''}>`:''}<img src="${portrait(r.d.key)}" alt="">
+  <span class="gi"><span class="gn">${r.d.short} <em>${rankOf(r.lvl)} · Lv ${r.lvl}</em></span><span class="gt">${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} · ${SPELL[r.d.spell]}</span>
+  <span class="gbars">${bar(r.troops/r.troopsMax,'#5b8cff')}${bar(r.hp/r.d.hp,'#7fe39a')}${bar(r.xp/xpNeed(r.lvl),'#f0c055')}</span><span class="gb">${r.d.bio}</span></span></label>`;}
+function updateCampPanel(){
+  const P=$('campPanel');const s=CAMP.sel;if(!s||state!=='kingdom'){P.hidden=true;selRing.visible=false;return;}
+  P.hidden=xrActive;let html='',btns='';
+  if(s.castle){const c=s.castle,own=c.o==='aldmere',G=garrison(c);selRing.visible=true;selRing.position.set(c.x,c.y+0.1,c.z);
+    $('cpName').textContent=c.n;$('cpName').style.color=NATIONS[c.o].col;$('cpSub').textContent=`${NATIONS[c.o].name}${c.cap?' capital':''} · ${BIOMES[c.b].name}`;
+    html=G.length?G.map(r=>genRow(r,own,CAMP.picked.has(r))).join(''):'<p class="cpnote">No generals stationed here.</p>';
+    if(own&&G.length)btns=CAMP.target?'<button id="cpCancel">Cancel</button><span class="cpnote">Click a castle to march there.</span>':`<button id="cpMarch"${CAMP.picked.size?'':' disabled'}>March with ${CAMP.picked.size||'…'}</button>`;}
+  else if(s.army){const a=s.army,own=a.nat==='aldmere';selRing.visible=false;
+    $('cpName').textContent=own?'Your army':NATIONS[a.nat].name+' army';$('cpName').style.color=NATIONS[a.nat].col;$('cpSub').textContent='Marching to '+CASTLES[a.path[a.path.length-1]].n;
+    html=a.gens.map(r=>genRow(r,false,false)).join('');
+    if(own)btns=CAMP.target?'<button id="cpCancel">Cancel</button><span class="cpnote">Click a castle to redirect.</span>':'<button id="cpRedirect">Redirect</button><button id="cpBack">Turn back</button>';}
+  $('cpList').innerHTML=html;$('cpBtns').innerHTML=btns+'<button id="cpClose">Close</button>';
+  $('cpList').querySelectorAll('input[data-g]').forEach(i=>i.addEventListener('change',e=>{const r=GENS[+e.target.dataset.g];if(e.target.checked){if(CAMP.picked.size>=5){e.target.checked=false;return;}CAMP.picked.add(r);}else CAMP.picked.delete(r);updateCampPanel();}));
+  const on=(id,f)=>{const b=$(id);if(b)b.addEventListener('click',f);};
+  on('cpMarch',()=>{CAMP.target=true;updateCampPanel();});on('cpRedirect',()=>{CAMP.target=true;updateCampPanel();});on('cpCancel',()=>{CAMP.target=false;updateCampPanel();});
+  on('cpBack',()=>{const a=s.army;redirect(a,a.from);});on('cpClose',()=>{CAMP.sel=null;CAMP.target=false;updateCampPanel();});
+}
+function redirect(a,to){const here=a.t>0.5?a.path[a.seg+1]:a.path[a.seg],p=bfs(here,to);if(!p)return;
+  if(p.length<2){if(CASTLES[to].o===a.nat){arrive(a,CASTLES[to]);}return;}
+  const cx=a.x,cz=a.z;a.path=p;a.seg=0;a.t=0;const A=CASTLES[p[0]],B=CASTLES[p[1]],L=Math.hypot(B.x-A.x,B.z-A.z);a.t=clamp(1-Math.hypot(B.x-cx,B.z-cz)/L,0,0.95);
+  CAMP.target=false;clog('Your army changes course for '+CASTLES[to].n+'.');updateCampPanel();}
+function campClick(hit){
+  if(!hit){if(!CAMP.target){CAMP.sel=null;updateCampPanel();}return;}
+  const c=hit.userData.castle,a=hit.userData.army;
+  if(CAMP.target&&c&&CAMP.sel){
+    if(CAMP.sel.castle){const from=CAMP.sel.castle;if(c===from){CAMP.target=false;updateCampPanel();return;}
+      const gens=[...CAMP.picked].filter(r=>r.alive&&r.loc===from.id);const army=dispatch('aldmere',gens,from.id,c.id);
+      if(army){clog(`Your army marches from ${from.n} to ${c.n}.`);sfx('fanfare');CAMP.picked.clear();CAMP.sel={army};CAMP.target=false;}else clog('No road leads there.');}
+    else if(CAMP.sel.army)redirect(CAMP.sel.army,c.id);
+    updateCampPanel();return;}
+  CAMP.target=false;CAMP.picked.clear();
+  if(c){CAMP.sel={castle:c};if(c.o==='aldmere')garrison(c).filter(ready).sort((x,y)=>power(y)-power(x)).slice(0,3).forEach(r=>CAMP.picked.add(r));}
+  else if(a)CAMP.sel={army:a};
+  updateCampPanel();
+}
+function pickAt(o,d){ray.set(o,d);const h=ray.intersectObjects(pickables,false)[0];return h?h.object:null;}
+function campTokens(now){
+  for(const a of CAMP.armies){const lead=a.gens[0];if(!lead)continue;const fr=GMF[lead.d.key][a.dir||0][Math.floor(now*4)%2];
+    a.tok.material=fr.m;a.tok.scale.set(fr.w*0.7,fr.h*0.7,1);const y=Hk(a.x,a.z);a.tok.position.set(a.x,y,a.z);if(a.lab)a.lab.position.set(a.x,y+fr.h*0.7+0.2,a.z);}
+  if(CAMP.sel&&CAMP.sel.army){selRing.visible=true;selRing.position.set(CAMP.sel.army.x,Hk(CAMP.sel.army.x,CAMP.sel.army.z)+0.1,CAMP.sel.army.z);}
 }
 
 /* ---------- VR furniture ---------- */
@@ -926,7 +1159,7 @@ const BEATS={inf:'cav',cav:'arc',arc:'inf'};
 const COUNTER={cav:'inf',arc:'cav',inf:'arc'};
 const SPELL={starfall:'Starfall',volley:'Arrow Storm',thunder:'Thunder Lance',ashrain:'Ash Rain',breath:"Dragon's Breath"};
 let roster=[[],[]];const active=[null,null];
-function newRoster(){roster=[0,1].map(s=>GENDEFS.filter(d=>d.side===s).map(d=>({d,hp:d.hp,troops:NPS,out:false,captor:null,turned:false,tried:-1})));}
+function newRoster(){roster=[0,1].map(s=>GENDEFS.filter(d=>d.side===s).map(mkRec));}
 function avail(s){return roster[s].filter(r=>!r.out&&r.troops>0&&r.hp>0);}
 function strength(r){return Math.max(1,r.hp)*r.d.atk*(0.7+0.03*r.d.def);}
 function centroid(L,fb){if(!L.length)return{x:fb.x,z:fb.z};let x=0,z=0;for(const u of L){x+=u.x;z+=u.z;}return{x:x/L.length,z:z/L.length};}
@@ -966,7 +1199,7 @@ function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=n
 function kill(u,fx,fz,power=3,launch=0){
   u.state='dying';u.t=0;const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
-  killTally[1-u.side]++;morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
+  killTally[1-u.side]++;gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
@@ -1092,11 +1325,11 @@ function castSpell(side,tgt){
   morale[side]=clamp(morale[side]+0.08,0,1);morale[1-side]=clamp(morale[1-side]-0.05,0,1);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.4,z:g.z+0.3,tex:T_RUNE,w:3.4,h:3.4,life:1.5,grow:0.6,vy:0.8,blink:true});
   for(let i=0;i<14;i++)spawn({x:g.x+R(-1,1),y:Hb(g.x,g.z)+R(0,2),z:g.z+R(-0.5,0.5),vy:R(3,7),vz:R(0,2),tex:T_SPARK,w:0.4,h:0.4,life:R(0.6,1.2),blink:true});
-  const V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
+  const pw=1+0.06*((g.rec.lvl||1)-1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
-  if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<12;i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
-  else if(sp==='thunder'){for(let i=0;i<9;i++)schedule(0.5+i*0.17,()=>{const[x,z]=cl(cx+R(-6.5,6.5),cz+R(-6.5,6.5));lightning(x,z,V);});}
-  else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<170;i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
+  if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
+  else if(sp==='thunder'){for(let i=0;i<Math.round(9*pw);i++)schedule(0.5+i*0.17,()=>{const[x,z]=cl(cx+R(-6.5,6.5),cz+R(-6.5,6.5));lightning(x,z,V);});}
+  else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<Math.round(170*pw);i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
   schedule(2.4,()=>cheer(side,0.8));
   return true;
@@ -1218,26 +1451,21 @@ function updateDuel(dt){
 function finishDuel(w){
   duel.stage='done';const L=1-w;fg[L].dead=true;
   showBanner(active[L].d.short+' falls!',L===0);sfx('boom');cheer(w,1.4);battleCry(w,16,1);
-  morale[w]=clamp(morale[w]+0.25,0,1);morale[L]=0.05;
+  morale[w]=clamp(morale[w]+0.25,0,1);morale[L]=0.05;gainXP(active[w],60);
   schedule(1.6,()=>endEngagement(w,'fallen'));
 }
 
 /* ---------- flow ---------- */
 function startGame(){
-  if(state!=='title')return;audioInit();sfx('fanfare');$('title').hidden=true;state='kingdom';kMarch=true;kprog=0;kMet=false;
+  if(state!=='title')return;audioInit();sfx('fanfare');$('title').hidden=true;state='kingdom';initCampaign();
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();
 }
-function engage(){
-  if(state!=='kingdom')return;
-  if(!kMarch){kMarch=true;updateModeUI();return;}
-  state='transition';trT=0;swapped=false;sfx('fanfare');updateModeUI();
-  setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);
-}
+function togglePause(){if(state!=='kingdom')return;CAMP.paused=!CAMP.paused;clog(CAMP.paused?'Paused.':'The war resumes.');}
 function backToKingdom(){
-  state='kingdom';phase='intro';kMarch=false;kprog=0;kMet=false;battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
-  $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();
+  state='kingdom';phase='intro';battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
+  $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();updateCampPanel();checkCampaignEnd();
 }
-function fightAgain(){backToKingdom();kMarch=true;kprog=0.82;updateModeUI();}
+function fightAgain(){$('endp').hidden=true;initCampaign();backToKingdom();}
 function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);orders[0]=o;setOrderUI();}
 function cycleOrder(){setOrder(ORDERS[(ORDERS.indexOf(orders[0])+1)%ORDERS.length]);}
 function setOrderUI(){document.querySelectorAll('[data-ord]').forEach(b=>b.classList.toggle('on',b.dataset.ord===orders[0]));$('ordLbl').textContent=orders[0].toUpperCase();}
@@ -1266,14 +1494,14 @@ function renderSelect(){
   $('selSub').textContent=(e?`${e.d.short} holds the field with ${e.troops} ${TROOP[e.d.troop].toLowerCase()} and ${Math.ceil(e.hp)} HP.`:'The Ashen Legion picks after you, and it will try to counter you.')+(held.length?` The enemy holds ${held.join(' and ')} prisoner.`:'');
   it.forEach((x,i)=>{const r=x.r,b=document.createElement('button');b.type='button';
     if(x.k==='gen'){const m=e?matchup(r.d.troop,e.d.troop):'';b.className='gcard'+(i===selIdx?' on':'');
-      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${TROOP[r.d.troop]} · ${r.troops} troops</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
+      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${rankOf(r.lvl||1)} Lv ${r.lvl||1} · ${TROOP[r.d.troop]} · ${r.troops}</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
     else{const tried=r.tried===round;b.className='gcard cap'+(i===selIdx?' on':'');b.disabled=tried;
-      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">Prisoner · ${TROOP[r.d.troop]}</span><span class="gh">${tried?'Refused you this round':'Persuade to join · 50%'}</span><span class="gm even">Joins with ${Math.round(NPS*0.6)} troops</span>`;}
+      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">Prisoner · ${TROOP[r.d.troop]}</span><span class="gh">${tried?'Refused you this round':'Persuade to join · 50%'}</span><span class="gm even">Joins with ${Math.round((r.troopsMax||NPS)*0.6)} troops</span>`;}
     b.addEventListener('click',()=>selAct(x));box.appendChild(b);});
 }
 function persuade(r){
   if(phase!=='select'||r.tried===round||r.turned)return;r.tried=round;
-  if(Math.random()<0.5){r.turned=true;roster[0].push({d:Object.assign({},r.d,{side:0}),hp:Math.max(10,r.d.hp*0.6),troops:Math.round(NPS*0.6),out:false,captor:null,turned:false,tried:-1});
+  if(Math.random()<0.5){r.turned=true;roster[0].push(turnRec(r,0,'aldmere'));
     showBanner(r.d.short+' joins you!');sfx('fanfare');cheer(0,0.8);}
   else{showBanner(r.d.short+' refuses',true);sfx('defeat');}
   renderSelect();hudAcc=1;
@@ -1281,14 +1509,14 @@ function persuade(r){
 function chooseGeneral(r){
   if(phase!=='select')return;active[0]=r;
   for(const c of roster[0].filter(x=>x.captor===1&&!x.turned&&x.tried!==round)){c.tried=round;
-    if(Math.random()<0.35){c.turned=true;roster[1].push({d:Object.assign({},c.d,{side:1}),hp:Math.max(10,c.d.hp*0.6),troops:Math.round(NPS*0.6),out:false,captor:null,turned:false,tried:-1});traitorMsg=c.d.short+' has turned traitor!';}}
+    if(Math.random()<0.35){c.turned=true;roster[1].push(turnRec(c,1,pendingBattle?pendingBattle.eNat:'ashen'));traitorMsg=c.d.short+' has turned traitor!';}}
   const e=active[1],ea=avail(1);let pick=null;
   if(e&&ea.includes(e)&&e.troops>=NPS*0.35)pick=e;
   else{const want=COUNTER[r.d.troop],counters=ea.filter(x=>x.d.troop===want),nonBoss=ea.filter(x=>x.d.key!=='vorgrath'),pl=nonBoss.length?nonBoss:ea;
     pick=(counters.length&&Math.random()<0.65)?counters[0]:pl[(Math.random()*pl.length)|0];}
   active[1]=pick;$('selp').hidden=true;deploy();
 }
-function captureGen(L,w){const r=active[L];r.out=true;r.troops=0;r.captor=w;fg[L].captured=true;fg[L].flee=false;
+function captureGen(L,w){const r=active[L];gainXP(active[w],50);r.out=true;r.troops=0;r.captor=w;fg[L].captured=true;fg[L].flee=false;
   morale[w]=clamp(morale[w]+0.2,0,1);if(r.d.key==='vorgrath'&&w===0)tyrantTaken=true;cheer(w,1.2);}
 function nextRound(){if(state!=='battle')return;if(tyrantTaken)endBattle(true,'tyrant');else if(!avail(1).length)endBattle(true);else if(!avail(0).length)endBattle(false);else startSelect();}
 function endEngagement(w,reason){
@@ -1297,7 +1525,7 @@ function endEngagement(w,reason){
   const L=1-w,lr=active[L],wr=active[w];
   wr.troops=alive[w].length;
   for(const u of alive[L])startFlee(u);
-  sfx(w===0?'fanfare':'defeat');updateModeUI();hudAcc=1;cheer(w,1);
+  sfx(w===0?'fanfare':'defeat');updateModeUI();hudAcc=1;cheer(w,1);gainXP(wr,40);gainXP(lr,12);
   if(reason==='withdraw'){lr.troops=alive[L].length;fg[L].flee=true;schedule(0.6,()=>showBanner(lr.d.short+' withdraws',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
   lr.out=true;lr.troops=0;
   if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
@@ -1313,13 +1541,15 @@ function updatePursuit(dt){
 function pursuitEnd(d){phase='between';pursuit=null;setOrbitGoal(BV,0.9);schedule(d,nextRound);updateModeUI();}
 function endBattle(win,why){
   if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;pursuit=null;
-  if(win){conquered=true;const cv2=K_CASTLES.find(k=>k.n==='CINDERVAULT');cv2.sp.material=castleMats.blue;castleB.material=castleMats.blue;}
   showBanner(why==='tyrant'?'The Tyrant is taken!':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();if(win){cheer(0,1.6);warDrums(0,3,120);}else cheer(1,1.4);
   const caps=roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
+  const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
+  const eName=pendingBattle?NATIONS[pendingBattle.eNat].name:'the enemy';
+  applyCampaignBattle(win);
   schedule(1.8,()=>{$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
-    $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion lays down its arms. Cindervault opens its gates.':win?'The Ashen Legion breaks at Thornfield Pass and Cindervault opens its gates.':'Your last general falls back. The Ashen Legion holds Thornfield Pass for another winter.')
-      +(caps.length?' Prisoners taken: '+caps.join(', ')+'.':'')+(lost.length?' Held by the enemy: '+lost.join(', ')+'.':'')
-      +(win?' Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.':'');
+    $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion breaks apart.':win?`You win the battle at ${where} against ${eName}.`:`${eName} wins the battle at ${where}. Your survivors fall back.`)
+      +(caps.length?' Prisoners taken: '+caps.join(', ')+'.':'')+(lost.length?' Captured by the enemy: '+lost.join(', ')+'.':'')+(grown.length?' Your generals: '+grown.join(', ')+'.':'');
+    $('againBtn').hidden=true;$('mapBtn').hidden=false;$('mapBtn').textContent='Return to the war table';
     if(!xrActive)$('endp').hidden=false;});
 }
 function fightTick(dt){
@@ -1354,17 +1584,18 @@ function updateModeUI(){
   $('duelp').hidden=!(state==='battle'&&phase==='duel');
   $('selp').hidden=!(state==='battle'&&phase==='select')||xrActive;
   $('kbar').hidden=!(state==='kingdom'||state==='transition');$('dockKingdom').hidden=state!=='kingdom';
-  $('engageBtn').textContent=kMarch?'Engage now':(conquered?'March again':'March on Cindervault');
-  $('kPlace').textContent=conquered?'Cindervault has fallen':'The Kingdom of Aldmere';
-  const site=mapChoice==='random'?'an unknown battlefield':BIOMES[mapChoice].name;if($('mapSel').value!==mapChoice)$('mapSel').value=mapChoice;
-  $('kLine').textContent=conquered?'Year 1043 · The Ashen Legion regroups beyond the mountains':kMarch?'Year 1043 of the Eternal War · The armies close on '+site:'Year 1043 of the Eternal War · Kaelen marches on Cindervault';
+  if(state==='kingdom'||state==='transition'){const cnt=n=>CASTLES.filter(c=>c.o===n).length;
+    $('kPlace').textContent=`Week ${CAMP.week}${CAMP.paused?' · Paused':''}`;
+    $('kStats').innerHTML=['aldmere','ashen','dusk'].map(n=>`<span style="color:${NATIONS[n].col}">${NATIONS[n].name} ${cnt(n)}</span>`).join(' · ');
+    $('kLine').textContent=CAMP.log;$('pauseBtn').textContent=CAMP.paused?'Resume':'Pause';$('spdBtn').textContent='Speed '+CAMP.speed+'×';}
 }
 let hudAcc=0;const lastPor=['',''];
 function updateHud(dt){
   hudAcc+=dt;if(hudAcc<0.1)return;hudAcc=0;
   if(active[0]&&active[1]&&(state==='battle'||state==='end')){
     for(let s=0;s<2;s++){const r=active[s],k=s?'B':'A',n=alive[s].length;
-      if(lastPor[s]!==r.d.key){lastPor[s]=r.d.key;$('por'+k).src=portrait(r.d.key);$('name'+k).textContent=r.d.short.toUpperCase();$('sub'+k).textContent=TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();}
+      if(lastPor[s]!==r.d.key){lastPor[s]=r.d.key;$('por'+k).src=portrait(r.d.key);$('name'+k).textContent=r.d.short.toUpperCase();}
+      $('sub'+k).textContent='LV '+(r.lvl||1)+' · '+TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     const sp=$('spell'),ready=mp[0]>=1&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
@@ -1384,7 +1615,12 @@ function drawVrHud(){
   x.textBaseline='top';x.textAlign='left';x.font='700 30px Silkscreen, monospace';x.fillStyle='#f0c055';
   const line=(t,y,c='#f1e8d4',f='18px')=>{x.font=f+' Silkscreen, monospace';x.fillStyle=c;x.fillText(t,24,y);};
   if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');}
-  else if(state==='kingdom'||state==='transition'){x.fillText(conquered?'CINDERVAULT HAS FALLEN':'THE KINGDOM OF ALDMERE',24,22);line(kMarch?'Armies close on Thornfield Pass':'Right trigger: march',72,'#a99fb8');line('Battlefield: '+(mapChoice==='random'?'Random':BIOMES[mapChoice].name)+' (L trig)',104,'#f0c055');line('GRIP grab · L move · R turn/zoom · B reset',140,'#a99fb8');}
+  else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+(CAMP.paused?' · PAUSED':''),24,16);
+    const cnt=n=>CASTLES.filter(c=>c.o===n).length;line(`Aldmere ${cnt('aldmere')} · Ashen ${cnt('ashen')} · Dusk ${cnt('dusk')}`,56,'#a99fb8','16px');
+    const hv=vrHover&&(vrHover.userData.castle||vrHover.userData.army),sel=CAMP.sel;
+    line(hv?(hv.n?hv.n+' ('+NATIONS[hv.o].name+', '+garrison(hv).length+' gen)':NATIONS[hv.nat].name+' army: '+hv.gens.map(r=>r.d.short).join(', ')):'Point at a castle or army',84,'#f1e8d4','16px');
+    line(sel?(CAMP.target?'Pick a destination castle':sel.castle?'Selected '+sel.castle.n+(CAMP.picked.size?' · '+CAMP.picked.size+' ready to march':''):'Selected your army'):'',112,'#f0c055','16px');
+    line(CAMP.log.slice(0,60),140,'#a99fb8','14px');line('R trig select/march · L trig pause · A cancel',196,'#857aa0','14px');}
   else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const it=selItems(),si=selIdx%Math.max(1,it.length),e=selEnemyHint,st=Math.max(0,Math.min(si-1,it.length-4));
     it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
     line(e?`${e.d.short} holds the field (${TROOP[e.d.troop]})`:'The enemy picks after you',166,'#ffb09a','16px');line('L trig: next · R trig: choose',200,'#857aa0','16px');}
@@ -1416,8 +1652,8 @@ $('wdBtn').addEventListener('click',withdraw);
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
-$('engageBtn').addEventListener('click',engage);
-{const ms=$('mapSel');ms.innerHTML='<option value="random">Random</option>'+BIOKEYS.map(k=>`<option value="${k}">${BIOMES[k].name}</option>`).join('');ms.addEventListener('change',e=>{mapChoice=e.target.value;updateModeUI();});}
+$('pauseBtn').addEventListener('click',togglePause);
+$('spdBtn').addEventListener('click',()=>{CAMP.speed=CAMP.speed===1?2:CAMP.speed===2?4:1;updateModeUI();});
 $('againBtn').addEventListener('click',fightAgain);
 $('mapBtn').addEventListener('click',backToKingdom);
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
@@ -1427,9 +1663,10 @@ addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName=
     if(chal){if(k==='y')answerChallenge(true);else if(k==='n')answerChallenge(false);}
     if(k>='1'&&k<='4')setOrder(ORDERS[+k-1]);else if(k==='5')requestDuel();else if(k==='6')withdraw();
     else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){aim.mode=false;hudAcc=1;}
-  }else if(k==='enter'){if(state==='title')startGame();else if(state==='kingdom')engage();}});
+  }else if(state==='kingdom'){if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
+  else if(k==='enter'&&state==='title')startGame();});
 function xrSelect(hand){audioInit();
-  if(state==='title')startGame();else if(state==='kingdom'){if(hand==='left'){const L=['random',...BIOKEYS];mapChoice=L[(L.indexOf(mapChoice)+1)%L.length];updateModeUI();hudAcc=1;drawVrHud();}else engage();}
+  if(state==='title')startGame();else if(state==='kingdom'){if(hand==='left')togglePause();else campClick(vrHover);drawVrHud();}
   else if(state==='battle'){
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
@@ -1438,6 +1675,7 @@ function xrSelect(hand){audioInit();
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
 function xrFace(hand){
+  if(state==='kingdom'){CAMP.sel=null;CAMP.target=false;updateCampPanel();drawVrHud();return;}
   if(state!=='battle')return;
   if(phase==='duel'){duelPick('power');return;}
   if(phase!=='fight')return;
@@ -1467,11 +1705,15 @@ const ptrs=new Map();let pinch0=0;const keys=new Set();
 function panBy(sx,fw){const c=Math.cos(orbit.theta),sn=Math.sin(orbit.theta),lim=battle.visible?[FW/2,FD/2]:[20*KS,12*KS];
   orbit.tx=clamp(orbit.tx+c*sx-sn*fw,-lim[0],lim[0]);orbit.tz=clamp(orbit.tz-sn*sx-c*fw,-lim[1],lim[1]);}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('pointerdown',e=>{if(state==='title')return;if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
+let downAt=null;
+canvas.addEventListener('pointerdown',e=>{if(state==='title')return;downAt={x:e.clientX,y:e.clientY,t:performance.now()};if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
 canvas.addEventListener('pointermove',e=>{if(aim.mode&&!ptrs.size)mouseAim(e);const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
   if(ptrs.size===1){if(p.pan){const k=orbit.r*0.0018;panBy(-dx*k,dy*k);}else{orbit.theta=clamp(orbit.theta-dx*0.005,-1.35,1.35);orbit.phi=clamp(orbit.phi-dy*0.005,0.2,1.5);}}
   else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,900);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
-const up=e=>{ptrs.delete(e.pointerId);pinch0=0;};
+const up=e=>{ptrs.delete(e.pointerId);pinch0=0;
+  if(e.type==='pointerup'&&downAt&&state==='kingdom'&&e.button===0&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<6&&performance.now()-downAt.t<500){
+    const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);campClick(pickAt(ray.ray.origin.clone(),ray.ray.direction.clone()));}
+  downAt=null;};
 canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
 canvas.addEventListener('wheel',e=>{e.preventDefault();orbit.g=null;orbit.r=clamp(orbit.r*(1+e.deltaY*0.001),3,900);},{passive:false});
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();keys.add(k);if(k.startsWith('arrow'))e.preventDefault();});
@@ -1511,8 +1753,13 @@ async function setupVR(){
 }
 setupVR();
 
+let vrHover=null;
 function vrAim(now){
   let rc=null;for(const c of ctrls){c.userData.laser.visible=false;if((c.userData.hand||'right')==='right')rc=c;}
+  hoverRing.visible=false;
+  if(state==='kingdom'&&rc){world.updateMatrixWorld(true);rc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
+    ray.set(o,d);const h=ray.intersectObjects(pickables,false)[0];vrHover=h?h.object:null;const L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:3;L.material.color.set(CAMP.target?0xf0c055:0xd8d0e8);
+    if(vrHover){hoverRing.visible=true;hoverRing.position.copy(vrHover.position);hoverRing.position.y+=0.12;}return;}
   if(state!=='battle'||phase!=='fight'||!battle.visible||!rc){reticle.visible=false;aim.valid=false;return;}
   world.updateMatrixWorld(true);rc.updateMatrixWorld(true);
   const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
@@ -1524,17 +1771,17 @@ function loop(tms){
   const now=tms/1000;const dt=Math.min(0.05,Math.max(0,now-last));last=now;
   for(let i=timers.length-1;i>=0;i--){timers[i].t-=dt;if(timers[i].t<=0){const f=timers[i].fn;timers.splice(i,1);f();}}
   vrMsgT=Math.max(0,vrMsgT-dt);
+  if(levelUps.length&&vrMsgT<=0.2){const r=levelUps.shift();if(r.alive){if(state==='battle'||state==='end')showBanner(r.d.short+' reaches Lv '+r.lvl+'!',r.nat!=='aldmere');else if(r.nat==='aldmere')clog(`${r.d.short} reaches level ${r.lvl} (${rankOf(r.lvl)}).`);}}
   // kingdom
   if(kingdom.visible){
-    if(state==='kingdom'&&kMarch&&!kMet){marchT-=dt;if(marchT<=0){marchT=2.5;marchBeat();}kprog=Math.min(1,kprog+dt/10);if(kprog>=1){kMet=true;showBanner('Thornfield Pass');schedule(1.6,engage);}}
-    tokens.forEach((t,s)=>{const k=ease(kprog),x=t.from.x+(t.to.x-t.from.x)*k,z=t.from.z+(t.to.z-t.from.z)*k;const f=kMarch&&kprog<1?(Math.floor(now*4)%2):0;t.sp.material=GM[s?'vorgrath':'kaelen'][f].m;t.sp.position.set(x,Hk(x,z),z);});
+    if(state==='kingdom')campTick(dt,now);campTokens(now);
     kClouds.forEach((c,i)=>{c.position.x+=dt*0.5;if(c.position.x>22)c.position.x=-22;});
     const a=now*0.5;kDragon.position.set(15+Math.cos(a)*4,7+Math.sin(now*1.3)*0.5,-3+Math.sin(a)*3);kDragonMat.map=(-Math.sin(a)>=0?DRAG.r:DRAG.l)[Math.floor(now*5)%2];
   }
   if(state==='transition'){
     trT+=dt;const sMax=xrActive?1.6:3.2;
     if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(KS*s);kingdom.position.set(PASS.x*KS*(1-s),-k*2.5,PASS.z*KS*(1-s));}
-    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;newRoster();active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();}
+    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();}
       const k=ease(Math.min(1,(trT-0.8)/0.9));battle.scale.setScalar(0.35+0.65*k);battle.position.y=(1-k)*2;
       if(trT>1.75){battle.scale.setScalar(1);battle.position.y=0;state='battle';startSelect();showBanner(BIO.name);}}
   }

@@ -4,6 +4,11 @@ Playable demo of Taiyo's fictional 1997 strategy RPG for the Taiyo Vision 32-bit
 
 A miniature war-table kingdom drops into stereoscopic battles of 400 vs 400 sprite soldiers on a 144x80 battlefield, drawn as instanced sprite batches. View it in mono, red/cyan, side-by-side or cross-eye stereo on a desktop, or in WebXR on a Meta Quest (open the GitHub Pages link in the Quest Browser and press Enter VR).
 
+## The campaign
+The war table is a living map of 18 castles joined by roads. Aldmere (you), the Ashen Legion and Duskmarch all move armies in real time. Click one of your castles, tick up to five generals and pick a destination; your army marches along the roads. Armies that meet on a road clash, and an army that reaches an enemy castle attacks it. Every battle drops into a battlefield that matches the castle's region. Taking a castle grows your territory; capturing a nation's ruler makes it collapse. Every week, generals resting in castles heal and muster fresh troops. Pause with Space or the Pause button, and change the speed up to 4x.
+
+Generals gain experience from kills, wins, duels and captures. Each level raises their HP, attack and defense, increases how many troops they command (110 at level 0 up to 400), and strengthens their spell. Ranks run from Captain to Warlord.
+
 ## How a battle works
 Each side fields three generals, each leading 400 troops of one type. Spears beat cavalry, cavalry rides down archers, archers shred infantry. You pick a general for each round, the Ashen Legion tries to counter-pick, and survivors carry their losses into the next round. The battle ends when one side runs out of generals.
 
