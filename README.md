@@ -8,7 +8,15 @@ A miniature war-table kingdom drops into stereoscopic battles of 400 vs 400 spri
 Each side fields three generals, each leading 400 troops of one type. Spears beat cavalry, cavalry rides down archers, archers shred infantry. You pick a general for each round, the Ashen Legion tries to counter-pick, and survivors carry their losses into the next round. The battle ends when one side runs out of generals.
 
 - **Orders:** Charge (hits harder, takes more), Hold (everyone stops where they stand, fights only what comes close, takes less damage and restores morale), Flank (sweeps around the enemy's sides), Retreat (falls back to the general), Withdraw (pulls your general out with the troops he has left).
-- **Terrain:** every visit generates a new battlefield. A winding river splits the field and can only be crossed at a bridge and two or three shallow fords. Boulder outcrops and a lake block movement; woods slow troops (cavalry most of all) and halve arrow damage to anyone inside. Soldiers path around obstacles with a flow field, so the crossings become chokepoints.
+- **Battlefields:** pick one on the war table or leave it on Random. Every battle generates a fresh layout, and soldiers path around obstacles with a flow field.
+  - *Thornfield Crossing:* a river crossed only at a bridge and fords, a lake, woods, boulders.
+  - *Greyfang Highlands:* snow-capped cliff ridges wall off the field; armies funnel through the passes.
+  - *Mirewater Fen:* bogs slow everyone, deep pools block the way, reeds and dead trees.
+  - *Sunscar Ruins:* dunes cut into lanes by the broken walls of a dead city, with a palm oasis.
+  - *Frostmere:* a frozen lake that slows every army, broken through in places.
+  - *Eldwood:* deep woods across most of the field and a stream with fords.
+  - *Ashen Wastes:* a lava river crossed by two stone bridges, lava pools, embers.
+  Woods slow troops (cavalry most) and halve arrow damage to anyone inside.
 - **Morale:** kills and spells raise it, losses lower it. An army below 20% starts to rout.
 - **Generals** fight on the field, take damage, and each has a spell: Starfall, Arrow Storm, Thunder Lance, Ash Rain, Dragon's Breath.
 - **Capture:** a general who falls in a duel or to a spell is taken prisoner. When an army breaks, its general flees for the map edge and your troops chase him (cavalry is best at this); catch him before he escapes and he's yours. Between rounds you can try to persuade prisoners to join you with fresh troops, and the enemy will try the same with yours. Capturing Vorgrath ends the battle.
@@ -18,7 +26,7 @@ Each side fields three generals, each leading 400 troops of one type. Spears bea
 Everything is synthesized live in the browser: formant-filtered voices for battle cries and crowd cheers, war drums with rotating rhythms (faster when an army is charging), a din of steel that swells with the fighting, and a valley reverb over it all.
 
 ## Controls
-- **Desktop:** drag to orbit, right-drag or WASD to pan, Q/E to turn, scroll or pinch to zoom. 1-4 orders, 5 duel, 6 withdraw, Space aims your spell (click the field to fire, Esc cancels). In duels J/K/L = Strike/Guard/Power. Y/N answer a challenge. Number keys pick a general.
+- **Desktop:** drag to orbit, right-drag or WASD to pan, Q/E to turn, scroll or pinch to zoom (far enough to see the whole table). 1-4 orders, 5 duel, 6 withdraw, Space aims your spell (click the field to fire, Esc cancels). In duels J/K/L = Strike/Guard/Power. Y/N answer a challenge. Number keys pick a general.
 - **Quest:** grip to grab the table, both grips to scale and turn it. Left stick slides the battlefield, right stick turns and zooms, B resets. Point the right controller to aim your spell and pull the right trigger to fire (otherwise it orders a charge). Left trigger cycles orders, A challenges to a duel, X twice withdraws. In duels: right trigger Strike, left trigger Guard, A/X Power. When choosing a general: left trigger next, right trigger deploy.
 
 Dragon Emperor I not required.

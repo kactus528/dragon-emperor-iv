@@ -104,6 +104,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .dtime{height:4px}#dTime{background:var(--gold)}
 .dbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 #dLog{margin:0;color:var(--dim);font-size:10px;line-height:1.5;min-height:3em}
+#dockKingdom{align-items:center;gap:10px}.msel{display:flex;gap:6px;align-items:center;font-size:10px;letter-spacing:.06em;color:var(--dim)}
+.msel select{background:#1c1730;border:1px solid var(--line);padding:8px;border-radius:2px;text-transform:uppercase;font-size:10px}
 #chal{align-items:center;gap:8px;padding:8px 10px}#chalTxt{color:var(--gold);font-weight:700;font-size:11px}
 /* end panel */
 #endp{position:fixed;inset:0;display:grid;place-items:center;z-index:7;padding:16px;background:rgba(7,6,12,.35)}
@@ -222,6 +224,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <p id="dLog">Strike beats Power. Guard beats Strike. Power breaks Guard. A golden glow means a Power blow is coming.</p>
   </div>
   <div class="dock panel" id="dockKingdom" hidden>
+    <label class="msel" for="mapSel">Battlefield <select id="mapSel"></select></label>
     <button id="engageBtn">Engage at Thornfield</button>
   </div>
 </div>
@@ -234,7 +237,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <div class="selhead"><h2>Choose your general</h2><span id="selRound"></span></div>
     <p id="selSub"></p>
     <div id="selList"></div>
-    <p class="rule">Spears beat cavalry · Cavalry rides down archers · Archers shred infantry. The river can only be crossed at the bridge and the fords. Woods slow troops and shield them from arrows.</p>
+    <p class="rule" id="selRule">Spears beat cavalry · Cavalry rides down archers · Archers shred infantry. Woods slow troops and shield them from arrows.</p>
   </div>
 </div>
 
@@ -457,9 +460,9 @@ renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
 renderer.xr.enabled=true;
 renderer.xr.setReferenceSpaceType('local-floor');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#07060c');
-const camera=new THREE.PerspectiveCamera(45,1,0.05,500);
+const camera=new THREE.PerspectiveCamera(45,1,0.05,6000);
 const world=new THREE.Group();scene.add(world);
-scene.add(new THREE.AmbientLight(0xffe8d0,0.62));
+const ambLight=new THREE.AmbientLight(0xffe8d0,0.62);scene.add(ambLight);
 const sun=new THREE.DirectionalLight(0xfff0d8,0.78);sun.position.set(-0.5,1,0.65);scene.add(sun);
 
 function tex(c,linear){const t=new THREE.CanvasTexture(c);t.magFilter=t.minFilter=linear?THREE.LinearFilter:THREE.NearestFilter;t.generateMipmaps=false;return t;}
@@ -505,30 +508,104 @@ const T_BOLT=tex(boltC),T_METEOR=tex(meteorC),T_RUNE=tex(runeC),T_SPARK=tex(spar
 
 /* ---------- terrain ---------- */
 const BASE_TOP=-5.8,FW=144,FD=80,NPS=400,KS=1.8;
-function Hbase(x,z){return 0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3)+2.3*Math.sin(x*0.034+1.1)*Math.cos(z*0.047-0.6);}
 function Hk(x,z){let h=0.5*Math.sin(x*0.3)*Math.cos(z*0.35)+0.3*Math.sin(x*0.17+z*0.23);const m=Math.max(0,-z-4);h+=m*0.55*(0.6+0.4*Math.sin(x*0.9)*Math.cos(z*1.1));const rz=4*Math.sin(x*0.18)+3,rd=Math.abs(z-rz);if(rd<1.4)h-=(1.4-rd)*0.7;return h;}
-/* ---- battlefield features: river with bridge and fords, lake, woods, boulders (new layout each visit) ---- */
-let _m=(Date.now()%2147483000)+7;const mrand=()=>{_m=(_m*16807)%2147483647;return(_m-1)/2147483646;};
-const MAP={rx0:(mrand()-0.5)*14,ra:4+mrand()*6,rf:0.045+mrand()*0.05,rp:mrand()*6.28,bridge:(mrand()-0.5)*20,fords:[],woods:[],rocks:[],lake:null};
-MAP.fords.push(-(14+mrand()*16),14+mrand()*16);if(mrand()<0.5)MAP.fords.push((mrand()<0.5?-1:1)*(30+mrand()*5));
-const riverX=z=>MAP.rx0+MAP.ra*Math.sin(z*MAP.rf+MAP.rp);
-const onBridge=z=>Math.abs(z-MAP.bridge)<1.9,nearFord=z=>MAP.fords.some(f=>Math.abs(z-f)<3.6);
-const inLake=(x,z,m=1)=>{const L=MAP.lake;return!!L&&((x-L.x)/L.rx)**2+((z-L.z)/L.rz)**2<m;};
-const inWoods=(x,z)=>MAP.woods.some(w=>((x-w.x)/w.rx)**2+((z-w.z)/w.rz)**2<1);
+/* ---- battlefield maps: seven biomes, each regenerated with a fresh layout every battle ---- */
+let _m=7;const mrand=()=>{_m=(_m*16807)%2147483647;return(_m-1)/2147483646;};
+let MAP={type:'river',rivers:[],pools:[],woods:[],rocks:[],walls:[],ridges:[]};
+const rX=(r,z)=>r.x0+r.amp*Math.sin(z*r.f+r.p);
+const crossAt=(r,z)=>{for(const c of r.cross)if(Math.abs(z-c.z)<c.w)return c.t;return null;};
+const ell=(x,z,e)=>((x-e.x)/e.rx)**2+((z-e.z)/e.rz)**2;
+function segD(x,z,s){const dx=s.x2-s.x1,dz=s.z2-s.z1,L=dx*dx+dz*dz||1,t=clamp(((x-s.x1)*dx+(z-s.z1)*dz)/L,0,1);return Math.hypot(x-(s.x1+t*dx),z-(s.z1+t*dz));}
+const inWoods=(x,z)=>MAP.woods.some(w=>ell(x,z,w)<1);
 const inRock=(x,z,m=0)=>MAP.rocks.some(b=>(x-b.x)**2+(z-b.z)**2<(b.r+m)**2);
-const riverD=(x,z)=>Math.abs(x-riverX(z));
-if(mrand()<0.7){const sd=mrand()<0.5?-1:1;MAP.lake={x:sd*(12+mrand()*10),z:(mrand()<0.5?-1:1)*(21+mrand()*9),rx:5+mrand()*3,rz:4+mrand()*2.5};}
-for(let n=0,tries=0;n<4&&tries<60;tries++){const w={x:(mrand()<0.5?-1:1)*(10+mrand()*20),z:(mrand()-0.5)*56,rx:5+mrand()*5,rz:4+mrand()*4};
-  if(Math.abs(w.x-riverX(w.z))<w.rx+5||(MAP.lake&&Math.hypot(w.x-MAP.lake.x,w.z-MAP.lake.z)<w.rx+MAP.lake.rx+3)||MAP.woods.some(o=>Math.hypot(o.x-w.x,o.z-w.z)<o.rx+w.rx+3))continue;MAP.woods.push(w);n++;}
-for(let n=0,tries=0;n<8&&tries<120;tries++){const cx=(mrand()<0.5?-1:1)*(5+mrand()*23),cz=(mrand()-0.5)*66;
-  if(riverD(cx,cz)<7||inLake(cx,cz,2.2)||MAP.woods.some(w=>Math.hypot(w.x-cx,w.z-cz)<w.rx+4)||MAP.fords.some(f=>Math.abs(cz-f)<6)||Math.abs(cz-MAP.bridge)<6)continue;
-  const k=3+((mrand()*4)|0);for(let i=0;i<k;i++)MAP.rocks.push({x:cx+(mrand()-0.5)*7,z:cz+(mrand()-0.5)*7,r:0.9+mrand()*1.5});n++;}
-function waterCut(x,z){let c=0;const d=riverD(x,z);
-  if(d<4.4&&!onBridge(z))c=Math.max(0,1-Math.max(0,d-2.4)/2)*(nearFord(z)?0.45:1.4);
-  const L=MAP.lake;if(L){const q=((x-L.x)/L.rx)**2+((z-L.z)/L.rz)**2;if(q<1.4)c=Math.max(c,Math.min(1,(1.4-q)/0.4)*1.4);}return c;}
-function Hb(x,z){if(onBridge(z)&&riverD(x,z)<4.6)return Hbase(riverX(z),z)+0.25;return Hbase(x,z)-waterCut(x,z);}
-function terrType(x,z){if(Math.abs(x)>FW/2-0.6||Math.abs(z)>FD/2-1)return 1;if(inRock(x,z,0.9))return 1;if(inLake(x,z,1.05))return 1;
-  if(riverD(x,z)<3.4){if(onBridge(z))return 0;if(nearFord(z))return 2;return 1;}if(inWoods(x,z))return 2;return 0;}
+const DEEP={water:1,lava:1};
+const rgb=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+function clearOf(x,z,m){
+  for(const r of MAP.rivers){if(Math.abs(x-rX(r,z))<r.w+m)return false;for(const c of r.cross)if(Math.abs(z-c.z)<c.w+m&&Math.abs(x-rX(r,c.z))<r.w+m+5)return false;}
+  for(const p of MAP.pools)if(Math.hypot((x-p.x)/(p.rx+m),(z-p.z)/(p.rz+m))<1)return false;
+  for(const s of MAP.walls)if(segD(x,z,s)<m)return false;
+  for(const r of MAP.ridges)if(segD(x,z,r)<r.w+m)return false;
+  return true;}
+function addRiver(kind,w,cross){const r={kind,x0:(mrand()-0.5)*14,amp:4+mrand()*6,f:0.045+mrand()*0.05,p:mrand()*6.28,w,cross};MAP.rivers.push(r);return r;}
+function fordSet(n){const f=[-(12+mrand()*18),12+mrand()*18];if(n>2)f.push((mrand()<0.5?-1:1)*(mrand()*6));return f.map(z=>({z,w:3.6,t:'ford'}));}
+function woodsN(n,rx0,rx1,rz0,rz1,xMax=30,extra){for(let i=0,t=0;i<n&&t<n*25;t++){const w=Object.assign({x:(mrand()<0.5?-1:1)*(8+mrand()*(xMax-8)),z:(mrand()-0.5)*58,rx:rx0+mrand()*(rx1-rx0),rz:rz0+mrand()*(rz1-rz0)},extra||{});
+  if(!clearOf(w.x,w.z,Math.min(w.rx,w.rz)*0.7+1)||MAP.woods.some(o=>Math.hypot(o.x-w.x,o.z-w.z)<o.rx+w.rx+2))continue;MAP.woods.push(w);i++;}}
+function rockClusters(n,xMax=27,spread=7){for(let i=0,t=0;i<n&&t<n*20;t++){const cx=(mrand()<0.5?-1:1)*(4+mrand()*(xMax-4)),cz=(mrand()-0.5)*64;
+  if(!clearOf(cx,cz,6.5)||MAP.woods.some(w=>ell(cx,cz,w)<1.6))continue;const k=3+((mrand()*4)|0);for(let j=0;j<k;j++)MAP.rocks.push({x:cx+(mrand()-0.5)*spread,z:cz+(mrand()-0.5)*spread,r:0.9+mrand()*1.5});i++;}}
+function pools(n,kind,rx0,rx1,rz0,rz1,xMax,ok){for(let i=0,t=0;i<n&&t<n*30;t++){const p={k:kind,x:(mrand()-0.5)*2*xMax,z:(mrand()-0.5)*64,rx:rx0+mrand()*(rx1-rx0),rz:rz0+mrand()*(rz1-rz0)};
+  if(Math.abs(p.x)+p.rx>30&&DEEP[kind])continue;if(ok?!ok(p):!clearOf(p.x,p.z,Math.max(p.rx,p.rz)+2))continue;MAP.pools.push(p);i++;}}
+function wallSeg(x1,z1,x2,z2){MAP.walls.push({x1,z1,x2,z2,th:1.2});}
+const BIOMES={
+  river:{name:'Thornfield Crossing',blurb:'A river splits the field. Cross at the bridge or the fords.',hill:1,lo:[0.21,0.37,0.16],hi:[0.66,0.71,0.30],patch:[0.48,0.42,0.24],woods:[0.16,0.3,0.14],rockFloor:[0.45,0.44,0.38],pave:[0.6,0.56,0.46],bank:'#b8a874',water:['#3f72c0','#3866b0'],
+    sky:['#1a1640','#2a2058','#41296a','#6a3470','#9a4a6a','#c86a5a','#e8925a','#f4b870','#f8d890'],far:['#6a5a8e','#544676','#e8e0f8'],near:['#3e5a4e','#2e463c','#d8e4d8'],amb:0xffe8d0,sunc:0xfff0d8,rock:0x8f8a96,wall:0x9a96a0,trees:['pine','pine','oak'],tuft:'grass',bridge:'wood',density:1,
+    gen(){addRiver('water',2.4,[{z:(mrand()-0.5)*20,w:1.9,t:'bridge'}].concat(fordSet(mrand()<0.5?3:2)));if(mrand()<0.7)pools(1,'water',5,8,4,6.5,22);woodsN(4,5,10,4,8);rockClusters(8);}},
+  highland:{name:'Greyfang Highlands',blurb:'Cliff ridges wall off the field. Armies must funnel through the passes.',hill:1.8,lo:[0.30,0.38,0.24],hi:[0.6,0.62,0.5],patch:[0.5,0.48,0.42],woods:[0.18,0.3,0.18],rockFloor:[0.5,0.5,0.52],pave:[0.6,0.6,0.6],bank:'#9a9a88',water:['#3a6aa8','#34609c'],snowcaps:true,
+    sky:['#1a2440','#25345a','#3a4a72','#566a8a','#7a8aa0','#9aa8b8','#b8c4cc','#d4dcdc','#e8ecea'],far:['#7a8494','#5e6878','#f4f6fa'],near:['#4a5458','#363e42','#e8eef2'],amb:0xe8eeff,sunc:0xf4f6ff,rock:0x8a8c96,wall:0x9a96a0,trees:['pine','pine','snowpine'],tuft:'grass',bridge:'wood',density:0.6,
+    gen(){const xs=mrand()<0.5?[-13+mrand()*4,13-mrand()*4]:[-21,0,21].map(x=>x+(mrand()-0.5)*4);
+      xs.forEach(x0=>{const g=[(mrand()-0.5)*50];if(mrand()<0.65)g.push(clamp(g[0]+(mrand()<0.5?-1:1)*(20+mrand()*10),-33,33));g.sort((a,b)=>a-b);
+        let zs=-41,px=x0+(mrand()-0.5)*5;for(const gz of g.concat([99])){const ze=gz===99?41:gz-4.5;if(ze>zs+2){let zz=zs,xx=px;for(let i=1;i<=2;i++){const z2=zs+(ze-zs)*i/2,x2=x0+(mrand()-0.5)*6;MAP.ridges.push({x1:xx,z1:zz,x2,z2,w:1.8,h:4+mrand()*2.5});zz=z2;xx=x2;}px=xx;}zs=gz+4.5;}});
+      if(mrand()<0.6)pools(1,'water',3,5,2.5,4,26);woodsN(2,4,7,3,6);rockClusters(10);}},
+  marsh:{name:'Mirewater Fen',blurb:'Bogs slow every step and deep pools block the way.',hill:0.35,lo:[0.22,0.28,0.15],hi:[0.42,0.46,0.27],patch:[0.34,0.3,0.18],woods:[0.17,0.22,0.12],rockFloor:[0.36,0.36,0.3],pave:[0.4,0.4,0.34],bank:'#4a4a2e',water:['#3d5a5a','#365050'],
+    sky:['#1e2a24','#2a3a30','#3a4a3a','#4e5e48','#66725a','#7e8a6a','#98a07e','#b0b494','#c8c8a8'],far:['#5a6a5e','#4a584e','#a8b49a'],near:['#3a4a34','#2c3a28','#6a7a52'],amb:0xe0f0d0,sunc:0xe8f0d8,rock:0x6a6a5e,wall:0x7a7a6a,trees:['dead','oak','dead'],tuft:'reed',bridge:'wood',density:0.5,
+    gen(){if(mrand()<0.5)addRiver('water',1.8,fordSet(3));pools(7,'marsh',6,12,4,9,28,p=>!MAP.pools.some(o=>Math.hypot(o.x-p.x,o.z-p.z)<o.rx+p.rx-2));
+      pools(11,'water',2.5,5.5,2,4.5,27,p=>!MAP.pools.some(o=>o.k==='water'&&Math.hypot(o.x-p.x,o.z-p.z)<o.rx+p.rx+3)&&MAP.rivers.every(r=>Math.abs(p.x-rX(r,p.z))>r.w+p.rx+3));
+      woodsN(2,4,8,3,6);rockClusters(3);}},
+  desert:{name:'Sunscar Ruins',blurb:'Broken walls of a dead city carve the dunes into lanes. An oasis shelters archers.',hill:0.5,dunes:true,lo:[0.74,0.6,0.38],hi:[0.94,0.82,0.58],patch:[0.82,0.66,0.42],woods:[0.36,0.5,0.24],rockFloor:[0.7,0.55,0.38],pave:[0.78,0.7,0.52],bank:'#c8b080',water:['#3f8ab8','#3880ac'],
+    sky:['#2a4a8a','#3a62a0','#4e7ab4','#6a94c4','#88aed0','#a8c4d4','#c8d4cc','#e4dcc0','#f4e4b8'],far:['#c87a4a','#a85e38','#f0c890'],near:['#d8a060','#b88048','#f4d8a0'],amb:0xfff0d0,sunc:0xfff4dc,rock:0xb88a5a,wall:0xc8b088,trees:['palm'],tuft:'scrub',bridge:'stone',density:0.12,
+    gen(){MAP.dp=mrand()*6;const nr=4+((mrand()*2)|0);
+      for(let i=0,t=0;i<nr&&t<60;t++){const cx=(mrand()<0.5?-1:1)*(6+mrand()*16),cz=(mrand()-0.5)*56,a=5+mrand()*4,b=4+mrand()*3;
+        if(!clearOf(cx,cz,Math.max(a,b)+3))continue;
+        const C=[[cx-a,cz-b],[cx+a,cz-b],[cx+a,cz+b],[cx-a,cz+b]];let gaps=0;
+        for(let k=0;k<4;k++){const[p,q]=[C[k],C[(k+1)%4]];if(mrand()<0.6||(k===3&&!gaps)){gaps++;const mx=(p[0]+q[0])/2,mz=(p[1]+q[1])/2,L=Math.hypot(q[0]-p[0],q[1]-p[1]),ux=(q[0]-p[0])/L,uz=(q[1]-p[1])/L;
+          wallSeg(p[0],p[1],mx-ux*2,mz-uz*2);if(mrand()<0.8)wallSeg(mx+ux*2,mz+uz*2,q[0],q[1]);}else wallSeg(p[0],p[1],q[0],q[1]);}i++;}
+      for(let i=0,t=0;i<4&&t<40;t++){const cx=(mrand()-0.5)*44,cz=(mrand()-0.5)*60,a=mrand()*3.14,L=3+mrand()*4;if(!clearOf(cx,cz,L+3))continue;wallSeg(cx-Math.cos(a)*L,cz-Math.sin(a)*L,cx+Math.cos(a)*L,cz+Math.sin(a)*L);i++;}
+      if(mrand()<0.8){pools(1,'water',3.5,5.5,3,4.5,20);const o=MAP.pools[MAP.pools.length-1];if(o)MAP.woods.push({x:o.x,z:o.z,rx:o.rx+4,rz:o.rz+4,palm:true});}
+      rockClusters(5,26,5);}},
+  winter:{name:'Frostmere',blurb:'A frozen lake slows every army that crosses it, and the thin ice has broken through in places.',hill:1,lo:[0.74,0.79,0.86],hi:[0.95,0.97,1.0],patch:[0.68,0.72,0.78],woods:[0.56,0.62,0.66],rockFloor:[0.56,0.6,0.66],pave:[0.7,0.72,0.76],bank:'#c8d4e0',water:['#2a5a8a','#24527e'],
+    sky:['#3a4a6a','#4e6084','#66789a','#8092b0','#9aaac4','#b4c2d4','#cad4e0','#dce4ec','#eef2f6'],far:['#a8b8cc','#8898b0','#ffffff'],near:['#6a7c90','#566676','#f4f8fc'],amb:0xdce8ff,sunc:0xeef4ff,rock:0x8a94a4,wall:0x9aa4b0,trees:['snowpine'],tuft:'snow',bridge:'wood',density:0.9,
+    gen(){const ice={k:'ice',x:(mrand()-0.5)*14,z:(mrand()-0.5)*18,rx:12+mrand()*7,rz:9+mrand()*7};MAP.pools.push(ice);
+      const nh=2+((mrand()*3)|0);for(let i=0,t=0;i<nh&&t<40;t++){const h={k:'water',x:ice.x+(mrand()-0.5)*ice.rx*1.2,z:ice.z+(mrand()-0.5)*ice.rz*1.2,rx:2+mrand()*1.8,rz:1.8+mrand()*1.5};
+        if(MAP.pools.some(o=>o.k==='water'&&Math.hypot(o.x-h.x,o.z-h.z)<o.rx+h.rx+3))continue;MAP.pools.push(h);i++;}
+      woodsN(3,5,9,4,7);rockClusters(6);}},
+  forest:{name:'Eldwood',blurb:'Deep woods cover most of the field. Cavalry struggle and archers find cover.',hill:0.9,lo:[0.16,0.32,0.13],hi:[0.46,0.6,0.26],patch:[0.4,0.36,0.2],woods:[0.12,0.24,0.1],rockFloor:[0.4,0.42,0.34],pave:[0.5,0.48,0.4],bank:'#8a8a5a',water:['#3a6aa8','#34609c'],
+    sky:['#1a3040','#244258','#305670','#406c84','#588498','#7aa0a8','#a0bcb0','#c4d4b8','#e0e4c4'],far:['#4a6a7a','#3a5664','#c8dce0'],near:['#2a4a34','#1e3a28','#4a6a44'],amb:0xe8ffe0,sunc:0xf0ffe0,rock:0x7a7a72,wall:0x8a8a80,trees:['oak','pine','oak'],tuft:'grass',bridge:'wood',density:1.25,
+    gen(){addRiver('water',1.4,[{z:(mrand()-0.5)*24,w:1.9,t:'bridge'}].concat(fordSet(3)));woodsN(9,6,12,5,10,34);rockClusters(4);}},
+  ashen:{name:'Ashen Wastes',blurb:'A river of lava with two stone bridges. Nothing else crosses it.',hill:1.2,embers:true,lo:[0.16,0.14,0.15],hi:[0.42,0.36,0.34],patch:[0.4,0.14,0.08],woods:[0.2,0.17,0.16],rockFloor:[0.26,0.22,0.24],pave:[0.34,0.3,0.3],bank:'#2a1a18',water:['#2a3a5a','#243450'],
+    sky:['#0e0610','#1e0a16','#30101c','#4a1420','#6a1c20','#8e2a1e','#b4401c','#d8641e','#f08a2a'],far:['#3a2030','#24141e','#ff7a3a'],near:['#2a1a20','#180e14','#c8502a'],amb:0xffc8b0,sunc:0xff9a6a,rock:0x3e363e,wall:0x4a4248,trees:['dead'],tuft:'ash',bridge:'stone',density:0.35,
+    gen(){addRiver('lava',2.6,[{z:-(10+mrand()*20),w:2,t:'bridge'},{z:10+mrand()*20,w:2,t:'bridge'}]);pools(4,'lava',3,6,2.5,5,24);woodsN(1,4,7,3,6);rockClusters(10);}},
+};
+const BIOKEYS=Object.keys(BIOMES);let BIO=BIOMES.river;
+function Hbase(x,z){let h=BIO.hill*(0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3)+2.3*Math.sin(x*0.034+1.1)*Math.cos(z*0.047-0.6));
+  if(BIO.dunes)h+=1.7*Math.sin(x*0.085+z*0.03+(MAP.dp||0))+0.8*Math.sin(x*0.17-z*0.05);return h;}
+function featH(x,z){let h=0;for(const r of MAP.ridges){const d=segD(x,z,r);if(d<r.w+3.5)h=Math.max(h,r.h*(d<=r.w?1:1-(d-r.w)/3.5));}return h;}
+function cut(x,z){let c=0;
+  for(const r of MAP.rivers){const d=Math.abs(x-rX(r,z));if(d<r.w+2){const ct=crossAt(r,z);if(ct==='bridge')continue;c=Math.max(c,Math.max(0,1-Math.max(0,d-r.w)/2)*(ct==='ford'?0.45:1.4));}}
+  for(const p of MAP.pools){const q=ell(x,z,p);if(q<1.4){const k=Math.min(1,(1.4-q)/0.4);c=Math.max(c,k*(DEEP[p.k]?1.4:p.k==='marsh'?0.35:0.15));}}return c;}
+function Hb(x,z){for(const r of MAP.rivers){const d=Math.abs(x-rX(r,z));if(d<r.w+2.2&&crossAt(r,z)==='bridge')return Hbase(rX(r,z),z)+0.25;}return Hbase(x,z)+featH(x,z)-cut(x,z);}
+function terrType(x,z){if(Math.abs(x)>FW/2-0.6||Math.abs(z)>FD/2-1)return 1;if(inRock(x,z,0.9))return 1;
+  for(const s of MAP.walls)if(segD(x,z,s)<s.th/2+0.8)return 1;
+  for(const r of MAP.ridges)if(segD(x,z,r)<r.w)return 1;
+  let slow=false;
+  for(const r of MAP.rivers)if(Math.abs(x-rX(r,z))<r.w+1){const ct=crossAt(r,z);if(ct==='bridge')continue;if(ct==='ford'){slow=true;continue;}return 1;}
+  for(const p of MAP.pools)if(ell(x,z,p)<1.05){if(DEEP[p.k])return 1;slow=true;}
+  return slow||inWoods(x,z)?2:0;}
+function mapColor(c,x,z,y){const b=BIO,chk=((Math.floor(x)+Math.floor(z))&1);
+  c.setRGB(...rgb(b.lo,b.hi,clamp((y+5)/10,0,1)));
+  if(Math.sin(x*0.7)*Math.cos(z*0.9)>0.72)c.setRGB(...b.patch);
+  if(inWoods(x,z))c.setRGB(...b.woods);
+  if(inRock(x,z,1.4))c.setRGB(...b.rockFloor);
+  for(const r of MAP.ridges){const d=segD(x,z,r);if(d<r.w+2.4)c.setRGB(...(b.snowcaps&&d<r.w*0.8?[0.93,0.94,0.97]:b.rockFloor));}
+  for(const s of MAP.walls)if(segD(x,z,s)<s.th/2+1.3)c.setRGB(...b.pave);
+  for(const r of MAP.rivers){const d=Math.abs(x-rX(r,z)),ct=crossAt(r,z),lava=r.kind==='lava';
+    if(ct==='bridge'&&d<r.w+2.2){c.set(b.bridge==='stone'?(chk?'#8a8478':'#7a7468'):(chk?'#8a6034':'#7a5228'));continue;}
+    if(d<r.w+0.8)c.set(lava?(chk?'#ff7a1a':'#ffb03a'):ct==='ford'?(chk?'#7aa0c0':'#8aa890'):(chk?b.water[0]:b.water[1]));
+    else if(d<r.w+1.8)c.set(lava?'#2a1a18':b.bank);}
+  for(const p of MAP.pools){const q=ell(x,z,p);
+    if(p.k==='water'){if(q<0.9)c.set(chk?b.water[0]:b.water[1]);else if(q<1.25)c.set(b.bank);}
+    else if(p.k==='lava'){if(q<0.9)c.set(chk?'#ff7a1a':'#ffb03a');else if(q<1.2)c.set('#2a1a18');}
+    else if(p.k==='ice'){if(q<1)c.set(chk?'#b8dcf0':'#a4cce4');}
+    else if(p.k==='marsh'){if(q<1)c.set(chk?'#4f5e34':'#5a6a3a');}}
+}
 const grassC=(()=>{_s=5;const c=cv(16,16),x=c.getContext('2d');for(let y=0;y<16;y++)for(let i=0;i<16;i++){const v=210+(srand()*45)|0;x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(i,y,1,1);}return c;})();
 function buildTerrain(Hf,colorFn,W=40,D=24){
   let g=new THREE.PlaneGeometry(W+2,D+2,W+2,D+2);g.rotateX(-Math.PI/2);
@@ -566,54 +643,80 @@ sunS.position.set(30,18,-142);world.add(sunS);
 
 /* ================= BATTLE DIORAMA ================= */
 const battle=new THREE.Group();world.add(battle);battle.visible=false;
-const battleTerrain=buildTerrain(Hb,(c,x,z,y)=>{
-  const t=clamp((y+5)/10,0,1);c.setRGB(0.21+t*0.45,0.37+t*0.34,0.16+t*0.14);
-  if(Math.sin(x*0.7)*Math.cos(z*0.9)>0.72)c.setRGB(0.48,0.42,0.24);
-  const rd=riverD(x,z),chk=((Math.floor(x)+Math.floor(z))&1);
-  if(inWoods(x,z))c.setRGB(0.16,0.3,0.14);
-  if(inRock(x,z,1.4))c.setRGB(0.45,0.44,0.38);
-  if(rd<4.6&&onBridge(z))c.set(chk?'#8a6034':'#7a5228');
-  else if(rd<3.2)c.set(nearFord(z)?(chk?'#7aa0c0':'#8aa890'):(chk?'#3f72c0':'#3866b0'));
-  else if(rd<4.2)c.set('#b8a874');
-  if(inLake(x,z,0.9))c.set(chk?'#3f72c0':'#3866b0');else if(inLake(x,z,1.25))c.set('#b8a874');
-},FW,FD);
-battle.add(battleTerrain);
-{const rg=new THREE.IcosahedronGeometry(1,0),rm=new THREE.MeshPhongMaterial({color:0x8f8a96,flatShading:true,shininess:4}),im=new THREE.InstancedMesh(rg,rm,Math.max(1,MAP.rocks.length)),D=new THREE.Object3D();
-  MAP.rocks.forEach((b,i)=>{D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});
-  im.count=MAP.rocks.length;battle.add(im);
-  const wood=new THREE.MeshLambertMaterial({color:0x6a4426}),bx=riverX(MAP.bridge),by=Hb(bx,MAP.bridge);
-  for(const sd of[-1,1]){const r=new THREE.Mesh(new THREE.BoxGeometry(9.2,0.5,0.25),wood);r.position.set(bx,by+0.45,MAP.bridge+sd*1.9);battle.add(r);
-    for(let i=-2;i<=2;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.9,0.3),wood);p.position.set(bx+i*2.2,by+0.45,MAP.bridge+sd*1.9);battle.add(p);}}}
+const mapGroup=new THREE.Group();battle.add(mapGroup);let battleTerrain=null;
 battle.add(buildBase(FW,FD));
-function mtnPlane(cnv,w,h,y,z){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex(cnv),alphaTest:0.5,side:THREE.DoubleSide}));m.position.set(0,y,z);battle.add(m);return m;}
-mtnPlane(drawMountains(320,96,'#6a5a8e','#544676','#e8e0f8',11),200,56,16,-102);
-mtnPlane(drawMountains(320,80,'#3e5a4e','#2e463c','#d8e4d8',23),190,34,9,-72);
-const castleA=sprite(castleBlue,18,21.4);castleA.position.set(-60,Hb(-60,-36),-36);battle.add(castleA);
-const castleB=sprite(castleRed,18,21.4);castleB.position.set(60,Hb(60,-35),-35);battle.add(castleB);
-const ruin=sprite(castleGrey,10,12);ruin.position.set(-8,Hb(-8,-37),-37);battle.add(ruin);
-const pineC=drawPine(),oakC=drawOak(),pineM=smat(pineC),oakM=smat(oakC);
+function mtnPlane(w,h,y,z){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({alphaTest:0.5,side:THREE.DoubleSide}));m.position.set(0,y,z);battle.add(m);return m;}
+const mtnFar=mtnPlane(200,56,16,-102),mtnNear=mtnPlane(190,34,9,-72);
+const castleA=sprite(castleBlue,18,21.4);castleA.position.set(-60,0,-36);battle.add(castleA);
+const castleB=sprite(castleRed,18,21.4);castleB.position.set(60,0,-35);battle.add(castleB);
+const ruin=sprite(castleGrey,10,12);ruin.position.set(-8,0,-37);battle.add(ruin);
 /* static props are instanced: one draw call per kind */
 const DUM=new THREE.Object3D();
-function propBatch(mat,list,tilt=TILT){const g=new THREE.PlaneGeometry(1,1);g.translate(0,0.48,0);g.rotateX(-tilt);const m=new THREE.InstancedMesh(g,mat,list.length);
-  list.forEach((q,i)=>{DUM.position.set(q[0],q[1],q[2]);DUM.scale.set(q[3],q[4],1);DUM.updateMatrix();m.setMatrixAt(i,DUM.matrix);});m.instanceMatrix.needsUpdate=true;return m;}
-_s=77;const pines=[],oaks=[];
-for(let i=0;i<760;i++){
-  let x,z;const r=srand();
-  if(r<0.45){x=-70+srand()*140;z=-39.5+srand()*6;}
-  else if(r<0.65){x=(srand()<0.5?-1:1)*(71-srand()*3);z=-32+srand()*64;}
-  else{const gx=[-50,-22,4,30,54][(srand()*5)|0],gz=(srand()<0.5?-1:1)*(29+srand()*6);x=gx+(srand()-0.5)*14;z=gz+(srand()-0.5)*6;}
-  if(Math.abs(Math.abs(x)-60)<10&&z<-26)continue;if(Math.abs(x+8)<6&&z<-31)continue;
-  const pine=srand()<0.6,sc=1.2+srand()*0.6;(pine?pines:oaks).push([x,Hb(x,z),z,(pine?14:18)*0.09*sc,(pine?24:20)*0.09*sc]);
-}
-MAP.woods.forEach(w=>{const n=Math.round(w.rx*w.rz*1.1);for(let i=0;i<n;i++){const a=mrand()*6.283,r=Math.sqrt(mrand())*0.95,x=w.x+Math.cos(a)*r*w.rx,z=w.z+Math.sin(a)*r*w.rz;
-  const pine=mrand()<0.55,sc=1.1+mrand()*0.6;(pine?pines:oaks).push([x,Hb(x,z),z,(pine?14:18)*0.09*sc,(pine?24:20)*0.09*sc]);}});
-for(const L of[pines,oaks])for(let i=L.length-1;i>=0;i--){const q=L[i];if(riverD(q[0],q[2])<4.6||inLake(q[0],q[2],1.3)||inRock(q[0],q[2],1))L.splice(i,1);}
-battle.add(propBatch(pineM,pines));battle.add(propBatch(oakM,oaks));
+function propBatch(mat,list,tilt=TILT){const g=new THREE.PlaneGeometry(1,1);g.translate(0,0.48,0);g.rotateX(-tilt);const m=new THREE.InstancedMesh(g,mat,Math.max(1,list.length));
+  list.forEach((q,i)=>{DUM.position.set(q[0],q[1],q[2]);DUM.scale.set(q[3],q[4],1);DUM.updateMatrix();m.setMatrixAt(i,DUM.matrix);});m.count=list.length;m.instanceMatrix.needsUpdate=true;return m;}
+function drawPalm(){const c=cv(20,30),x=c.getContext('2d');x.strokeStyle='#8a6a3a';x.lineWidth=2;x.beginPath();x.moveTo(10,30);x.quadraticCurveTo(7,18,11,9);x.stroke();
+  const leaf=(ax,ay,bx,by,col)=>{x.strokeStyle=col;x.lineWidth=2;x.beginPath();x.moveTo(11,9);x.quadraticCurveTo(ax,ay,bx,by);x.stroke();};
+  leaf(4,3,1,10,'#3f8a34');leaf(18,3,19,11,'#3f8a34');leaf(8,2,3,5,'#5aa848');leaf(14,1,18,5,'#5aa848');leaf(11,4,11,1,'#4a9a3c');leaf(6,10,2,15,'#357a2c');leaf(16,10,19,15,'#357a2c');
+  x.fillStyle='#6a4a2a';x.fillRect(10,8,3,3);return finish(c,{line:'#10200c'});}
+function drawDead(){const c=cv(18,24),x=c.getContext('2d');x.strokeStyle='#4a3a30';const br=(x1,y1,x2,y2,w)=>{x.lineWidth=w;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();};
+  br(9,24,9,8,3);br(9,14,3,8,2);br(9,12,15,5,2);br(4,9,2,4,1);br(14,6,16,2,1);br(9,9,8,3,1);return finish(c,{line:'#140c0a'});}
+function drawSnowPine(){const c=cv(14,24),x=c.getContext('2d');poly(x,[7,1,1,10,13,10],'#2a5040');poly(x,[7,5,0,16,14,16],'#244838');poly(x,[7,9,0,21,14,21],'#1f4030');
+  poly(x,[7,1,4,6,10,6],'#eef4fa');poly(x,[7,5,2,11,11,11],'#e4ecf6');poly(x,[1,16,4,14,9,16],'#e4ecf6');poly(x,[1,21,6,19,13,21],'#dfe8f2');x.fillStyle='#5a3a20';x.fillRect(6,20,2,4);return finish(c,{line:'#0e1a18'});}
+function drawReeds(seed){_s=seed;const c=cv(12,14),x=c.getContext('2d');for(let i=0;i<6;i++){const bx=1+(srand()*10)|0,bh=7+(srand()*7)|0;x.fillStyle=srand()<.5?'#5a6a2a':'#7a7a3a';x.fillRect(bx,14-bh,1,bh);if(srand()<0.5){x.fillStyle='#5a3a20';x.fillRect(bx,14-bh,1,2);}}return finish(c,{line:'#1a1e0c'});}
+function drawScrub(seed){_s=seed;const c=cv(12,8),x=c.getContext('2d');x.fillStyle='#8a7a40';x.fillRect(4,5,4,3);for(let i=0;i<8;i++){x.fillStyle=srand()<.5?'#9a8a4a':'#7a6a3a';x.fillRect(1+(srand()*10)|0,3+(srand()*5)|0,2,1);}return finish(c,{line:'#2a2010'});}
+function drawSnowTuft(seed){_s=seed;const c=cv(12,8),x=c.getContext('2d');x.fillStyle='#f4f8fc';x.beginPath();x.ellipse(6,6,5,2.5,0,0,7);x.fill();x.fillStyle='#4a6a50';for(let i=0;i<3;i++)x.fillRect(3+(srand()*6)|0,2+(srand()*2)|0,1,3);return finish(c,{line:'#9aaabb'});}
+function drawAsh(seed){_s=seed;const c=cv(12,10),x=c.getContext('2d');for(let i=0;i<6;i++){const bx=1+(srand()*10)|0,bh=3+(srand()*6)|0;x.fillStyle=srand()<.5?'#2a2224':'#3a3034';x.fillRect(bx,10-bh,1,bh);}x.fillStyle='#ff6a1a';x.fillRect(5,8,1,1);return finish(c,{line:'#0a0606'});}
+const TREE={pine:{c:drawPine(),w:14,h:24},oak:{c:drawOak(),w:18,h:20},palm:{c:drawPalm(),w:20,h:30},dead:{c:drawDead(),w:18,h:24},snowpine:{c:drawSnowPine(),w:14,h:24}};
+for(const k in TREE)TREE[k].m=smat(TREE[k].c);
+const pineM=TREE.pine.m,oakM=TREE.oak.m;
+const TUFT={grass:[1,2,3].map(n=>smat(drawTuft(n*13))),reed:[1,2,3].map(n=>smat(drawReeds(n*17))),scrub:[1,2,3].map(n=>smat(drawScrub(n*19))),snow:[1,2,3].map(n=>smat(drawSnowTuft(n*23))),ash:[1,2,3].map(n=>smat(drawAsh(n*29)))};
+const TUFTSZ={grass:[12,10],reed:[12,14],scrub:[12,8],snow:[12,8],ash:[12,10]};
+const SHARED=new Set([...Object.values(TREE).map(t=>t.m),...Object.values(TUFT).flat()]);
 const cloudM=smat(drawCloud());const clouds=[];
 for(let i=0;i<16;i++){const s=sprite(cloudM,17,6.4,0.5,0.5,0);s.position.set(-90+i*12+R(-4,4),R(34,54),R(-92,-50));battle.add(s);clouds.push(s);}
-const tuftMs=[1,2,3].map(n=>smat(drawTuft(n*13)));
-_s=91;{const tl=[[],[],[]];for(let i=0;i<330;i++){const x=-FW/2+srand()*FW,z=FD/2-1.4+srand()*1.6;tl[i%3].push([x,Hb(x,z),z,12*0.11,10*0.11]);}tl.forEach((l,i)=>battle.add(propBatch(tuftMs[i],l)));}
-[[-FW/2+0.8,FD/2-0.4,'#2f5fc4','#f2c94c'],[FW/2-0.8,FD/2-0.4,'#a3262a','#f07a2a']].forEach(([x,z,c1,c2])=>{const s=sprite(drawStandard(c1,c2),16*0.2,44*0.2,0.5,0.02);s.position.set(x,Hb(x,z),z);battle.add(s);});
+const standards=[[-FW/2+0.8,FD/2-0.4,'#2f5fc4','#f2c94c'],[FW/2-0.8,FD/2-0.4,'#a3262a','#f07a2a']].map(([x,z,c1,c2])=>{const s=sprite(drawStandard(c1,c2),16*0.2,44*0.2,0.5,0.02);s.position.set(x,0,z);battle.add(s);return s;});
+function drawSky(bands){const x=skyC.getContext('2d');
+  for(let y=0;y<128;y++){const f=y/127*(bands.length-1),i=Math.floor(f),fr=f-i;for(let xx=0;xx<8;xx++){const th=((xx%2)*2+(y%2))/4;x.fillStyle=bands[Math.min(bands.length-1,i+(fr>th+0.12?1:0))];x.fillRect(xx,y,1,1);}}skyT.needsUpdate=true;}
+function clearMapGroup(){while(mapGroup.children.length){const o=mapGroup.children.pop();o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&!SHARED.has(n.material)){if(n.material.map&&n.material.map!==skyT)n.material.map.dispose();n.material.dispose();}});}}
+function genMap(type,seed){_m=seed%2147483646+1;BIO=BIOMES[type];MAP={type,rivers:[],pools:[],woods:[],rocks:[],walls:[],ridges:[]};BIO.gen();}
+function mapIsSound(){
+  const F=new Float64Array(GW*GD);dijkstra(F,[gcz(0)*GW+gcx(46)]);if(F[gcz(0)*GW+gcx(-46)]>1e8)return false;
+  for(let z=-30;z<=30;z+=2)for(const x of[-47,-41,-35,35,41,47])if(navAt(x,z)===1)return false;return true;}
+let mapSeed=(Date.now()%100000)+11;
+function buildBattlefield(type){
+  for(let a=0;a<14;a++){mapSeed=(mapSeed*48271)%2147483647;genMap(type,mapSeed);fillNAV();if(mapIsSound())break;}
+  clearMapGroup();
+  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);
+  const D=new THREE.Object3D();
+  if(MAP.rocks.length){const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshPhongMaterial({color:BIO.rock,flatShading:true,shininess:4}),MAP.rocks.length);
+    MAP.rocks.forEach((b,i)=>{D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);}
+  const blocks=[];for(const s of MAP.walls){const L=Math.hypot(s.x2-s.x1,s.z2-s.z1),n=Math.max(1,Math.ceil(L/1.6)),ang=-Math.atan2(s.z2-s.z1,s.x2-s.x1);
+    for(let i=0;i<n;i++){const t=(i+0.5)/n,x=s.x1+(s.x2-s.x1)*t,z=s.z1+(s.z2-s.z1)*t,h=mrand()<0.2?0.8+mrand()*0.6:1.6+mrand()*1.8;blocks.push([x,z,L/n+0.05,h,ang]);}}
+  if(blocks.length){const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshPhongMaterial({color:BIO.wall,flatShading:true,shininess:4}),blocks.length);
+    blocks.forEach((b,i)=>{D.rotation.set(0,b[4],0);D.position.set(b[0],Hb(b[0],b[1])+b[3]/2-0.2,b[1]);D.scale.set(b[2],b[3],1.2);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);}
+  const railM=new THREE.MeshLambertMaterial({color:BIO.bridge==='stone'?0x7a746a:0x6a4426});
+  for(const r of MAP.rivers)for(const c of r.cross){if(c.t!=='bridge')continue;const bx=rX(r,c.z),by=Hb(bx,c.z),len=2*(r.w+2.2)+0.4;
+    for(const sd of[-1,1]){const rl=new THREE.Mesh(new THREE.BoxGeometry(len,0.5,0.25),railM);rl.position.set(bx,by+0.45,c.z+sd*1.9);mapGroup.add(rl);
+      for(let i=-2;i<=2;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.9,0.3),railM);p.position.set(bx+i*len/5,by+0.45,c.z+sd*1.9);mapGroup.add(p);}}}
+  const lists={},add=(k,x,z,sc)=>{const T=TREE[k];(lists[k]=lists[k]||[]).push([x,Hb(x,z),z,T.w*0.09*sc,T.h*0.09*sc]);},pick=()=>BIO.trees[(mrand()*BIO.trees.length)|0];
+  const okTree=(x,z)=>{if(Math.abs(Math.abs(x)-60)<10&&z<-26)return false;if(Math.abs(x+8)<6&&z<-31)return false;if(Math.abs(x)<FW/2-1&&Math.abs(z)<FD/2-1){if(terrType(x,z)===1||cut(x,z)>0.12)return false;}return true;};
+  for(let i=0;i<Math.round(760*BIO.density);i++){let x,z;const r=mrand();
+    if(r<0.45){x=-70+mrand()*140;z=-39.5+mrand()*6;}else if(r<0.65){x=(mrand()<0.5?-1:1)*(71-mrand()*3);z=-32+mrand()*64;}
+    else{const gx=[-50,-22,4,30,54][(mrand()*5)|0],gz=(mrand()<0.5?-1:1)*(29+mrand()*6);x=gx+(mrand()-0.5)*14;z=gz+(mrand()-0.5)*6;}
+    if(okTree(x,z))add(pick(),x,z,1.2+mrand()*0.6);}
+  MAP.woods.forEach(w=>{const n=Math.round(w.rx*w.rz*(w.palm?0.5:1.1));for(let i=0;i<n;i++){const a=mrand()*6.283,r=Math.sqrt(mrand())*0.95,x=w.x+Math.cos(a)*r*w.rx,z=w.z+Math.sin(a)*r*w.rz;
+    if(okTree(x,z))add(w.palm?'palm':pick(),x,z,1.1+mrand()*0.6);}});
+  for(const k in lists)mapGroup.add(propBatch(TREE[k].m,lists[k]));
+  const tl=[[],[],[]],[tw,th]=TUFTSZ[BIO.tuft];for(let i=0;i<330;i++){const x=-FW/2+mrand()*FW,z=FD/2-1.4+mrand()*1.6;tl[i%3].push([x,Hb(x,z),z,tw*0.11,th*0.11]);}
+  tl.forEach((l,i)=>mapGroup.add(propBatch(TUFT[BIO.tuft][i],l)));
+  for(const [m,p,s] of[[mtnFar,BIO.far,11],[mtnNear,BIO.near,23]]){if(m.material.map)m.material.map.dispose();m.material.map=tex(drawMountains(320,p===BIO.far?96:80,p[0],p[1],p[2],s+mapSeed%97));m.material.needsUpdate=true;}
+  drawSky(BIO.sky);ambLight.color.setHex(BIO.amb);sun.color.setHex(BIO.sunc);
+  castleA.position.y=Hb(-60,-36);castleB.position.y=Hb(60,-35);ruin.position.y=Hb(-8,-37);standards.forEach(s=>{s.position.y=Hb(s.position.x,s.position.z);});
+}
+function ember(){const L=[];for(const r of MAP.rivers)if(r.kind==='lava')L.push(()=>{const z=(mrand()-0.5)*76;return[rX(r,z)+(Math.random()-0.5)*r.w*1.6,z];});
+  for(const p of MAP.pools)if(p.k==='lava')L.push(()=>[p.x+(Math.random()-0.5)*p.rx*1.4,p.z+(Math.random()-0.5)*p.rz*1.4]);
+  if(!L.length)return;const[x,z]=L[(Math.random()*L.length)|0]();
+  spawn({x,y:Hb(x,z)+0.3,z,vy:R(1.5,3.5),vx:R(-0.4,0.4),frames:FLAME,w:R(0.6,1.3),h:R(0.6,1.3),life:R(0.6,1.2),grow:0.3});}
 
 /* ---------- units ---------- */
 const ATL_C=8,ATL_R=4,CELL=32,atlasC=cv(ATL_C*CELL,ATL_R*CELL);
@@ -635,7 +738,7 @@ units.forEach(u=>writeUnit(u,0));
 const GC=2,GW=Math.ceil((FW+10)/GC),GD=Math.ceil((FD+10)/GC),GB=[[],[]],GA=[];
 for(let i=0;i<GW*GD;i++){GB[0].push([]);GB[1].push([]);GA.push([]);}
 const gcx=x=>clamp(Math.floor((x+FW/2+5)/GC),0,GW-1),gcz=z=>clamp(Math.floor((z+FD/2+5)/GC),0,GD-1);
-const NAV=new Uint8Array(GW*GD);for(let z=0;z<GD;z++)for(let x=0;x<GW;x++)NAV[z*GW+x]=terrType((x+0.5)*GC-FW/2-5,(z+0.5)*GC-FD/2-5);
+const NAV=new Uint8Array(GW*GD);function fillNAV(){for(let z=0;z<GD;z++)for(let x=0;x<GW;x++)NAV[z*GW+x]=terrType((x+0.5)*GC-FW/2-5,(z+0.5)*GC-FD/2-5);}
 const navAt=(x,z)=>NAV[gcz(z)*GW+gcx(x)];
 const FF=[new Float64Array(GW*GD),new Float64Array(GW*GD)],PF=new Float64Array(GW*GD);let fieldT=0;
 function dijkstra(F,src){F.fill(1e9);const H=[];
@@ -659,6 +762,9 @@ function moveSlide(e,mx,mz){const nx=e.x+mx,nz=e.z+mz;
   const j=(Math.random()-0.5)*Math.hypot(mx,mz)*2;if(navAt(e.x,e.z+j)!==1)e.z+=j;return false;}
 const terrSpd=(e,type)=>navAt(e.x,e.z)===2?(type==='cav'?0.45:0.6):1;
 const coverMul=u=>inWoods(u.x,u.z)?0.5:1;
+let mapChoice='random',lastType='';
+function pickType(){if(mapChoice!=='random')return mapChoice;const opts=BIOKEYS.filter(k=>k!==lastType);return opts[(Math.random()*opts.length)|0];}
+buildBattlefield('river');
 const fg=[0,1].map(s=>{const sp=card(GM[s?'vorgrath':'kaelen'][0].m,0.5,0.02);sp.visible=false;battle.add(sp);return{side:s,sp,x:s?52:-52,z:0,cast:0,t:0,cd:0,flee:false,dead:false,lunge:0,moving:false,rec:null};});
 
 /* ---------- dragon (background, then swoops) ---------- */
@@ -1153,6 +1259,7 @@ function startSelect(){
   setOrbitGoal({theta:0,phi:0.95,r:118,ty:0,tx:0,tz:0},1);
 }
 function renderSelect(){
+  $('selRule').textContent=BIO.name+': '+BIO.blurb+' Spears beat cavalry, cavalry rides down archers, archers shred infantry. Woods slow troops and shield them from arrows.';
   const box=$('selList');box.innerHTML='';const it=selItems(),e=selEnemyHint;
   const held=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
   $('selRound').textContent='Round '+(round+1)+' · Your generals '+avail(0).length+' · Theirs '+avail(1).length;
@@ -1249,7 +1356,8 @@ function updateModeUI(){
   $('kbar').hidden=!(state==='kingdom'||state==='transition');$('dockKingdom').hidden=state!=='kingdom';
   $('engageBtn').textContent=kMarch?'Engage now':(conquered?'March again':'March on Cindervault');
   $('kPlace').textContent=conquered?'Cindervault has fallen':'The Kingdom of Aldmere';
-  $('kLine').textContent=conquered?'Year 1043 · The Ashen Legion regroups beyond the mountains':kMarch?'Year 1043 of the Eternal War · The armies close on Thornfield Pass':'Year 1043 of the Eternal War · Kaelen marches on Cindervault';
+  const site=mapChoice==='random'?'an unknown battlefield':BIOMES[mapChoice].name;if($('mapSel').value!==mapChoice)$('mapSel').value=mapChoice;
+  $('kLine').textContent=conquered?'Year 1043 · The Ashen Legion regroups beyond the mountains':kMarch?'Year 1043 of the Eternal War · The armies close on '+site:'Year 1043 of the Eternal War · Kaelen marches on Cindervault';
 }
 let hudAcc=0;const lastPor=['',''];
 function updateHud(dt){
@@ -1276,7 +1384,7 @@ function drawVrHud(){
   x.textBaseline='top';x.textAlign='left';x.font='700 30px Silkscreen, monospace';x.fillStyle='#f0c055';
   const line=(t,y,c='#f1e8d4',f='18px')=>{x.font=f+' Silkscreen, monospace';x.fillStyle=c;x.fillText(t,24,y);};
   if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');}
-  else if(state==='kingdom'||state==='transition'){x.fillText(conquered?'CINDERVAULT HAS FALLEN':'THE KINGDOM OF ALDMERE',24,22);line(kMarch?'Armies close on Thornfield Pass':'Right trigger: march',80,'#a99fb8');line('GRIP grab · L move · R turn/zoom · B reset',140,'#a99fb8');}
+  else if(state==='kingdom'||state==='transition'){x.fillText(conquered?'CINDERVAULT HAS FALLEN':'THE KINGDOM OF ALDMERE',24,22);line(kMarch?'Armies close on Thornfield Pass':'Right trigger: march',72,'#a99fb8');line('Battlefield: '+(mapChoice==='random'?'Random':BIOMES[mapChoice].name)+' (L trig)',104,'#f0c055');line('GRIP grab · L move · R turn/zoom · B reset',140,'#a99fb8');}
   else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const it=selItems(),si=selIdx%Math.max(1,it.length),e=selEnemyHint,st=Math.max(0,Math.min(si-1,it.length-4));
     it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
     line(e?`${e.d.short} holds the field (${TROOP[e.d.troop]})`:'The enemy picks after you',166,'#ffb09a','16px');line('L trig: next · R trig: choose',200,'#857aa0','16px');}
@@ -1309,6 +1417,7 @@ $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
 $('engageBtn').addEventListener('click',engage);
+{const ms=$('mapSel');ms.innerHTML='<option value="random">Random</option>'+BIOKEYS.map(k=>`<option value="${k}">${BIOMES[k].name}</option>`).join('');ms.addEventListener('change',e=>{mapChoice=e.target.value;updateModeUI();});}
 $('againBtn').addEventListener('click',fightAgain);
 $('mapBtn').addEventListener('click',backToKingdom);
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
@@ -1320,7 +1429,7 @@ addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName=
     else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){aim.mode=false;hudAcc=1;}
   }else if(k==='enter'){if(state==='title')startGame();else if(state==='kingdom')engage();}});
 function xrSelect(hand){audioInit();
-  if(state==='title')startGame();else if(state==='kingdom')engage();
+  if(state==='title')startGame();else if(state==='kingdom'){if(hand==='left'){const L=['random',...BIOKEYS];mapChoice=L[(L.indexOf(mapChoice)+1)%L.length];updateModeUI();hudAcc=1;drawVrHud();}else engage();}
   else if(state==='battle'){
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
@@ -1361,10 +1470,10 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{if(state==='title')return;if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
 canvas.addEventListener('pointermove',e=>{if(aim.mode&&!ptrs.size)mouseAim(e);const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
   if(ptrs.size===1){if(p.pan){const k=orbit.r*0.0018;panBy(-dx*k,dy*k);}else{orbit.theta=clamp(orbit.theta-dx*0.005,-1.35,1.35);orbit.phi=clamp(orbit.phi-dy*0.005,0.2,1.5);}}
-  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,240);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
+  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,900);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
 const up=e=>{ptrs.delete(e.pointerId);pinch0=0;};
 canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
-canvas.addEventListener('wheel',e=>{e.preventDefault();orbit.g=null;orbit.r=clamp(orbit.r*(1+e.deltaY*0.001),3,240);},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();orbit.g=null;orbit.r=clamp(orbit.r*(1+e.deltaY*0.001),3,900);},{passive:false});
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();keys.add(k);if(k.startsWith('arrow'))e.preventDefault();});
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());
 $('resetView').addEventListener('click',()=>setOrbitGoal(battle.visible?{theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0}:{theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0}));
@@ -1381,17 +1490,17 @@ function aroundHead(fn){const pv=new THREE.Vector3(camera.position.x,vr.pos.y,ca
 function vrInput(dt){
   if(g1){vr.pos.copy(g1.p0).add(g1.c.position).sub(g1.c0);}
   else if(g2){const a=g2.a.position,b=g2.b.position,mid=a.clone().add(b).multiplyScalar(0.5),d=Math.max(0.05,a.distanceTo(b)),dy=Math.atan2(b.x-a.x,b.z-a.z)-g2.ang0;
-    vr.scale=clamp(g2.s0*d/g2.d0,0.01,1);const r=vr.scale/g2.s0;vr.yaw=g2.y0+dy;const off=g2.p0.clone().sub(g2.mid0).multiplyScalar(r).applyAxisAngle(UPV,dy);vr.pos.copy(mid).add(off);}
+    vr.scale=clamp(g2.s0*d/g2.d0,0.0015,1.5);const r=vr.scale/g2.s0;vr.yaw=g2.y0+dy;const off=g2.p0.clone().sub(g2.mid0).multiplyScalar(r).applyAxisAngle(UPV,dy);vr.pos.copy(mid).add(off);}
   const s=renderer.xr.getSession();if(!s)return;
   const f=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);f.y=0;if(f.lengthSq()<1e-6)f.set(0,0,-1);f.normalize();const rt=new THREE.Vector3(-f.z,0,f.x);
   for(const src of s.inputSources){const gp=src.gamepad;if(!gp||gp.axes.length<4)continue;const dz=v=>Math.abs(v)<0.15?0:v;const ax=dz(gp.axes[2]),ay=dz(gp.axes[3]);
     if(src.handedness==='left'){const sp=dt*1.1;vr.pos.addScaledVector(f,ay*sp).addScaledVector(rt,-ax*sp);}
     else{if(ax){const th=ax*dt*1.2;aroundHead(o=>o.applyAxisAngle(UPV,th));vr.yaw+=th;}
-      if(ay){const ns=clamp(vr.scale*(1-ay*dt*1.3),0.01,1),r=ns/vr.scale;aroundHead(o=>o.multiplyScalar(r));vr.scale=ns;}}
+      if(ay){const ns=clamp(vr.scale*(1-ay*dt*1.3),0.0015,1.5),r=ns/vr.scale;aroundHead(o=>o.multiplyScalar(r));vr.scale=ns;}}
     const b=gp.buttons[5]&&gp.buttons[5].pressed;if(b&&!btnPrev.get(gp)){vrReset();grabbing.clear();g1=g2=null;}btnPrev.set(gp,!!b);
     const fa=gp.buttons[4]&&gp.buttons[4].pressed;if(fa&&!btnPrevA.get(gp))xrFace(src.handedness);btnPrevA.set(gp,!!fa);}
 }
-renderer.xr.addEventListener('sessionstart',()=>{xrActive=true;vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp').forEach(el=>el.style.visibility='hidden');drawVrHud();});
+renderer.xr.addEventListener('sessionstart',()=>{xrActive=true;camera.near=0.02;camera.far=300;camera.updateProjectionMatrix();vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp').forEach(el=>el.style.visibility='hidden');drawVrHud();});
 renderer.xr.addEventListener('sessionend',()=>{xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp').forEach(el=>el.style.visibility='');onResize();});
 async function setupVR(){
   const btns=[$('vrBtn'),$('vrBtn2')];
@@ -1425,9 +1534,9 @@ function loop(tms){
   if(state==='transition'){
     trT+=dt;const sMax=xrActive?1.6:3.2;
     if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(KS*s);kingdom.position.set(PASS.x*KS*(1-s),-k*2.5,PASS.z*KS*(1-s));}
-    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;newRoster();active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';clearField();}
+    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;newRoster();active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();}
       const k=ease(Math.min(1,(trT-0.8)/0.9));battle.scale.setScalar(0.35+0.65*k);battle.position.y=(1-k)*2;
-      if(trT>1.75){battle.scale.setScalar(1);battle.position.y=0;state='battle';startSelect();}}
+      if(trT>1.75){battle.scale.setScalar(1);battle.position.y=0;state='battle';startSelect();showBanner(BIO.name);}}
   }
   if(battle.visible){
     if(state==='battle'){
@@ -1439,6 +1548,7 @@ function loop(tms){
     if(state==='end')endT+=dt;
     updateUnits(dt);updateGenerals(dt);updateArrows(dt);updateParticles(dt);updateDragon(dt,now);
     clouds.forEach(c=>{c.position.x+=dt*0.6;if(c.position.x>100)c.position.x=-100;});
+    if(BIO.embers&&Math.random()<dt*7)ember();
   }
   updateHud(dt);updateDin(dt);
   // XR sticks
@@ -1451,6 +1561,7 @@ function loop(tms){
   const gy=orbit.ty+(battle.visible?Hb(orbit.tx,orbit.tz):Hk(orbit.tx/KS,orbit.tz/KS)*KS)*0.7;
   const sp=Math.sin(orbit.phi);camera.position.set(orbit.tx+Math.sin(orbit.theta)*sp*orbit.r,gy+Math.cos(orbit.phi)*orbit.r,orbit.tz+Math.cos(orbit.theta)*sp*orbit.r);
   camera.lookAt(orbit.tx,gy,orbit.tz);
+  {const nn=clamp(orbit.r*0.004,0.05,4);if(Math.abs(camera.near-nn)>nn*0.2){camera.near=nn;camera.far=6000;camera.updateProjectionMatrix();}}
   if(shake>0&&!reduceMotion){camera.position.x+=R(-1,1)*shake*0.5;camera.position.y+=R(-1,1)*shake*0.5;}shake=Math.max(0,shake-dt*1.8);
   if(flashV>0){flashV=Math.max(0,flashV-dt*2.2);$('flash').style.opacity=flashV.toFixed(3);}
   placeReticle(aim.mode&&state==='battle',now);
