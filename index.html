@@ -676,7 +676,7 @@ function sfx(k){if(!AC)return;const t=AC.currentTime;
 /* ================= GAME STATE ================= */
 let state='title',phase='intro',introT=0,trT=0,swapped=false,endT=0,result=null,conquered=false;
 let kprog=0,kMarch=false,kMet=false;
-const orders=['charge','hold'],mp=[0,0],anchor=[-19,19],morale=[0.6,0.6];
+const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-19,19],morale=[0.6,0.6];
 let timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
 const alive=[[],[]];
 function schedule(t,fn){timers.push({t,fn});}
@@ -708,7 +708,7 @@ function deploy(){
   round++;phase='intro';introT=0;aim.mode=false;timers=[];anchor[0]=-19;anchor[1]=19;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];mp[s]=0.3;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?31:-31;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.lunge=0;g.t=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
-    if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
+    if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
       const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);u.sp.visible=true;}
     else{u.state='gone';u.sp.visible=false;}}
   dragon.mode='idle';dragon.t=0;for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;a.s.visible=false;}
@@ -783,6 +783,7 @@ function updateUnits(dt){
         else{tx=T.x;tz=T.z;move=true;}
       }else if(ord==='flank'&&T){const c=cent[1-u.side],sd=(u.i%10)<5?-1:1,fx=c.x,fz=clamp(c.z+sd*11,-(FD/2-1.5),FD/2-1.5);
         if(Math.hypot(fx-u.x,fz-u.z)<4){tx=c.x;tz=c.z;}else{tx=fx;tz=fz;}move=true;}
+      else if(ord==='hold'){if(u.hs!==holdStamp[u.side]){u.hs=holdStamp[u.side];u.hx=u.x;u.hz=u.z;}tx=u.hx;tz=u.hz;move=Math.hypot(tx-u.x,tz-u.z)>0.4;}
       else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
     }else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
     let dvx=0,dvz=0;if(move){const dx=tx-u.x,dz=tz-u.z,d=Math.hypot(dx,dz)||1,sp=st.spd*(ord2spd(u));dvx=dx/d*sp;dvz=dz/d*sp;}
@@ -978,7 +979,7 @@ function backToKingdom(){
   $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:44,ty:0,tx:0,tz:0});buildLabels();updateModeUI();
 }
 function fightAgain(){backToKingdom();kMarch=true;kprog=0.82;updateModeUI();}
-function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;orders[0]=o;setOrderUI();}
+function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;orders[0]=o;setOrderUI();}
 function cycleOrder(){setOrder(ORDERS[(ORDERS.indexOf(orders[0])+1)%ORDERS.length]);}
 function setOrderUI(){document.querySelectorAll('[data-ord]').forEach(b=>b.classList.toggle('on',b.dataset.ord===orders[0]));$('ordLbl').textContent=orders[0].toUpperCase();}
 function withdraw(){
@@ -1051,7 +1052,7 @@ function aiThink(){
   else if(myT==='arc')o=Math.random()<0.7?'hold':'flank';
   else if(me.length>them.length*1.15||BEATS[myT]===thT)o='charge';
   else o=Math.random()<0.5?'charge':'flank';
-  orders[1]=o;if(mp[1]>=1)castSpell(1,null);
+  if(o==='hold'&&orders[1]!=='hold')holdStamp[1]++;orders[1]=o;if(mp[1]>=1)castSpell(1,null);
 }
 
 /* ================= UI ================= */
