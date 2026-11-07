@@ -92,6 +92,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .gcard .gn{font-weight:700;font-size:13px;color:var(--ink)}
 .gcard .gt,.gcard .gh{font-size:10px;color:var(--dim)}
 .gcard.on{border-color:var(--gold)}
+.gcard.cap{border-style:dashed}.gcard.cap .gt{color:var(--ember)}
 .gm{font-size:10px;font-weight:700}.gm.strong{color:#7fe39a}.gm.weak{color:var(--ember)}.gm.even{color:var(--dim)}
 /* duel */
 #duelp{padding:10px 12px;display:grid;gap:8px;width:min(480px,100%);margin:0 auto;box-sizing:border-box}
@@ -468,12 +469,13 @@ function cardGeo(cx,cy){const k=cx+','+cy;if(!geoCache[k]){const g=new THREE.Pla
 function card(mat,cx=0.5,cy=0,tilt=TILT){const m=new THREE.Mesh(cardGeo(cx,cy),mat);m.rotation.x=-tilt;return m;}
 const PX=0.055;
 
-const UM=[[],[]];// UM[side][type] -> frames [{m,w,h}]
+const UM=[[],[]],UCV=[{},{}];// UM[side][type] -> frames [{m,w,h}]
 ['inf','arc','cav'].forEach(type=>{
   ['a','b'].forEach((k,s)=>{
     const p=PAL[k],dims=type==='cav'?[28,24]:[18,22],fn={inf:drawInf,arc:drawArc,cav:drawCav}[type];
     const frames=[0,1,2].map(f=>{const c=cv(dims[0],dims[1]);fn(rectFn(c.getContext('2d')),f,p);return finish(c);});
     frames.push(type==='cav'?flipV(frames[0]):rot90(frames[0],-1));
+    UCV[s][type]=frames.map(c=>s?mirror(c):c);
     UM[s][type]=frames.map(c=>{const cc=s?mirror(c):c;return{m:smat(cc),w:cc.width*PX,h:cc.height*PX};});
   });
 });
@@ -489,9 +491,10 @@ const GENDEFS=[
   {key:'hask',side:1,name:'Hask the Grinder',short:'Hask',troop:'inf',hp:58,atk:9,def:8,spell:'ashrain',pal:GPAL.hask,horned:true},
   {key:'mordrae',side:1,name:'Mordrae of the Veil',short:'Mordrae',troop:'arc',hp:44,atk:8,def:4,spell:'volley',pal:GPAL.mordrae,horned:false},
   {key:'vorgrath',side:1,name:'Vorgrath, Ashen Tyrant',short:'Vorgrath',troop:'cav',hp:76,atk:13,def:9,spell:'breath',pal:GPAL.b,horned:true}];
-const GCV={},GM={};
-GENDEFS.forEach(d=>{const fr=[0,1,2].map(f=>{const c=cv(30,40);drawGen(rectFn(c.getContext('2d')),f,d.pal,d.horned);finish(c);return d.side?mirror(c):c;});
-  fr.push(rot90(fr[0],d.side?1:-1));GCV[d.key]=fr;GM[d.key]=fr.map(c=>({m:smat(c),w:c.width*PX*1.25,h:c.height*PX*1.25}));});
+const GCV={},GM={},GMF={};
+GENDEFS.forEach(d=>{const base=[0,1,2].map(f=>{const c=cv(30,40);drawGen(rectFn(c.getContext('2d')),f,d.pal,d.horned);finish(c);return c;});
+  const mk=sd=>{const fr=base.map(c=>sd?mirror(c):c);fr.push(rot90(fr[0],sd?1:-1));return fr.map(c=>({m:smat(c),w:c.width*PX*1.25,h:c.height*PX*1.25}));};
+  GMF[d.key]=[mk(0),mk(1)];GM[d.key]=GMF[d.key][d.side];GCV[d.key]=base.map(c=>d.side?mirror(c):c);});
 
 const dragonC=[drawDragon(true,false),drawDragon(false,false),drawDragon(false,true)];
 const DRAG={r:dragonC.map(tex),l:dragonC.map(c=>tex(mirror(c)))};
@@ -501,8 +504,8 @@ const boltC=(()=>{_s=314;const c=cv(16,96),x=c.getContext('2d');let px=8;x.strok
 const T_BOLT=tex(boltC),T_METEOR=tex(meteorC),T_RUNE=tex(runeC),T_SPARK=tex(sparkC),T_ARROW=tex(arrowC),T_CHIPS=chipC.map(c=>tex(c));
 
 /* ---------- terrain ---------- */
-const BASE_TOP=-3.4,FW=72,FD=40;
-function Hb(x,z){return 0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3);}
+const BASE_TOP=-5.8,FW=144,FD=80,NPS=400,KS=1.8;
+function Hb(x,z){return 0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3)+2.3*Math.sin(x*0.034+1.1)*Math.cos(z*0.047-0.6);}
 function Hk(x,z){let h=0.5*Math.sin(x*0.3)*Math.cos(z*0.35)+0.3*Math.sin(x*0.17+z*0.23);const m=Math.max(0,-z-4);h+=m*0.55*(0.6+0.4*Math.sin(x*0.9)*Math.cos(z*1.1));const rz=4*Math.sin(x*0.18)+3,rd=Math.abs(z-rz);if(rd<1.4)h-=(1.4-rd)*0.7;return h;}
 const grassC=(()=>{_s=5;const c=cv(16,16),x=c.getContext('2d');for(let y=0;y<16;y++)for(let i=0;i<16;i++){const v=210+(srand()*45)|0;x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(i,y,1,1);}return c;})();
 function buildTerrain(Hf,colorFn,W=40,D=24){
@@ -534,50 +537,72 @@ function sprite(c,w,h,cx=0.5,cy=0,tilt=TILT){const s=card(c.isMaterial?c:smat(c)
 const skyC=(()=>{const c=cv(8,128),x=c.getContext('2d');const bands=['#1a1640','#2a2058','#41296a','#6a3470','#9a4a6a','#c86a5a','#e8925a','#f4b870','#f8d890'];
   for(let y=0;y<128;y++){const f=y/127*(bands.length-1),i=Math.floor(f),fr=f-i;for(let xx=0;xx<8;xx++){const th=((xx%2)*2+(y%2))/4;x.fillStyle=bands[Math.min(bands.length-1,i+(fr>th+0.12?1:0))];x.fillRect(xx,y,1,1);}}return c;})();
 const skyT=tex(skyC);
-const sky=new THREE.Mesh(new THREE.CylinderGeometry(72,72,64,40,1,true,Math.PI*0.5,Math.PI),new THREE.MeshBasicMaterial({map:skyT,side:THREE.BackSide}));
-sky.position.y=24;world.add(sky);
-const sunS=sprite((()=>{const c=cv(24,24),x=c.getContext('2d');x.fillStyle='#fff2c0';x.beginPath();x.arc(12,12,10,0,7);x.fill();return finish(c,{line:'#f8b060'});})(),8,8,0.5,0.5,0);
-sunS.position.set(16,9,-66);world.add(sunS);
+const sky=new THREE.Mesh(new THREE.CylinderGeometry(150,150,130,48,1,true,Math.PI*0.5,Math.PI),new THREE.MeshBasicMaterial({map:skyT,side:THREE.BackSide}));
+sky.position.y=50;world.add(sky);
+const sunS=sprite((()=>{const c=cv(24,24),x=c.getContext('2d');x.fillStyle='#fff2c0';x.beginPath();x.arc(12,12,10,0,7);x.fill();return finish(c,{line:'#f8b060'});})(),16,16,0.5,0.5,0);
+sunS.position.set(30,18,-142);world.add(sunS);
 
 /* ================= BATTLE DIORAMA ================= */
 const battle=new THREE.Group();world.add(battle);battle.visible=false;
 const battleTerrain=buildTerrain(Hb,(c,x,z,y)=>{
-  const t=clamp((y+3)/6,0,1);c.setRGB(0.21+t*0.45,0.37+t*0.34,0.16+t*0.14);
+  const t=clamp((y+5)/10,0,1);c.setRGB(0.21+t*0.45,0.37+t*0.34,0.16+t*0.14);
   if(Math.sin(x*0.7)*Math.cos(z*0.9)>0.72)c.setRGB(0.48,0.42,0.24);
 },FW,FD);
 battle.add(battleTerrain);
 battle.add(buildBase(FW,FD));
 function mtnPlane(cnv,w,h,y,z){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex(cnv),alphaTest:0.5,side:THREE.DoubleSide}));m.position.set(0,y,z);battle.add(m);return m;}
-mtnPlane(drawMountains(320,96,'#6a5a8e','#544676','#e8e0f8',11),96,28,9,-52);
-mtnPlane(drawMountains(320,80,'#3e5a4e','#2e463c','#d8e4d8',23),96,18,5,-36);
-const castleA=sprite(castleBlue,9,10.7);castleA.position.set(-30,Hb(-30,-17.5),-17.5);battle.add(castleA);
-const castleB=sprite(castleRed,9,10.7);castleB.position.set(30,Hb(30,-17),-17);battle.add(castleB);
-const ruin=sprite(castleGrey,5,6);ruin.position.set(-4,Hb(-4,-18.5),-18.5);battle.add(ruin);
+mtnPlane(drawMountains(320,96,'#6a5a8e','#544676','#e8e0f8',11),200,56,16,-102);
+mtnPlane(drawMountains(320,80,'#3e5a4e','#2e463c','#d8e4d8',23),190,34,9,-72);
+const castleA=sprite(castleBlue,18,21.4);castleA.position.set(-60,Hb(-60,-36),-36);battle.add(castleA);
+const castleB=sprite(castleRed,18,21.4);castleB.position.set(60,Hb(60,-35),-35);battle.add(castleB);
+const ruin=sprite(castleGrey,10,12);ruin.position.set(-8,Hb(-8,-37),-37);battle.add(ruin);
 const pineC=drawPine(),oakC=drawOak(),pineM=smat(pineC),oakM=smat(oakC);
-_s=77;
-for(let i=0;i<160;i++){
+/* static props are instanced: one draw call per kind */
+const DUM=new THREE.Object3D();
+function propBatch(mat,list,tilt=TILT){const g=new THREE.PlaneGeometry(1,1);g.translate(0,0.48,0);g.rotateX(-tilt);const m=new THREE.InstancedMesh(g,mat,list.length);
+  list.forEach((q,i)=>{DUM.position.set(q[0],q[1],q[2]);DUM.scale.set(q[3],q[4],1);DUM.updateMatrix();m.setMatrixAt(i,DUM.matrix);});m.instanceMatrix.needsUpdate=true;return m;}
+_s=77;const pines=[],oaks=[];
+for(let i=0;i<760;i++){
   let x,z;const r=srand();
-  if(r<0.5){x=-35+srand()*70;z=-19.6+srand()*3;}
-  else if(r<0.7){x=(srand()<0.5?-1:1)*(35.4-srand()*1.5);z=-16+srand()*32;}
-  else{const gx=[-24,-9,9,24][(srand()*4)|0],gz=(srand()<0.5?-1:1)*(14.5+srand()*2.5);x=gx+(srand()-0.5)*7;z=gz+(srand()-0.5)*3;}
-  if(Math.abs(Math.abs(x)-30)<5&&z<-13)continue;if(Math.abs(x+4)<3&&z<-16)continue;
-  const pine=srand()<0.6,s=0.85+srand()*0.4;const sp=sprite(pine?pineM:oakM,(pine?14:18)*0.09*s,(pine?24:20)*0.09*s,0.5,0.02);sp.position.set(x,Hb(x,z),z);battle.add(sp);
+  if(r<0.45){x=-70+srand()*140;z=-39.5+srand()*6;}
+  else if(r<0.65){x=(srand()<0.5?-1:1)*(71-srand()*3);z=-32+srand()*64;}
+  else{const gx=[-50,-22,4,30,54][(srand()*5)|0],gz=(srand()<0.5?-1:1)*(29+srand()*6);x=gx+(srand()-0.5)*14;z=gz+(srand()-0.5)*6;}
+  if(Math.abs(Math.abs(x)-60)<10&&z<-26)continue;if(Math.abs(x+8)<6&&z<-31)continue;
+  const pine=srand()<0.6,sc=1.2+srand()*0.6;(pine?pines:oaks).push([x,Hb(x,z),z,(pine?14:18)*0.09*sc,(pine?24:20)*0.09*sc]);
 }
+battle.add(propBatch(pineM,pines));battle.add(propBatch(oakM,oaks));
 const cloudM=smat(drawCloud());const clouds=[];
-for(let i=0;i<10;i++){const s=sprite(cloudM,9,3.4,0.5,0.5,0);s.position.set(-45+i*10+R(-3,3),R(18,28),R(-46,-24));battle.add(s);clouds.push(s);}
+for(let i=0;i<16;i++){const s=sprite(cloudM,17,6.4,0.5,0.5,0);s.position.set(-90+i*12+R(-4,4),R(34,54),R(-92,-50));battle.add(s);clouds.push(s);}
 const tuftMs=[1,2,3].map(n=>smat(drawTuft(n*13)));
-_s=91;for(let i=0;i<120;i++){const x=-FW/2+srand()*FW,z=FD/2-1+srand()*1.3;const sp=sprite(tuftMs[i%3],12*0.09,10*0.09,0.5,0.05);sp.position.set(x,Hb(x,z),z);battle.add(sp);}
-[[-FW/2+0.8,FD/2-0.4,'#2f5fc4','#f2c94c'],[FW/2-0.8,FD/2-0.4,'#a3262a','#f07a2a']].forEach(([x,z,c1,c2])=>{const s=sprite(drawStandard(c1,c2),16*0.12,44*0.12,0.5,0.02);s.position.set(x,Hb(x,z),z);battle.add(s);});
+_s=91;{const tl=[[],[],[]];for(let i=0;i<330;i++){const x=-FW/2+srand()*FW,z=FD/2-1.4+srand()*1.6;tl[i%3].push([x,Hb(x,z),z,12*0.11,10*0.11]);}tl.forEach((l,i)=>battle.add(propBatch(tuftMs[i],l)));}
+[[-FW/2+0.8,FD/2-0.4,'#2f5fc4','#f2c94c'],[FW/2-0.8,FD/2-0.4,'#a3262a','#f07a2a']].forEach(([x,z,c1,c2])=>{const s=sprite(drawStandard(c1,c2),16*0.2,44*0.2,0.5,0.02);s.position.set(x,Hb(x,z),z);battle.add(s);});
 
 /* ---------- units ---------- */
+const ATL_C=8,ATL_R=4,CELL=32,atlasC=cv(ATL_C*CELL,ATL_R*CELL);
+{const x=atlasC.getContext('2d');for(let s=0;s<2;s++)['inf','arc','cav'].forEach((t,ti)=>UCV[s][t].forEach((c,f)=>{const idx=(s*3+ti)*4+f,col=idx%ATL_C,row=Math.floor(idx/ATL_C);x.drawImage(c,col*CELL+Math.round((CELL-c.width)/2),row*CELL+CELL-c.height);}));}
+const uGeo=new THREE.PlaneGeometry(1,1);uGeo.translate(0,0.48,0);uGeo.rotateX(-TILT);
+const uMat=new THREE.MeshBasicMaterial({map:tex(atlasC),alphaTest:0.5,side:THREE.DoubleSide});
+uMat.onBeforeCompile=sh=>{sh.vertexShader='attribute vec2 aCell;\n'+sh.vertexShader.replace('#include <uv_vertex>','#include <uv_vertex>\nvUv=(vUv+aCell)*vec2('+(1/ATL_C).toFixed(6)+','+(1/ATL_R).toFixed(6)+');');};
+const UN=NPS*2,uCellAttr=new THREE.InstancedBufferAttribute(new Float32Array(UN*2),2);uCellAttr.setUsage(THREE.DynamicDrawUsage);uGeo.setAttribute('aCell',uCellAttr);
+const uMesh=new THREE.InstancedMesh(uGeo,uMat,UN);uMesh.frustumCulled=false;uMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);battle.add(uMesh);
+const UMAT=uMesh.instanceMatrix.array,UCELL=uCellAttr.array,USCL=CELL*PX,TI={inf:0,arc:1,cav:2};
 const units=[];
-for(let s=0;s<2;s++)for(let i=0;i<100;i++){const sp=card(UM[s].inf[0].m,0.5,0.02);sp.visible=false;battle.add(sp);units.push({side:s,type:'inf',i,sp,state:'gone',x:0,z:0,rx:0,rz:0});}
-const fg=[0,1].map(s=>{const sp=card(GM[s?'vorgrath':'kaelen'][0].m,0.5,0.02);sp.visible=false;battle.add(sp);return{side:s,sp,x:s?31:-31,z:0,cast:0,t:0,cd:0,flee:false,dead:false,lunge:0,moving:false,rec:null};});
+for(let s=0;s<2;s++)for(let i=0;i<NPS;i++)units.push({uid:s*NPS+i,side:s,type:'inf',i,state:'gone',vis:false,x:0,z:0,y:0,rx:0,rz:0});
+function writeUnit(u,f){const o=u.uid*16;UMAT.fill(0,o,o+16);UMAT[o+15]=1;
+  if(!u.vis){UMAT[o+13]=-999;return;}
+  UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y;UMAT[o+14]=u.z;
+  const idx=(u.side*3+TI[u.type])*4+f;UCELL[u.uid*2]=idx%ATL_C;UCELL[u.uid*2+1]=ATL_R-1-Math.floor(idx/ATL_C);}
+units.forEach(u=>writeUnit(u,0));
+/* spatial grid for targeting and spacing */
+const GC=2,GW=Math.ceil((FW+10)/GC),GD=Math.ceil((FD+10)/GC),GB=[[],[]],GA=[];
+for(let i=0;i<GW*GD;i++){GB[0].push([]);GB[1].push([]);GA.push([]);}
+const gcx=x=>clamp(Math.floor((x+FW/2+5)/GC),0,GW-1),gcz=z=>clamp(Math.floor((z+FD/2+5)/GC),0,GD-1);
+const fg=[0,1].map(s=>{const sp=card(GM[s?'vorgrath':'kaelen'][0].m,0.5,0.02);sp.visible=false;battle.add(sp);return{side:s,sp,x:s?52:-52,z:0,cast:0,t:0,cd:0,flee:false,dead:false,lunge:0,moving:false,rec:null};});
 
 /* ---------- dragon (background, then swoops) ---------- */
 const dragonMat=new THREE.MeshBasicMaterial({map:DRAG.r[0],alphaTest:0.5,side:THREE.DoubleSide});
 const dragon={sp:card(dragonMat,0.5,0.5,0),mode:'idle',t:0,x:0,y:22,z:-42,face:1,flap:0,breath:0,path:null};
-dragon.sp.scale.set(16,10.4,1);battle.add(dragon.sp);
+dragon.sp.scale.set(30,19.5,1);battle.add(dragon.sp);
 
 /* ---------- particles ---------- */
 const PMAX=340,pool=[];let pIdx=0;
@@ -602,7 +627,13 @@ function chips(x,y,z,n,spread=3,up=6,toward=3,cols){for(let i=0;i<n;i++)spawn({x
 
 /* ---------- arrows ---------- */
 const arrows=[];
-for(let i=0;i<180;i++){const s=card(new THREE.MeshBasicMaterial({map:T_ARROW,alphaTest:0.5,side:THREE.DoubleSide}),0.5,0.5,0);s.scale.set(0.66,0.17,1);s.visible=false;battle.add(s);arrows.push({s,active:false});}
+const AN=500,aMesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:T_ARROW,alphaTest:0.5,side:THREE.DoubleSide}),AN);
+aMesh.frustumCulled=false;aMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);battle.add(aMesh);
+for(let i=0;i<AN;i++)arrows.push({i,active:false,s:{visible:false,rotation:{z:0},position:{set(){}}}});
+const AMAT=aMesh.instanceMatrix.array;
+function writeArrow(a,x,y,z,rot){const o=a.i*16;AMAT.fill(0,o,o+16);AMAT[o+15]=1;if(!a.active){AMAT[o+13]=-999;return;}
+  const c=Math.cos(rot),sn=Math.sin(rot);AMAT[o]=c*0.66;AMAT[o+1]=sn*0.66;AMAT[o+4]=-sn*0.17;AMAT[o+5]=c*0.17;AMAT[o+10]=1;AMAT[o+12]=x;AMAT[o+13]=y;AMAT[o+14]=z;}
+arrows.forEach(a=>writeArrow(a,0,0,0,0));
 
 /* ---------- aiming ---------- */
 const reticle=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:T_RUNE,alphaTest:0.5,side:THREE.DoubleSide,depthTest:false}));
@@ -615,7 +646,7 @@ function mouseAim(e){const r=canvas.getBoundingClientRect();ray.setFromCamera(ne
 function spellPress(){if(state!=='battle'||phase!=='fight'||mp[0]<1)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
 
 /* ================= KINGDOM WAR TABLE ================= */
-const kingdom=new THREE.Group();world.add(kingdom);
+const kingdom=new THREE.Group();kingdom.scale.setScalar(KS);world.add(kingdom);
 kingdom.add(buildTerrain(Hk,(c,x,z,y)=>{
   const rz=4*Math.sin(x*0.18)+3,rd=Math.abs(z-rz);
   if(rd<0.95)c.set('#3a6ab8');else if(y>3.2)c.set('#eef0f6');else if(y>1.6)c.set('#7a7484');else if(rd<1.5)c.set('#c8b878');
@@ -648,8 +679,8 @@ function buildLabels(){
 /* ---------- VR furniture ---------- */
 const floor=new THREE.GridHelper(8,16,0x3b3150,0x1e1a2c);floor.visible=false;scene.add(floor);
 const hudC=cv(768,240),hudX=hudC.getContext('2d'),hudT=tex(hudC,true);
-const vrHud=new THREE.Mesh(new THREE.PlaneGeometry(24,7.5),new THREE.MeshBasicMaterial({map:hudT,transparent:true}));
-vrHud.position.set(0,18,-16);vrHud.rotation.x=-0.25;vrHud.visible=false;world.add(vrHud);
+const vrHud=new THREE.Mesh(new THREE.PlaneGeometry(48,15),new THREE.MeshBasicMaterial({map:hudT,transparent:true}));
+vrHud.position.set(0,40,-40);vrHud.rotation.x=-0.25;vrHud.visible=false;world.add(vrHud);
 const ctrls=[],laserGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]);
 for(let i=0;i<2;i++){const c=renderer.xr.getController(i);c.addEventListener('connected',e=>{c.userData.hand=e.data&&e.data.handedness;});c.addEventListener('selectstart',()=>xrSelect(c.userData.hand||'right'));c.addEventListener('squeezestart',()=>{grabbing.add(c);initGrab();});c.addEventListener('squeezeend',()=>{grabbing.delete(c);initGrab();});
   const m=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.018,0.09),new THREE.MeshBasicMaterial({color:i?0xf0c055:0x5b8cff}));m.position.z=-0.04;c.add(m);const lz=new THREE.Line(laserGeo,new THREE.LineBasicMaterial({color:0xf0c055}));lz.visible=false;c.add(lz);c.userData.laser=lz;ctrls.push(c);scene.add(c);}
@@ -676,8 +707,8 @@ function sfx(k){if(!AC)return;const t=AC.currentTime;
 /* ================= GAME STATE ================= */
 let state='title',phase='intro',introT=0,trT=0,swapped=false,endT=0,result=null,conquered=false;
 let kprog=0,kMarch=false,kMet=false;
-const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-19,19],morale=[0.6,0.6];
-let timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
+const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-35,35],morale=[0.6,0.6];
+let pursuit=null,tyrantTaken=false,traitorMsg='',timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
 const alive=[[],[]];
 function schedule(t,fn){timers.push({t,fn});}
 const ORDERS=['charge','hold','flank','retreat'];
@@ -689,38 +720,46 @@ const BEATS={inf:'cav',cav:'arc',arc:'inf'};
 const COUNTER={cav:'inf',arc:'cav',inf:'arc'};
 const SPELL={starfall:'Starfall',volley:'Arrow Storm',thunder:'Thunder Lance',ashrain:'Ash Rain',breath:"Dragon's Breath"};
 let roster=[[],[]];const active=[null,null];
-function newRoster(){roster=[0,1].map(s=>GENDEFS.filter(d=>d.side===s).map(d=>({d,hp:d.hp,troops:100,out:false})));}
+function newRoster(){roster=[0,1].map(s=>GENDEFS.filter(d=>d.side===s).map(d=>({d,hp:d.hp,troops:NPS,out:false,captor:null,turned:false,tried:-1})));}
 function avail(s){return roster[s].filter(r=>!r.out&&r.troops>0&&r.hp>0);}
 function strength(r){return Math.max(1,r.hp)*r.d.atk*(0.7+0.03*r.d.def);}
 function centroid(L,fb){if(!L.length)return{x:fb.x,z:fb.z};let x=0,z=0;for(const u of L){x+=u.x;z+=u.z;}return{x:x/L.length,z:z/L.length};}
 
 function slotPos(u){
-  const dir=u.side?-1:1,cav=u.type==='cav',row=u.i%10,col=Math.floor(u.i/10);
-  const f=-col*(cav?1.2:0.95)-(u.type==='arc'?2:0),l=(row-4.5)*(cav?1.5:1.35);
+  const dir=u.side?-1:1,cav=u.type==='cav',row=u.i%40,col=Math.floor(u.i/40);
+  const f=-col*(cav?1.25:1.0)-(u.type==='arc'?3:0),l=(row-19.5)*(cav?1.55:1.35);
   return[anchor[u.side]+dir*f,clamp(l,-(FD/2-1.5),FD/2-1.5)];
 }
 function clearField(){
-  for(const u of units){u.state='gone';u.sp.visible=false;}fg.forEach(g=>{g.sp.visible=false;g.rec=null;});
-  for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;a.s.visible=false;}
+  for(const u of units){u.state='gone';u.vis=false;writeUnit(u,0);}fg.forEach(g=>{g.sp.visible=false;g.rec=null;});
+  for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
   dragon.mode='idle';dragon.t=0;timers=[];
 }
 function deploy(){
-  round++;phase='intro';introT=0;aim.mode=false;timers=[];anchor[0]=-19;anchor[1]=19;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
-  for(let s=0;s<2;s++){const r=active[s],g=fg[s];mp[s]=0.3;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?31:-31;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.lunge=0;g.t=0;g.sp.visible=true;}
+  round++;phase='intro';introT=0;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
+  for(let s=0;s<2;s++){const r=active[s],g=fg[s];mp[s]=0.3;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
     if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
-      const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);u.sp.visible=true;}
-    else{u.state='gone';u.sp.visible=false;}}
-  dragon.mode='idle';dragon.t=0;for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;a.s.visible=false;}
+      const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);u.vis=true;}
+    else{u.state='gone';u.vis=false;}}
+  dragon.mode='idle';dragon.t=0;for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
   setOrderUI();updateModeUI();hudAcc=1;
   showBanner(active[0].d.short+' vs '+active[1].d.short);sfx('fanfare');
-  setOrbitGoal({theta:0,phi:1.08,r:54,ty:0,tx:0,tz:0},0.9);
+  if(traitorMsg){const m=traitorMsg;traitorMsg='';schedule(2.2,()=>showBanner(m,true));}
+  setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);
 }
-function nearestEnemy(u){let best=null,bd=1e9;for(const v of alive[1-u.side]){const d=(v.x-u.x)**2+(v.z-u.z)**2;if(d<bd){bd=d;best=v;}}return best;}
+function buildGrid(){for(let i=0;i<GA.length;i++){GA[i].length=0;GB[0][i].length=0;GB[1][i].length=0;}
+  for(let s=0;s<2;s++)for(const u of alive[s]){const k=gcz(u.z)*GW+gcx(u.x);GA[k].push(u);GB[s][k].push(u);}}
+function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=null,bd=1e18;
+  for(let r=0;r<=Math.max(GW,GD);r++){
+    for(let dz=-r;dz<=r;dz++){const z=cz+dz;if(z<0||z>=GD)continue;const edge=Math.abs(dz)===r,step=edge?1:(2*r||1);
+      for(let dx=-r;dx<=r;dx+=step){const x=cx+dx;if(x<0||x>=GW)continue;for(const v of G[z*GW+x]){if(v.state!=='alive')continue;const d=(v.x-u.x)**2+(v.z-u.z)**2;if(d<bd){bd=d;best=v;}}}}
+    if(best&&(r*GC)*(r*GC)>bd)break;}
+  return best;}
 function kill(u,fx,fz,power=3,launch=0){
   u.state='dying';u.t=0;const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
-  morale[u.side]=clamp(morale[u.side]-0.006,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.004,0,1);
+  morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
@@ -731,29 +770,30 @@ function hit(T,dmg,att,raw){
   sfx('clang');
 }
 function generalHit(g,dmg,att){
-  if(!g.rec||g.dead||phase==='between'||phase==='over')return;
+  if(!g.rec||g.dead||phase==='between'||phase==='over'||phase==='pursuit')return;
   g.rec.hp-=dmg*(0.9-g.rec.d.def*0.03);g.cast=Math.max(g.cast,0.12);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.6,z:g.z+0.2,tex:T_SPARK,w:0.6,h:0.6,life:0.15});
   morale[g.side]=clamp(morale[g.side]-0.002,0,1);
   if(g.rec.hp<=0){g.rec.hp=0;g.dead=true;sfx('boom');endEngagement(1-g.side,'fallen');}
 }
 function fireArrow(u,T){
-  const a=arrows.find(a=>!a.active);if(!a)return;const dist=Math.hypot(T.x-u.x,T.z-u.z);
+  const a=arrows.find(a=>!a.active);if(!a){if(Math.random()<0.7)hit(T,STATS.arc.dmg,u);return;}const dist=Math.hypot(T.x-u.x,T.z-u.z);
   Object.assign(a,{active:true,area:false,x0:u.x,z0:u.z,y0:Hb(u.x,u.z)+0.9,x1:T.x+R(-0.4,0.4),z1:T.z+R(-0.4,0.4),t:0,dur:0.45+dist*0.06,target:T,att:u});
-  a.y1=Hb(a.x1,a.z1)+0.5;a.s.visible=true;sfx('arrow');
+  a.y1=Hb(a.x1,a.z1)+0.5;sfx('arrow');
 }
 function rainArrow(x,z,V,dir){
   const a=arrows.find(a=>!a.active);if(!a)return;
   Object.assign(a,{active:true,area:true,V,dmg:3.2,x0:x-dir*12+R(-2,2),z0:z-3,y0:Hb(x,z)+14,x1:x,z1:z,y1:Hb(x,z)+0.3,t:0,dur:R(0.6,0.85),target:null,att:null});
-  a.s.visible=true;sfx('arrow');
+  sfx('arrow');
 }
 function updateArrows(dt){
+  aMesh.instanceMatrix.needsUpdate=true;
   for(const a of arrows){if(!a.active)continue;a.t+=dt;const k=Math.min(1,a.t/a.dur),hd=Math.hypot(a.x1-a.x0,a.z1-a.z0);
     const arcF=kk=>(2+hd*0.18)*4*kk*(1-kk);
     const x=a.x0+(a.x1-a.x0)*k,z=a.z0+(a.z1-a.z0)*k,y=a.y0+(a.y1-a.y0)*k+arcF(k);
     const k2=Math.min(1,k+0.02),y2=a.y0+(a.y1-a.y0)*k2+arcF(k2),x2=a.x0+(a.x1-a.x0)*k2;
-    a.s.rotation.z=Math.atan2(y2-y,x2-x||1e-4);a.s.position.set(x,y,z);
-    if(k>=1){a.active=false;a.s.visible=false;
+    writeArrow(a,x,y,z,Math.atan2(y2-y,x2-x||1e-4));
+    if(k>=1){a.active=false;writeArrow(a,0,0,0,0);
       if(a.area){for(const u of alive[a.V]){if(u.state==='alive'&&Math.abs(u.x-a.x1)<0.9&&Math.abs(u.z-a.z1)<0.9){hit(u,a.dmg,{x:a.x0,z:a.z0,type:'arc',side:1-a.V},true);break;}}
         const eg=fg[a.V];if(eg.rec&&Math.hypot(eg.x-a.x1,eg.z-a.z1)<0.9)generalHit(eg,1.2,null);}
       else{const T=a.target;if(T.state==='alive'&&Math.hypot(T.x-a.x1,T.z-a.z1)<0.9)hit(T,STATS.arc.dmg,a.att);}}
@@ -762,6 +802,7 @@ function updateArrows(dt){
 function updateUnits(dt){
   alive[0].length=0;alive[1].length=0;
   for(const u of units)if(u.state==='alive')alive[u.side].push(u);
+  buildGrid();
   const fighting=phase==='fight',dueling=phase==='duel';
   for(let s=0;s<2;s++)if(orders[s]==='retreat'&&fighting){const t=fg[s].x+(s?-1:1)*4;anchor[s]+=(t-anchor[s])*Math.min(1,dt*0.8);}
   const cent=[centroid(alive[0],fg[0]),centroid(alive[1],fg[1])];
@@ -781,47 +822,53 @@ function updateUnits(dt){
       else if(T&&d<engage+(u.type==='arc'?st.rng:0)){
         if(d<=st.rng){if(u.cd<=0){u.cd=st.cd*R(0.8,1.25);u.atk=0.25;if(u.type==='arc'&&d>1.2)fireArrow(u,T);else hit(T,u.type==='arc'?0.5:st.dmg,u);}}
         else{tx=T.x;tz=T.z;move=true;}
-      }else if(ord==='flank'&&T){const c=cent[1-u.side],sd=(u.i%10)<5?-1:1,fx=c.x,fz=clamp(c.z+sd*11,-(FD/2-1.5),FD/2-1.5);
-        if(Math.hypot(fx-u.x,fz-u.z)<4){tx=c.x;tz=c.z;}else{tx=fx;tz=fz;}move=true;}
+      }else if(ord==='flank'&&T){const c=cent[1-u.side],sd=(u.i%40)<20?-1:1,fx=c.x,fz=clamp(c.z+sd*26,-(FD/2-1.5),FD/2-1.5);
+        if(Math.hypot(fx-u.x,fz-u.z)<6){tx=c.x;tz=c.z;}else{tx=fx;tz=fz;}move=true;}
       else if(ord==='hold'){if(u.hs!==holdStamp[u.side]){u.hs=holdStamp[u.side];u.hx=u.x;u.hz=u.z;}tx=u.hx;tz=u.hz;move=Math.hypot(tx-u.x,tz-u.z)>0.4;}
       else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
-    }else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
+    }else if(phase==='pursuit'&&pursuit&&u.side===pursuit.w){const g=fg[pursuit.L];tx=g.x;tz=g.z;move=!g.captured&&Math.hypot(tx-u.x,tz-u.z)>0.5;}
+    else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
     let dvx=0,dvz=0;if(move){const dx=tx-u.x,dz=tz-u.z,d=Math.hypot(dx,dz)||1,sp=st.spd*(ord2spd(u));dvx=dx/d*sp;dvz=dz/d*sp;}
     const k=Math.min(1,dt*6);u.vx+=(dvx-u.vx)*k;u.vz+=(dvz-u.vz)*k;
   }
-  const L=alive[0].concat(alive[1]);
-  for(let i=0;i<L.length;i++){const a=L[i];for(let j=i+1;j<L.length;j++){const b=L[j];const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)>0.62||Math.abs(dz)>0.62)continue;const d2=dx*dx+dz*dz;if(d2>0.38||d2<1e-6)continue;const d=Math.sqrt(d2),push=(0.62-d)*0.5;const nx=dx/d*push,nz=dz/d*push;a.x-=nx;a.z-=nz;b.x+=nx;b.z+=nz;}}
+  for(let s=0;s<2;s++)for(const a of alive[s]){const cx=gcx(a.x),cz=gcz(a.z);
+    for(let gz=cz-1;gz<=cz+1;gz++){if(gz<0||gz>=GD)continue;for(let gx=cx-1;gx<=cx+1;gx++){if(gx<0||gx>=GW)continue;
+      for(const b of GA[gz*GW+gx]){if(b.uid<=a.uid)continue;const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)>0.62||Math.abs(dz)>0.62)continue;const d2=dx*dx+dz*dz;if(d2>0.38||d2<1e-6)continue;
+        const d=Math.sqrt(d2),push=(0.62-d)*0.5,nx=dx/d*push,nz=dz/d*push;a.x-=nx;a.z-=nz;b.x+=nx;b.z+=nz;}}}}
   for(const u of units){
     if(u.state==='alive'){const sp=Math.hypot(u.vx,u.vz);u.x+=u.vx*dt;u.z+=u.vz*dt;u.moving=sp>0.35;u.walk+=sp*dt*0.9;}
     else if(u.state==='flee'){const ex=u.side?FW/2+3:-FW/2-3;u.x+=Math.sign(ex-u.x)*3.4*dt;u.moving=true;u.walk+=3.4*dt*0.9;u.t+=dt;
-      if(Math.abs(u.x)>FW/2-0.7){u.state='gone';u.sp.visible=false;}}
+      if(Math.abs(u.x)>FW/2-0.7){u.state='gone';u.vis=false;}}
     else if(u.state==='dying'){u.t+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}u.x+=u.vx*dt;u.z+=u.vz*dt;if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
-      if(u.t>1.0)u.sp.visible=((u.t*16)|0)%2===0;if(u.t>1.7&&u.y===0){u.state='gone';u.sp.visible=false;}}
-    if(u.state==='gone')continue;
+      if(u.t>1.0)u.vis=((u.t*16)|0)%2===0;if(u.t>1.7&&u.y===0){u.state='gone';u.vis=false;}}
+    if(u.state==='gone'){if(u.vis){u.vis=false;}writeUnit(u,0);continue;}
     u.x=clamp(u.x,-FW/2+0.6,FW/2-0.6);u.z=clamp(u.z,-FD/2+1.2,FD/2-1.2);
     const cheer=phase==='duel'&&u.state==='alive'&&Math.hypot(u.x-u.rx,u.z-u.rz)<0.5;
     const f=u.state==='dying'?3:u.atk>0?2:(u.moving||u.state==='flee')?(Math.floor(u.walk*3)%2):cheer?(Math.floor((performance.now()/1000+u.i*0.37)*3)%2):0;
-    const fr=UM[u.side][u.type][f];if(u.sp.material!==fr.m)u.sp.material=fr.m;u.sp.scale.set(fr.w,fr.h,1);u.sp.position.set(u.x,Hb(u.x,u.z)+u.y,u.z);
+    writeUnit(u,f);
   }
+  uMesh.instanceMatrix.needsUpdate=true;uCellAttr.needsUpdate=true;
 }
 function ord2spd(u){return phase==='duel'?1:orders[u.side]==='charge'?1.12:orders[u.side]==='hold'?0.8:1;}
 function updateGenerals(dt){
   for(const g of fg){if(!g.rec||!g.sp.visible&&!g.flee)continue;g.t+=dt;g.cast=Math.max(0,g.cast-dt);g.cd-=dt;g.moving=false;const dir=g.side?-1:1;
-    if(g.flee){g.x-=dir*5*dt;g.moving=true;g.sp.visible=((g.t*10)|0)%2===0&&Math.abs(g.x)<FW/2+1;}
+    if(g.captured){g.sp.visible=true;}
+    else if(phase==='pursuit'&&pursuit&&g.side===pursuit.L){const sp=pursuit.t<2?2.2:3.0;g.x-=dir*sp*dt;g.moving=true;g.sp.visible=Math.abs(g.x)<FW/2+1;}
+    else if(g.flee){g.x-=dir*5*dt;g.moving=true;g.sp.visible=((g.t*10)|0)%2===0&&Math.abs(g.x)<FW/2+1;}
     else if(!g.dead){
       let tx=g.x,tz=g.z,spd=2.6;
       if(phase==='duel'){tx=duel.cx-dir*(2.3-g.lunge*1.7);tz=duel.cz;spd=6;}
-      else if(phase==='intro'){tx=dir>0?-31:31;tz=0;}
+      else if(phase==='intro'){tx=dir>0?-52:52;tz=0;}
       else if(phase==='fight'){const own=alive[g.side];
-        if(own.length>12&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*5;tz=c.z*0.6;}
-        else if(orders[g.side]==='retreat'){tx=dir>0?-31:31;tz=0;}
+        if(own.length>30&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*7;tz=c.z*0.6;}
+        else if(orders[g.side]==='retreat'){tx=dir>0?-52:52;tz=0;}
         else{let best=null,bd=1e9;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}if(best){tx=best.x;tz=best.z;}}
         if(g.cd<=0){let best=null,bd=2.2;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
           if(best){g.cd=0.75;g.cast=0.2;hit(best,g.rec.d.atk*0.35,{x:g.x,z:g.z,type:'inf',side:g.side},true);}}}
       const dx=tx-g.x,dz=tz-g.z,d=Math.hypot(dx,dz);if(d>0.35){const m=Math.min(d,spd*dt);g.x+=dx/d*m;g.z+=dz/d*m;g.moving=true;}
     }
     g.x=clamp(g.x,-FW/2-2,FW/2+2);g.z=clamp(g.z,-FD/2+1.2,FD/2-1.2);
-    const fr=GM[g.rec.d.key][g.dead?3:g.cast>0?2:g.moving?(Math.floor(g.t*5)%2):(Math.floor(g.t*2)%2)];
+    const fr=GMF[g.rec.d.key][g.side][(g.dead||g.captured)?3:g.cast>0?2:g.moving?(Math.floor(g.t*5)%2):(Math.floor(g.t*2)%2)];
     if(g.sp.material!==fr.m)g.sp.material=fr.m;g.sp.scale.set(fr.w,fr.h,1);g.sp.position.set(g.x,Hb(g.x,g.z),g.z);
   }
 }
@@ -838,14 +885,14 @@ function castSpell(side,tgt){
   for(let i=0;i<14;i++)spawn({x:g.x+R(-1,1),y:Hb(g.x,g.z)+R(0,2),z:g.z+R(-0.5,0.5),vy:R(3,7),vz:R(0,2),tex:T_SPARK,w:0.4,h:0.4,life:R(0.6,1.2),blink:true});
   const V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
-  if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<8;i++)schedule(0.55+i*0.22,()=>{const[x,z]=cl(cx+R(-4.5,4.5),cz+R(-4.5,4.5));dropMeteor(x,z,V);});}
-  else if(sp==='thunder'){for(let i=0;i<6;i++)schedule(0.5+i*0.2,()=>{const[x,z]=cl(cx+R(-4,4),cz+R(-4,4));lightning(x,z,V);});}
-  else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<70;i++)schedule(0.35+i*0.018,()=>{const[x,z]=cl(cx+R(-4.5,4.5),cz+R(-4.5,4.5));rainArrow(x,z,V,dir);});}
+  if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<12;i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
+  else if(sp==='thunder'){for(let i=0;i<9;i++)schedule(0.5+i*0.17,()=>{const[x,z]=cl(cx+R(-6.5,6.5),cz+R(-6.5,6.5));lightning(x,z,V);});}
+  else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<170;i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
   return true;
 }
 function dropMeteor(x,z,V){
-  const sx=x-10,sy=32,sz=z-9,ey=Hb(x,z);sfx('whoosh');
+  const sx=x-14,sy=44,sz=z-12,ey=Hb(x,z);sfx('whoosh');
   spawn({x:sx,y:sy,z:sz,tex:T_METEOR,w:2.2,h:2.2,life:0.62,update:(p)=>{const k=p.age/p.life;p.x=sx+(x-sx)*k;p.y=sy+(ey-sy)*k;p.z=sz+(z-sz)*k;
     if(Math.random()<0.7)spawn({x:p.x-0.4,y:p.y+0.4,z:p.z,frames:SMOKE,w:0.9,h:0.9,life:0.5,grow:0.8,vy:0.4});},onEnd:()=>impact(x,z,V,false)});
 }
@@ -866,13 +913,13 @@ function impact(x,z,V,small){
   const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,small?5:8,null);
 }
 function castBreathAt(cx,cz){
-  cz=clamp(cz,-15,15);dragon.mode='swoop';dragon.t=0;
-  const p0={x:dragon.x,y:dragon.y,z:dragon.z},p1={x:cx+15,y:9,z:cz-3},p2={x:cx-15,y:8,z:cz},p3={x:-8,y:22,z:-42};
-  dragon.path=[{a:p0,b:p1,d:1.8,br:false},{a:p1,b:p2,d:2.6,br:true},{a:p2,b:p3,d:2.2,br:false}];
+  cz=clamp(cz,-30,30);dragon.mode='swoop';dragon.t=0;
+  const p0={x:dragon.x,y:dragon.y,z:dragon.z},p1={x:cx+26,y:16,z:cz-5},p2={x:cx-26,y:14,z:cz},p3={x:-12,y:42,z:-82};
+  dragon.path=[{a:p0,b:p1,d:2.4,br:false},{a:p1,b:p2,d:3.4,br:true},{a:p2,b:p3,d:2.8,br:false}];
 }
 function updateDragon(dt,now){
   dragon.flap+=dt;let frame=Math.floor(dragon.flap/0.2)%2,breathing=false;
-  if(dragon.mode==='idle'){const t=now*0.11;const nx=-6+26*Math.sin(t),nz=-42+4*Math.cos(t*1.3);dragon.face=Math.cos(t)>=0?1:-1;dragon.x=nx;dragon.z=nz;dragon.y=22+2*Math.sin(now*0.7);}
+  if(dragon.mode==='idle'){const t=now*0.11;const nx=-10+50*Math.sin(t),nz=-82+6*Math.cos(t*1.3);dragon.face=Math.cos(t)>=0?1:-1;dragon.x=nx;dragon.z=nz;dragon.y=42+3*Math.sin(now*0.7);}
   else{dragon.t+=dt;let tt=dragon.t,seg=null;for(const s of dragon.path){if(tt<=s.d){seg=s;break;}tt-=s.d;}
     if(!seg){dragon.mode='idle';}else{const k=seg.br?tt/seg.d:ease(tt/seg.d)*0.5+0.5*(tt/seg.d);
       const nx=seg.a.x+(seg.b.x-seg.a.x)*k,ny=seg.a.y+(seg.b.y-seg.a.y)*k+(seg.br?0:Math.sin(k*Math.PI)*2),nz=seg.a.z+(seg.b.z-seg.a.z)*k;
@@ -882,12 +929,12 @@ function updateDragon(dt,now){
   dragonMat.map=(dragon.face>0?DRAG.r:DRAG.l)[frame];dragon.sp.position.set(dragon.x,dragon.y,dragon.z);
 }
 function breathFlame(){
-  const mx=dragon.x+dragon.face*7,my=dragon.y+1.5,mz=dragon.z+0.3;
-  const gx=clamp(dragon.x+dragon.face*R(3,7),-FW/2+0.5,FW/2-0.5),gz=clamp(dragon.z+R(-2,2),-FD/2+1.5,FD/2-1.5),gy=Hb(gx,gz);
+  const mx=dragon.x+dragon.face*13,my=dragon.y+2.8,mz=dragon.z+0.3;
+  const gx=clamp(dragon.x+dragon.face*R(5,12),-FW/2+0.5,FW/2-0.5),gz=clamp(dragon.z+R(-3.5,3.5),-FD/2+1.5,FD/2-1.5),gy=Hb(gx,gz);
   sfx('flame');
-  spawn({x:mx,y:my,z:mz,frames:FLAME,w:1.6,h:1.6,life:0.38,grow:1.4,update:(p)=>{const k=p.age/p.life;p.x=mx+(gx-mx)*k;p.y=my+(gy+0.4-my)*k;p.z=mz+(gz-mz)*k+k*1.2;},
-    onEnd:()=>{spawn({x:gx,y:gy+0.8,z:gz+0.3,frames:FLAME,w:2.2,h:2.2,life:0.7,grow:0.8,vy:1.2,vz:1});if(Math.random()<0.3)chips(gx,gy+0.3,gz,2,2,5,2,[T_CHIPS[5],T_CHIPS[7]]);
-      for(const u of alive[0]){if(u.state!=='alive')continue;if(Math.hypot(u.x-gx,u.z-gz)<1.45){u.hp-=2;if(u.hp<=0)kill(u,gx,gz,R(2,4),R(3,6));}}
+  spawn({x:mx,y:my,z:mz,frames:FLAME,w:2.4,h:2.4,life:0.45,grow:1.4,update:(p)=>{const k=p.age/p.life;p.x=mx+(gx-mx)*k;p.y=my+(gy+0.4-my)*k;p.z=mz+(gz-mz)*k+k*1.2;},
+    onEnd:()=>{spawn({x:gx,y:gy+1,z:gz+0.3,frames:FLAME,w:3.2,h:3.2,life:0.7,grow:0.8,vy:1.2,vz:1});if(Math.random()<0.3)chips(gx,gy+0.3,gz,2,2,5,2,[T_CHIPS[5],T_CHIPS[7]]);
+      for(const u of alive[0]){if(u.state!=='alive')continue;if(Math.hypot(u.x-gx,u.z-gz)<2.2){u.hp-=2;if(u.hp<=0)kill(u,gx,gz,R(2,4),R(3,6));}}
       if(fg[0].rec&&Math.hypot(fg[0].x-gx,fg[0].z-gz)<1.6)generalHit(fg[0],2,null);}});
 }
 
@@ -906,12 +953,12 @@ function answerChallenge(yes){if(!chal)return;chal=null;$('chal').hidden=true;
   if(yes)startDuel();else{morale[0]=clamp(morale[0]-0.12,0,1);morale[1]=clamp(morale[1]+0.08,0,1);showBanner('Your troops waver',true);}}
 function startDuel(){
   if(phase!=='fight')return;phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;
-  for(const a of arrows){a.active=false;a.s.visible=false;}
-  duel.cx=clamp((fg[0].x+fg[1].x)/2,-FW/2+10,FW/2-10);duel.cz=clamp((fg[0].z+fg[1].z)/2,-FD/2+9,FD/2-9);
-  for(let s=0;s<2;s++){const L=alive[s],n=Math.max(1,L.length-1);L.forEach((u,i)=>{const a=(s?0:Math.PI)+(i/n-0.5)*Math.PI*0.85,r=7.5+(i%3)*1.1;u.rx=duel.cx+Math.cos(a)*r;u.rz=clamp(duel.cz+Math.sin(a)*r*0.8,-FD/2+1.5,FD/2-1.5);});}
+  for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
+  duel.cx=clamp((fg[0].x+fg[1].x)/2,-FW/2+26,FW/2-26);duel.cz=clamp((fg[0].z+fg[1].z)/2,-FD/2+22,FD/2-22);
+  for(let s=0;s<2;s++){const L=alive[s],n=Math.max(1,L.length-1);L.forEach((u,i)=>{const a=(s?0:Math.PI)+(i/n-0.5)*Math.PI*0.85,r=11+(i%9)*1.4;u.rx=duel.cx+Math.cos(a)*r;u.rz=clamp(duel.cz+Math.sin(a)*r*0.8,-FD/2+1.5,FD/2-1.5);});}
   duel.stage='approach';duel.t=0;duel.pick=null;duel.log='The armies form a ring.';
   showBanner('Duel!');sfx('fanfare');updateModeUI();hudAcc=1;
-  setOrbitGoal({theta:0,phi:1.22,r:15,ty:0,tx:duel.cx,tz:duel.cz},0.8);
+  setOrbitGoal({theta:0,phi:1.2,r:28,ty:0,tx:duel.cx,tz:duel.cz},0.8);
 }
 function enemyPick(){
   const w={strike:0.4,guard:0.3,power:0.3};
@@ -966,17 +1013,17 @@ function finishDuel(w){
 /* ---------- flow ---------- */
 function startGame(){
   if(state!=='title')return;audioInit();sfx('fanfare');$('title').hidden=true;state='kingdom';kMarch=true;kprog=0;kMet=false;
-  setOrbitGoal({theta:0,phi:0.78,r:44,ty:0,tx:0,tz:0});updateModeUI();
+  setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();
 }
 function engage(){
   if(state!=='kingdom')return;
   if(!kMarch){kMarch=true;updateModeUI();return;}
   state='transition';trT=0;swapped=false;sfx('fanfare');updateModeUI();
-  setOrbitGoal({theta:0,phi:1.08,r:54,ty:0,tx:0,tz:0},0.9);
+  setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);
 }
 function backToKingdom(){
-  state='kingdom';phase='intro';kMarch=false;kprog=0;kMet=false;battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(1);kingdom.position.set(0,0,0);
-  $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:44,ty:0,tx:0,tz:0});buildLabels();updateModeUI();
+  state='kingdom';phase='intro';kMarch=false;kprog=0;kMet=false;battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
+  $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();
 }
 function fightAgain(){backToKingdom();kMarch=true;kprog=0.82;updateModeUI();}
 function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;orders[0]=o;setOrderUI();}
@@ -989,50 +1036,77 @@ function withdraw(){
 }
 function matchup(a,b){if(BEATS[a]===b)return'Strong';if(BEATS[b]===a)return'Weak';return'Even';}
 const PORT={};function portrait(k){return PORT[k]||(PORT[k]=GCV[k][0].toDataURL());}
+const BV={theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0};
+function selItems(){return avail(0).map(r=>({k:'gen',r})).concat(roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>({k:'cap',r})));}
+function selAct(x){if(!x)return;if(x.k==='gen')chooseGeneral(x.r);else persuade(x.r);}
 function startSelect(){
-  phase='select';const av=avail(0);
-  const e=active[1];selEnemyHint=e&&!e.out&&e.troops>=35&&e.hp>0?e:null;
-  selIdx=Math.max(0,av.indexOf(active[0]));
+  phase='select';const it=selItems();
+  const e=active[1];selEnemyHint=e&&!e.out&&e.troops>=NPS*0.35&&e.hp>0?e:null;
+  selIdx=Math.max(0,it.findIndex(x=>x.r===active[0]));
   renderSelect();updateModeUI();hudAcc=1;
-  setOrbitGoal({theta:0,phi:0.95,r:62,ty:0,tx:0,tz:0},1);
+  setOrbitGoal({theta:0,phi:0.95,r:118,ty:0,tx:0,tz:0},1);
 }
 function renderSelect(){
-  const box=$('selList');box.innerHTML='';const av=avail(0),e=selEnemyHint;
-  $('selRound').textContent='Round '+(round+1)+' · Your generals '+av.length+' · Theirs '+avail(1).length;
-  $('selSub').textContent=e?`${e.d.short} holds the field with ${e.troops} ${TROOP[e.d.troop].toLowerCase()} and ${Math.ceil(e.hp)} HP.`:'The Ashen Legion picks after you, and it will try to counter you.';
-  av.forEach((r,i)=>{const b=document.createElement('button');b.className='gcard'+(i===selIdx?' on':'');b.type='button';
-    const m=e?matchup(r.d.troop,e.d.troop):'';
-    b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${TROOP[r.d.troop]} · ${r.troops} troops</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;
-    b.addEventListener('click',()=>chooseGeneral(r));box.appendChild(b);});
+  const box=$('selList');box.innerHTML='';const it=selItems(),e=selEnemyHint;
+  const held=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
+  $('selRound').textContent='Round '+(round+1)+' · Your generals '+avail(0).length+' · Theirs '+avail(1).length;
+  $('selSub').textContent=(e?`${e.d.short} holds the field with ${e.troops} ${TROOP[e.d.troop].toLowerCase()} and ${Math.ceil(e.hp)} HP.`:'The Ashen Legion picks after you, and it will try to counter you.')+(held.length?` The enemy holds ${held.join(' and ')} prisoner.`:'');
+  it.forEach((x,i)=>{const r=x.r,b=document.createElement('button');b.type='button';
+    if(x.k==='gen'){const m=e?matchup(r.d.troop,e.d.troop):'';b.className='gcard'+(i===selIdx?' on':'');
+      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${TROOP[r.d.troop]} · ${r.troops} troops</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
+    else{const tried=r.tried===round;b.className='gcard cap'+(i===selIdx?' on':'');b.disabled=tried;
+      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">Prisoner · ${TROOP[r.d.troop]}</span><span class="gh">${tried?'Refused you this round':'Persuade to join · 50%'}</span><span class="gm even">Joins with ${Math.round(NPS*0.6)} troops</span>`;}
+    b.addEventListener('click',()=>selAct(x));box.appendChild(b);});
+}
+function persuade(r){
+  if(phase!=='select'||r.tried===round||r.turned)return;r.tried=round;
+  if(Math.random()<0.5){r.turned=true;roster[0].push({d:Object.assign({},r.d,{side:0}),hp:Math.max(10,r.d.hp*0.6),troops:Math.round(NPS*0.6),out:false,captor:null,turned:false,tried:-1});
+    showBanner(r.d.short+' joins you!');sfx('fanfare');}
+  else{showBanner(r.d.short+' refuses',true);sfx('defeat');}
+  renderSelect();hudAcc=1;
 }
 function chooseGeneral(r){
   if(phase!=='select')return;active[0]=r;
+  for(const c of roster[0].filter(x=>x.captor===1&&!x.turned&&x.tried!==round)){c.tried=round;
+    if(Math.random()<0.35){c.turned=true;roster[1].push({d:Object.assign({},c.d,{side:1}),hp:Math.max(10,c.d.hp*0.6),troops:Math.round(NPS*0.6),out:false,captor:null,turned:false,tried:-1});traitorMsg=c.d.short+' has turned traitor!';}}
   const e=active[1],ea=avail(1);let pick=null;
-  if(e&&ea.includes(e)&&e.troops>=35)pick=e;
+  if(e&&ea.includes(e)&&e.troops>=NPS*0.35)pick=e;
   else{const want=COUNTER[r.d.troop],counters=ea.filter(x=>x.d.troop===want),nonBoss=ea.filter(x=>x.d.key!=='vorgrath'),pl=nonBoss.length?nonBoss:ea;
     pick=(counters.length&&Math.random()<0.65)?counters[0]:pl[(Math.random()*pl.length)|0];}
   active[1]=pick;$('selp').hidden=true;deploy();
 }
+function captureGen(L,w){const r=active[L];r.out=true;r.troops=0;r.captor=w;fg[L].captured=true;fg[L].flee=false;
+  morale[w]=clamp(morale[w]+0.2,0,1);if(r.d.key==='vorgrath'&&w===0)tyrantTaken=true;}
+function nextRound(){if(state!=='battle')return;if(tyrantTaken)endBattle(true,'tyrant');else if(!avail(1).length)endBattle(true);else if(!avail(0).length)endBattle(false);else startSelect();}
 function endEngagement(w,reason){
-  if(state!=='battle'||phase==='between'||phase==='over'||phase==='select')return;
+  if(state!=='battle'||phase==='between'||phase==='over'||phase==='select'||phase==='pursuit')return;
   phase='between';duel.on=false;chal=null;$('chal').hidden=true;aim.mode=false;
   const L=1-w,lr=active[L],wr=active[w];
   wr.troops=alive[w].length;
-  if(reason==='withdraw')lr.troops=alive[L].length;else{lr.out=true;lr.troops=0;}
   for(const u of alive[L])startFlee(u);
-  if(!fg[L].dead)fg[L].flee=true;
-  const msg=reason==='fallen'?lr.d.short+' is defeated!':reason==='withdraw'?lr.d.short+' withdraws':lr.d.short+"'s army breaks!";
-  schedule(0.6,()=>showBanner(msg,L===0));sfx(w===0?'fanfare':'defeat');
-  updateModeUI();hudAcc=1;
-  setOrbitGoal({theta:0,phi:1.08,r:54,ty:0,tx:0,tz:0},0.9);
-  schedule(3,()=>{if(!avail(1).length)endBattle(true);else if(!avail(0).length)endBattle(false);else startSelect();});
+  sfx(w===0?'fanfare':'defeat');updateModeUI();hudAcc=1;
+  if(reason==='withdraw'){lr.troops=alive[L].length;fg[L].flee=true;schedule(0.6,()=>showBanner(lr.d.short+' withdraws',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
+  lr.out=true;lr.troops=0;
+  if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
+  phase='pursuit';pursuit={t:0,L,w};fg[L].flee=false;
+  schedule(0.3,()=>showBanner(L===1?'Run him down!':lr.d.short+' flees!',L===0));
+  setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(fg[L].x,-50,50),tz:clamp(fg[L].z,-20,20)},0.9);
 }
-function endBattle(win){
-  if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;
+function updatePursuit(dt){
+  const P=pursuit;P.t+=dt;const g=fg[P.L];if(g.captured)return;
+  for(const u of alive[P.w]){if(Math.abs(u.x-g.x)<1.3&&Math.abs(u.z-g.z)<1.3){captureGen(P.L,P.w);showBanner(active[P.L].d.short+' is captured!',P.L===0);sfx(P.w===0?'fanfare':'defeat');pursuitEnd(2.6);return;}}
+  if(Math.abs(g.x)>FW/2||P.t>10){showBanner(active[P.L].d.short+' escapes',P.L===1);g.sp.visible=false;g.rec=null;pursuitEnd(2.2);}
+}
+function pursuitEnd(d){phase='between';pursuit=null;setOrbitGoal(BV,0.9);schedule(d,nextRound);updateModeUI();}
+function endBattle(win,why){
+  if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;pursuit=null;
   if(win){conquered=true;const cv2=K_CASTLES.find(k=>k.n==='CINDERVAULT');cv2.sp.material=castleMats.blue;castleB.material=castleMats.blue;}
-  showBanner(win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();
-  schedule(1.8,()=>{$('endTitle').textContent=win?'Victory':'Defeat';
-    $('endText').textContent=win?'The Ashen Legion breaks at Thornfield Pass and Cindervault opens its gates. Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.':'Your last general falls back. The Ashen Legion holds Thornfield Pass for another winter.';
+  showBanner(why==='tyrant'?'The Tyrant is taken!':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();
+  const caps=roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
+  schedule(1.8,()=>{$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
+    $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion lays down its arms. Cindervault opens its gates.':win?'The Ashen Legion breaks at Thornfield Pass and Cindervault opens its gates.':'Your last general falls back. The Ashen Legion holds Thornfield Pass for another winter.')
+      +(caps.length?' Prisoners taken: '+caps.join(', ')+'.':'')+(lost.length?' Held by the enemy: '+lost.join(', ')+'.':'')
+      +(win?' Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.':'');
     if(!xrActive)$('endp').hidden=false;});
 }
 function fightTick(dt){
@@ -1047,7 +1121,7 @@ function fightTick(dt){
 }
 function aiThink(){
   const me=alive[1],them=alive[0],myT=active[1].d.troop,thT=active[0].d.troop;let o;
-  if(morale[1]<0.3)o=me.length<20?'retreat':'hold';
+  if(morale[1]<0.3)o=me.length<NPS*0.2?'retreat':'hold';
   else if(BEATS[thT]===myT)o=Math.random()<0.55?'flank':'hold';
   else if(myT==='arc')o=Math.random()<0.7?'hold':'flank';
   else if(me.length>them.length*1.15||BEATS[myT]===thT)o='charge';
@@ -1075,7 +1149,7 @@ function updateHud(dt){
   if(active[0]&&active[1]&&(state==='battle'||state==='end')){
     for(let s=0;s<2;s++){const r=active[s],k=s?'B':'A',n=alive[s].length;
       if(lastPor[s]!==r.d.key){lastPor[s]=r.d.key;$('por'+k).src=portrait(r.d.key);$('name'+k).textContent=r.d.short.toUpperCase();$('sub'+k).textContent=TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();}
-      $('cnt'+k).textContent=n;$('bar'+k).style.width=n+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
+      $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     const sp=$('spell'),ready=mp[0]>=1&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
     sp.textContent=aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell];
@@ -1095,14 +1169,14 @@ function drawVrHud(){
   const line=(t,y,c='#f1e8d4',f='18px')=>{x.font=f+' Silkscreen, monospace';x.fillStyle=c;x.fillText(t,24,y);};
   if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');}
   else if(state==='kingdom'||state==='transition'){x.fillText(conquered?'CINDERVAULT HAS FALLEN':'THE KINGDOM OF ALDMERE',24,22);line(kMarch?'Armies close on Thornfield Pass':'Right trigger: march',80,'#a99fb8');line('GRIP grab · L move · R turn/zoom · B reset',140,'#a99fb8');}
-  else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const av=avail(0),si=selIdx%Math.max(1,av.length),e=selEnemyHint;
-    av.forEach((r,i)=>line(`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`,60+i*30,i===si?'#f0c055':'#a99fb8'));
-    line(e?`${e.d.short} holds the field (${TROOP[e.d.troop]})`:'The enemy picks after you',158,'#ffb09a','16px');line('L trig: next · R trig: deploy',196,'#857aa0','16px');}
+  else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const it=selItems(),si=selIdx%Math.max(1,it.length),e=selEnemyHint,st=Math.max(0,Math.min(si-1,it.length-4));
+    it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
+    line(e?`${e.d.short} holds the field (${TROOP[e.d.troop]})`:'The enemy picks after you',166,'#ffb09a','16px');line('L trig: next · R trig: choose',200,'#857aa0','16px');}
   else if(active[0]&&active[1]){
     const A=active[0],B=active[1],a=alive[0].length,b=alive[1].length;
     x.font='700 22px Silkscreen, monospace';x.fillStyle='#9ab8ff';x.fillText(A.d.short.toUpperCase()+' '+a,24,14);x.fillStyle='#ffb09a';x.textAlign='right';x.fillText(b+' '+B.d.short.toUpperCase(),W-24,14);x.textAlign='left';
     const bar=(xx,y,w,h,f,c,rt)=>{x.fillStyle='#221b33';x.fillRect(xx,y,w,h);x.fillStyle=c;rt?x.fillRect(xx+w*(1-f),y,w*f,h):x.fillRect(xx,y,w*f,h);};
-    bar(24,46,320,12,a/100,'#5b8cff');bar(W-344,46,320,12,b/100,'#ff5a3a',true);
+    bar(24,46,320,12,a/NPS,'#5b8cff');bar(W-344,46,320,12,b/NPS,'#ff5a3a',true);
     bar(24,62,320,5,A.hp/A.d.hp,'#7fe39a');bar(W-344,62,320,5,B.hp/B.d.hp,'#7fe39a',true);
     bar(24,70,320,4,mp[0],'#f0c055');bar(W-344,70,320,4,mp[1],'#f0c055',true);
     bar(24,77,320,4,morale[0],'#8fd0ff');bar(W-344,77,320,4,morale[1],'#8fd0ff',true);
@@ -1131,7 +1205,7 @@ $('againBtn').addEventListener('click',fightAgain);
 $('mapBtn').addEventListener('click',backToKingdom);
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
   if(state==='battle'){
-    if(phase==='select'){const n=parseInt(k,10),av=avail(0);if(n>=1&&n<=av.length)chooseGeneral(av[n-1]);return;}
+    if(phase==='select'){const n=parseInt(k,10),it=selItems();if(n>=1&&n<=it.length)selAct(it[n-1]);return;}
     if(phase==='duel'){if(k==='j')duelPick('strike');else if(k==='k')duelPick('guard');else if(k==='l')duelPick('power');return;}
     if(chal){if(k==='y')answerChallenge(true);else if(k==='n')answerChallenge(false);}
     if(k>='1'&&k<='4')setOrder(ORDERS[+k-1]);else if(k==='5')requestDuel();else if(k==='6')withdraw();
@@ -1140,7 +1214,7 @@ addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName=
 function xrSelect(hand){audioInit();
   if(state==='title')startGame();else if(state==='kingdom')engage();
   else if(state==='battle'){
-    if(phase==='select'){const av=avail(0);if(!av.length)return;if(hand==='left'){selIdx=(selIdx+1)%av.length;renderSelect();hudAcc=1;}else chooseGeneral(av[selIdx%av.length]);}
+    if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
     else if(chal)answerChallenge(hand!=='left');
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(mp[0]>=1)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else setOrder('charge');}
@@ -1170,26 +1244,26 @@ anaScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),anaMat));
 function onResize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const v=new THREE.Vector2();renderer.getDrawingBufferSize(v);rtL.setSize(v.x,v.y);rtR.setSize(v.x,v.y);}
 addEventListener('resize',onResize);onResize();
 
-const orbit={theta:0.3,phi:0.8,r:46,ty:0,tx:0,tz:0,g:null,gs:1};
+const orbit={theta:0.3,phi:0.8,r:88,ty:0,tx:0,tz:0,g:null,gs:1};
 function setOrbitGoal(o,speed=0.6){orbit.g=o;orbit.gs=speed;}
 const ptrs=new Map();let pinch0=0;const keys=new Set();
-function panBy(sx,fw){const c=Math.cos(orbit.theta),sn=Math.sin(orbit.theta),lim=battle.visible?[FW/2,FD/2]:[20,12];
+function panBy(sx,fw){const c=Math.cos(orbit.theta),sn=Math.sin(orbit.theta),lim=battle.visible?[FW/2,FD/2]:[20*KS,12*KS];
   orbit.tx=clamp(orbit.tx+c*sx-sn*fw,-lim[0],lim[0]);orbit.tz=clamp(orbit.tz-sn*sx-c*fw,-lim[1],lim[1]);}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointerdown',e=>{if(state==='title')return;if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
 canvas.addEventListener('pointermove',e=>{if(aim.mode&&!ptrs.size)mouseAim(e);const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
   if(ptrs.size===1){if(p.pan){const k=orbit.r*0.0018;panBy(-dx*k,dy*k);}else{orbit.theta=clamp(orbit.theta-dx*0.005,-1.35,1.35);orbit.phi=clamp(orbit.phi-dy*0.005,0.2,1.5);}}
-  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,120);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
+  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,240);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
 const up=e=>{ptrs.delete(e.pointerId);pinch0=0;};
 canvas.addEventListener('pointerup',up);canvas.addEventListener('pointercancel',up);
-canvas.addEventListener('wheel',e=>{e.preventDefault();orbit.g=null;orbit.r=clamp(orbit.r*(1+e.deltaY*0.001),3,120);},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();orbit.g=null;orbit.r=clamp(orbit.r*(1+e.deltaY*0.001),3,240);},{passive:false});
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();keys.add(k);if(k.startsWith('arrow'))e.preventDefault();});
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());
-$('resetView').addEventListener('click',()=>setOrbitGoal(battle.visible?{theta:0,phi:1.08,r:54,ty:0,tx:0,tz:0}:{theta:0,phi:0.78,r:44,ty:0,tx:0,tz:0}));
+$('resetView').addEventListener('click',()=>setOrbitGoal(battle.visible?{theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0}:{theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0}));
 
 /* ---------- XR ---------- */
-let xrActive=false;const vr={pos:new THREE.Vector3(0,0.88,-0.95),scale:0.028,yaw:0};
-function vrReset(){vr.pos.set(0,0.88,-0.95);vr.scale=0.028;vr.yaw=0;}
+let xrActive=false;const vr={pos:new THREE.Vector3(0,0.88,-0.95),scale:0.015,yaw:0};
+function vrReset(){vr.pos.set(0,0.88,-0.95);vr.scale=0.015;vr.yaw=0;}
 function applyWorldXform(){if(xrActive){world.scale.setScalar(vr.scale);world.position.copy(vr.pos);world.rotation.y=vr.yaw;}else{world.scale.setScalar(1);world.position.set(0,0,0);world.rotation.y=0;}}
 const grabbing=new Set();let g1=null,g2=null;const btnPrev=new WeakMap(),btnPrevA=new WeakMap();
 function initGrab(){const h=[...grabbing];g1=g2=null;
@@ -1242,8 +1316,8 @@ function loop(tms){
   }
   if(state==='transition'){
     trT+=dt;const sMax=xrActive?1.6:3.2;
-    if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(s);kingdom.position.set(PASS.x*(1-s),-k*1.5,PASS.z*(1-s));}
-    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;newRoster();active[0]=active[1]=null;round=0;lastPor[0]=lastPor[1]='';clearField();}
+    if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(KS*s);kingdom.position.set(PASS.x*KS*(1-s),-k*2.5,PASS.z*KS*(1-s));}
+    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;newRoster();active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';clearField();}
       const k=ease(Math.min(1,(trT-0.8)/0.9));battle.scale.setScalar(0.35+0.65*k);battle.position.y=(1-k)*2;
       if(trT>1.75){battle.scale.setScalar(1);battle.position.y=0;state='battle';startSelect();}}
   }
@@ -1252,10 +1326,11 @@ function loop(tms){
       if(phase==='intro'){introT+=dt;if(introT>1.8){phase='fight';showBanner('Fight!');updateModeUI();}}
       else if(phase==='fight')fightTick(dt);
       else if(phase==='duel')updateDuel(dt);
+      else if(phase==='pursuit'&&pursuit)updatePursuit(dt);
     }
     if(state==='end')endT+=dt;
     updateUnits(dt);updateGenerals(dt);updateArrows(dt);updateParticles(dt);updateDragon(dt,now);
-    clouds.forEach(c=>{c.position.x+=dt*0.6;if(c.position.x>50)c.position.x=-50;});
+    clouds.forEach(c=>{c.position.x+=dt*0.6;if(c.position.x>100)c.position.x=-100;});
   }
   updateHud(dt);
   // XR sticks
@@ -1265,7 +1340,7 @@ function loop(tms){
   if(orbit.g){const k=1-Math.pow(0.04,dt/orbit.gs);let done=true;for(const key of Object.keys(orbit.g)){orbit[key]+=(orbit.g[key]-orbit[key])*k;if(Math.abs(orbit.g[key]-orbit[key])>0.01)done=false;}if(done)orbit.g=null;}
   if(state!=='title'){let sx=0,fw=0;if(keys.has('a')||keys.has('arrowleft'))sx-=1;if(keys.has('d')||keys.has('arrowright'))sx+=1;if(keys.has('w')||keys.has('arrowup'))fw+=1;if(keys.has('s')||keys.has('arrowdown'))fw-=1;
     if(sx||fw){orbit.g=null;panBy(sx*orbit.r*0.7*dt,fw*orbit.r*0.7*dt);}if(keys.has('q'))orbit.theta=clamp(orbit.theta+dt*1.2,-1.35,1.35);if(keys.has('e'))orbit.theta=clamp(orbit.theta-dt*1.2,-1.35,1.35);}
-  const gy=orbit.ty+(battle.visible?Hb(orbit.tx,orbit.tz):Hk(orbit.tx,orbit.tz))*0.7;
+  const gy=orbit.ty+(battle.visible?Hb(orbit.tx,orbit.tz):Hk(orbit.tx/KS,orbit.tz/KS)*KS)*0.7;
   const sp=Math.sin(orbit.phi);camera.position.set(orbit.tx+Math.sin(orbit.theta)*sp*orbit.r,gy+Math.cos(orbit.phi)*orbit.r,orbit.tz+Math.cos(orbit.theta)*sp*orbit.r);
   camera.lookAt(orbit.tx,gy,orbit.tz);
   if(shake>0&&!reduceMotion){camera.position.x+=R(-1,1)*shake*0.5;camera.position.y+=R(-1,1)*shake*0.5;}shake=Math.max(0,shake-dt*1.8);
