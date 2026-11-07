@@ -5,7 +5,7 @@ Playable demo of Taiyo's fictional 1997 strategy RPG for the Vertex 32-bit syste
 A miniature war-table kingdom drops into a stereoscopic 100-vs-100 sprite battle. View it in mono, red/cyan, side-by-side or cross-eye stereo on a desktop, or in WebXR on a Meta Quest (open the GitHub Pages link in the Quest Browser and press Enter VR).
 
 ## Controls
-- Desktop: drag to orbit, scroll or pinch to lean in. 1/2/3 set Charge/Hold/Spread, Space casts Starfall.
-- Quest: right trigger charges or casts Starfall when ready, left trigger cycles orders. Right stick sets table height and turn, left stick zooms.
+- Desktop: drag to orbit, right-drag or WASD to pan, Q/E to turn, scroll or pinch to zoom down to ground level. 1/2/3 set Charge/Hold/Spread, Space casts Starfall.
+- Quest: grip to grab and move the table; both grips to scale and turn it, from war table to standing among the soldiers. Left stick slides the battlefield, right stick turns and zooms, B resets. Right trigger charges or casts Starfall when ready, left trigger cycles orders.
 
 Dragon Emperor I not required.
