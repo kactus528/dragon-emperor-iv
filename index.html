@@ -234,7 +234,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <div class="selhead"><h2>Choose your general</h2><span id="selRound"></span></div>
     <p id="selSub"></p>
     <div id="selList"></div>
-    <p class="rule">Spears beat cavalry · Cavalry rides down archers · Archers shred infantry. Challenge a weaker general to a duel, or hold and let morale do the work.</p>
+    <p class="rule">Spears beat cavalry · Cavalry rides down archers · Archers shred infantry. The river can only be crossed at the bridge and the fords. Woods slow troops and shield them from arrows.</p>
   </div>
 </div>
 
@@ -505,8 +505,30 @@ const T_BOLT=tex(boltC),T_METEOR=tex(meteorC),T_RUNE=tex(runeC),T_SPARK=tex(spar
 
 /* ---------- terrain ---------- */
 const BASE_TOP=-5.8,FW=144,FD=80,NPS=400,KS=1.8;
-function Hb(x,z){return 0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3)+2.3*Math.sin(x*0.034+1.1)*Math.cos(z*0.047-0.6);}
+function Hbase(x,z){return 0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3)+2.3*Math.sin(x*0.034+1.1)*Math.cos(z*0.047-0.6);}
 function Hk(x,z){let h=0.5*Math.sin(x*0.3)*Math.cos(z*0.35)+0.3*Math.sin(x*0.17+z*0.23);const m=Math.max(0,-z-4);h+=m*0.55*(0.6+0.4*Math.sin(x*0.9)*Math.cos(z*1.1));const rz=4*Math.sin(x*0.18)+3,rd=Math.abs(z-rz);if(rd<1.4)h-=(1.4-rd)*0.7;return h;}
+/* ---- battlefield features: river with bridge and fords, lake, woods, boulders (new layout each visit) ---- */
+let _m=(Date.now()%2147483000)+7;const mrand=()=>{_m=(_m*16807)%2147483647;return(_m-1)/2147483646;};
+const MAP={rx0:(mrand()-0.5)*14,ra:4+mrand()*6,rf:0.045+mrand()*0.05,rp:mrand()*6.28,bridge:(mrand()-0.5)*20,fords:[],woods:[],rocks:[],lake:null};
+MAP.fords.push(-(14+mrand()*16),14+mrand()*16);if(mrand()<0.5)MAP.fords.push((mrand()<0.5?-1:1)*(30+mrand()*5));
+const riverX=z=>MAP.rx0+MAP.ra*Math.sin(z*MAP.rf+MAP.rp);
+const onBridge=z=>Math.abs(z-MAP.bridge)<1.9,nearFord=z=>MAP.fords.some(f=>Math.abs(z-f)<3.6);
+const inLake=(x,z,m=1)=>{const L=MAP.lake;return!!L&&((x-L.x)/L.rx)**2+((z-L.z)/L.rz)**2<m;};
+const inWoods=(x,z)=>MAP.woods.some(w=>((x-w.x)/w.rx)**2+((z-w.z)/w.rz)**2<1);
+const inRock=(x,z,m=0)=>MAP.rocks.some(b=>(x-b.x)**2+(z-b.z)**2<(b.r+m)**2);
+const riverD=(x,z)=>Math.abs(x-riverX(z));
+if(mrand()<0.7){const sd=mrand()<0.5?-1:1;MAP.lake={x:sd*(12+mrand()*10),z:(mrand()<0.5?-1:1)*(21+mrand()*9),rx:5+mrand()*3,rz:4+mrand()*2.5};}
+for(let n=0,tries=0;n<4&&tries<60;tries++){const w={x:(mrand()<0.5?-1:1)*(10+mrand()*20),z:(mrand()-0.5)*56,rx:5+mrand()*5,rz:4+mrand()*4};
+  if(Math.abs(w.x-riverX(w.z))<w.rx+5||(MAP.lake&&Math.hypot(w.x-MAP.lake.x,w.z-MAP.lake.z)<w.rx+MAP.lake.rx+3)||MAP.woods.some(o=>Math.hypot(o.x-w.x,o.z-w.z)<o.rx+w.rx+3))continue;MAP.woods.push(w);n++;}
+for(let n=0,tries=0;n<8&&tries<120;tries++){const cx=(mrand()<0.5?-1:1)*(5+mrand()*23),cz=(mrand()-0.5)*66;
+  if(riverD(cx,cz)<7||inLake(cx,cz,2.2)||MAP.woods.some(w=>Math.hypot(w.x-cx,w.z-cz)<w.rx+4)||MAP.fords.some(f=>Math.abs(cz-f)<6)||Math.abs(cz-MAP.bridge)<6)continue;
+  const k=3+((mrand()*4)|0);for(let i=0;i<k;i++)MAP.rocks.push({x:cx+(mrand()-0.5)*7,z:cz+(mrand()-0.5)*7,r:0.9+mrand()*1.5});n++;}
+function waterCut(x,z){let c=0;const d=riverD(x,z);
+  if(d<4.4&&!onBridge(z))c=Math.max(0,1-Math.max(0,d-2.4)/2)*(nearFord(z)?0.45:1.4);
+  const L=MAP.lake;if(L){const q=((x-L.x)/L.rx)**2+((z-L.z)/L.rz)**2;if(q<1.4)c=Math.max(c,Math.min(1,(1.4-q)/0.4)*1.4);}return c;}
+function Hb(x,z){if(onBridge(z)&&riverD(x,z)<4.6)return Hbase(riverX(z),z)+0.25;return Hbase(x,z)-waterCut(x,z);}
+function terrType(x,z){if(Math.abs(x)>FW/2-0.6||Math.abs(z)>FD/2-1)return 1;if(inRock(x,z,0.9))return 1;if(inLake(x,z,1.05))return 1;
+  if(riverD(x,z)<3.4){if(onBridge(z))return 0;if(nearFord(z))return 2;return 1;}if(inWoods(x,z))return 2;return 0;}
 const grassC=(()=>{_s=5;const c=cv(16,16),x=c.getContext('2d');for(let y=0;y<16;y++)for(let i=0;i<16;i++){const v=210+(srand()*45)|0;x.fillStyle=`rgb(${v},${v},${v})`;x.fillRect(i,y,1,1);}return c;})();
 function buildTerrain(Hf,colorFn,W=40,D=24){
   let g=new THREE.PlaneGeometry(W+2,D+2,W+2,D+2);g.rotateX(-Math.PI/2);
@@ -547,8 +569,21 @@ const battle=new THREE.Group();world.add(battle);battle.visible=false;
 const battleTerrain=buildTerrain(Hb,(c,x,z,y)=>{
   const t=clamp((y+5)/10,0,1);c.setRGB(0.21+t*0.45,0.37+t*0.34,0.16+t*0.14);
   if(Math.sin(x*0.7)*Math.cos(z*0.9)>0.72)c.setRGB(0.48,0.42,0.24);
+  const rd=riverD(x,z),chk=((Math.floor(x)+Math.floor(z))&1);
+  if(inWoods(x,z))c.setRGB(0.16,0.3,0.14);
+  if(inRock(x,z,1.4))c.setRGB(0.45,0.44,0.38);
+  if(rd<4.6&&onBridge(z))c.set(chk?'#8a6034':'#7a5228');
+  else if(rd<3.2)c.set(nearFord(z)?(chk?'#7aa0c0':'#8aa890'):(chk?'#3f72c0':'#3866b0'));
+  else if(rd<4.2)c.set('#b8a874');
+  if(inLake(x,z,0.9))c.set(chk?'#3f72c0':'#3866b0');else if(inLake(x,z,1.25))c.set('#b8a874');
 },FW,FD);
 battle.add(battleTerrain);
+{const rg=new THREE.IcosahedronGeometry(1,0),rm=new THREE.MeshPhongMaterial({color:0x8f8a96,flatShading:true,shininess:4}),im=new THREE.InstancedMesh(rg,rm,Math.max(1,MAP.rocks.length)),D=new THREE.Object3D();
+  MAP.rocks.forEach((b,i)=>{D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});
+  im.count=MAP.rocks.length;battle.add(im);
+  const wood=new THREE.MeshLambertMaterial({color:0x6a4426}),bx=riverX(MAP.bridge),by=Hb(bx,MAP.bridge);
+  for(const sd of[-1,1]){const r=new THREE.Mesh(new THREE.BoxGeometry(9.2,0.5,0.25),wood);r.position.set(bx,by+0.45,MAP.bridge+sd*1.9);battle.add(r);
+    for(let i=-2;i<=2;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.9,0.3),wood);p.position.set(bx+i*2.2,by+0.45,MAP.bridge+sd*1.9);battle.add(p);}}}
 battle.add(buildBase(FW,FD));
 function mtnPlane(cnv,w,h,y,z){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex(cnv),alphaTest:0.5,side:THREE.DoubleSide}));m.position.set(0,y,z);battle.add(m);return m;}
 mtnPlane(drawMountains(320,96,'#6a5a8e','#544676','#e8e0f8',11),200,56,16,-102);
@@ -570,6 +605,9 @@ for(let i=0;i<760;i++){
   if(Math.abs(Math.abs(x)-60)<10&&z<-26)continue;if(Math.abs(x+8)<6&&z<-31)continue;
   const pine=srand()<0.6,sc=1.2+srand()*0.6;(pine?pines:oaks).push([x,Hb(x,z),z,(pine?14:18)*0.09*sc,(pine?24:20)*0.09*sc]);
 }
+MAP.woods.forEach(w=>{const n=Math.round(w.rx*w.rz*1.1);for(let i=0;i<n;i++){const a=mrand()*6.283,r=Math.sqrt(mrand())*0.95,x=w.x+Math.cos(a)*r*w.rx,z=w.z+Math.sin(a)*r*w.rz;
+  const pine=mrand()<0.55,sc=1.1+mrand()*0.6;(pine?pines:oaks).push([x,Hb(x,z),z,(pine?14:18)*0.09*sc,(pine?24:20)*0.09*sc]);}});
+for(const L of[pines,oaks])for(let i=L.length-1;i>=0;i--){const q=L[i];if(riverD(q[0],q[2])<4.6||inLake(q[0],q[2],1.3)||inRock(q[0],q[2],1))L.splice(i,1);}
 battle.add(propBatch(pineM,pines));battle.add(propBatch(oakM,oaks));
 const cloudM=smat(drawCloud());const clouds=[];
 for(let i=0;i<16;i++){const s=sprite(cloudM,17,6.4,0.5,0.5,0);s.position.set(-90+i*12+R(-4,4),R(34,54),R(-92,-50));battle.add(s);clouds.push(s);}
@@ -597,6 +635,30 @@ units.forEach(u=>writeUnit(u,0));
 const GC=2,GW=Math.ceil((FW+10)/GC),GD=Math.ceil((FD+10)/GC),GB=[[],[]],GA=[];
 for(let i=0;i<GW*GD;i++){GB[0].push([]);GB[1].push([]);GA.push([]);}
 const gcx=x=>clamp(Math.floor((x+FW/2+5)/GC),0,GW-1),gcz=z=>clamp(Math.floor((z+FD/2+5)/GC),0,GD-1);
+const NAV=new Uint8Array(GW*GD);for(let z=0;z<GD;z++)for(let x=0;x<GW;x++)NAV[z*GW+x]=terrType((x+0.5)*GC-FW/2-5,(z+0.5)*GC-FD/2-5);
+const navAt=(x,z)=>NAV[gcz(z)*GW+gcx(x)];
+const FF=[new Float64Array(GW*GD),new Float64Array(GW*GD)],PF=new Float64Array(GW*GD);let fieldT=0;
+function dijkstra(F,src){F.fill(1e9);const H=[];
+  const push=(k,d)=>{H.push(d,k);let i=H.length/2-1;while(i>0){const p=(i-1)>>1;if(H[2*p]<=H[2*i])break;let t=H[2*p];H[2*p]=H[2*i];H[2*i]=t;t=H[2*p+1];H[2*p+1]=H[2*i+1];H[2*i+1]=t;i=p;}};
+  const pop=()=>{const d=H[0],k=H[1],ld=H[H.length-2],lk=H[H.length-1];H.length-=2;if(H.length){H[0]=ld;H[1]=lk;let i=0;const n=H.length/2;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<n&&H[2*l]<H[2*m])m=l;if(r<n&&H[2*r]<H[2*m])m=r;if(m===i)break;let t=H[2*m];H[2*m]=H[2*i];H[2*i]=t;t=H[2*m+1];H[2*m+1]=H[2*i+1];H[2*i+1]=t;i=m;}}return[d,k];};
+  for(const k of src){if(F[k]>0){F[k]=0;push(k,0);}}
+  while(H.length){const[d,k]=pop();if(d>F[k]+1e-6)continue;const cx=k%GW,cz=(k/GW)|0;
+    for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const n=z*GW+x;if(NAV[n]===1)continue;
+      if(ox&&oz&&(NAV[cz*GW+x]===1||NAV[z*GW+cx]===1))continue;const nd=d+(ox&&oz?1.414:1)*(NAV[n]===2?1.8:1);if(nd<F[n]){F[n]=nd;push(n,nd);}}}}
+function computeFields(){for(let s=0;s<2;s++){const src=[];const G=GB[1-s];for(let k=0;k<G.length;k++)if(G[k].length)src.push(k);const g=fg[1-s];if(g.rec&&!g.dead&&!g.captured)src.push(gcz(g.z)*GW+gcx(g.x));dijkstra(FF[s],src);}
+  if(pursuit){const g=fg[pursuit.L];dijkstra(PF,[gcz(g.z)*GW+gcx(g.x)]);}}
+function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!F||d<3.5)return[dx/d,dz/d];
+  const cx=gcx(e.x),cz=gcz(e.z);let best=F[cz*GW+cx],bx=0,bz=0;
+  for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const k=z*GW+x;if(NAV[k]===1)continue;
+    if(ox&&oz&&(NAV[cz*GW+x]===1||NAV[z*GW+cx]===1))continue;if(F[k]<best-1e-3){best=F[k];bx=ox;bz=oz;}}
+  if(!bx&&!bz)return[dx/d,dz/d];const wx=(cx+bx+0.5)*GC-FW/2-5,wz=(cz+bz+0.5)*GC-FD/2-5,ex=wx-e.x,ez=wz-e.z,el=Math.hypot(ex,ez)||1;return[ex/el,ez/el];}
+function moveSlide(e,mx,mz){const nx=e.x+mx,nz=e.z+mz;
+  if(navAt(nx,nz)!==1){e.x=nx;e.z=nz;return true;}
+  if(navAt(nx,e.z)!==1){e.x=nx;return true;}
+  if(navAt(e.x,nz)!==1){e.z=nz;return true;}
+  const j=(Math.random()-0.5)*Math.hypot(mx,mz)*2;if(navAt(e.x,e.z+j)!==1)e.z+=j;return false;}
+const terrSpd=(e,type)=>navAt(e.x,e.z)===2?(type==='cav'?0.45:0.6):1;
+const coverMul=u=>inWoods(u.x,u.z)?0.5:1;
 const fg=[0,1].map(s=>{const sp=card(GM[s?'vorgrath':'kaelen'][0].m,0.5,0.02);sp.visible=false;battle.add(sp);return{side:s,sp,x:s?52:-52,z:0,cast:0,t:0,cd:0,flee:false,dead:false,lunge:0,moving:false,rec:null};});
 
 /* ---------- dragon (background, then swoops) ---------- */
@@ -777,8 +839,8 @@ function deploy(){
   round++;phase='intro';introT=0;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];mp[s]=0.3;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
-    if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
-      const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);u.vis=true;}
+    if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
+      const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);for(let k=0;k<40&&navAt(u.x,u.z)===1;k++)u.x+=(u.side?1:-1)*0.8;u.vis=true;}
     else{u.state='gone';u.vis=false;}}
   dragon.mode='idle';dragon.t=0;for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
   setOrderUI();updateModeUI();hudAcc=1;
@@ -833,15 +895,16 @@ function updateArrows(dt){
     const k2=Math.min(1,k+0.02),y2=a.y0+(a.y1-a.y0)*k2+arcF(k2),x2=a.x0+(a.x1-a.x0)*k2;
     writeArrow(a,x,y,z,Math.atan2(y2-y,x2-x||1e-4));
     if(k>=1){a.active=false;writeArrow(a,0,0,0,0);
-      if(a.area){for(const u of alive[a.V]){if(u.state==='alive'&&Math.abs(u.x-a.x1)<0.9&&Math.abs(u.z-a.z1)<0.9){hit(u,a.dmg,{x:a.x0,z:a.z0,type:'arc',side:1-a.V},true);break;}}
+      if(a.area){for(const u of alive[a.V]){if(u.state==='alive'&&Math.abs(u.x-a.x1)<0.9&&Math.abs(u.z-a.z1)<0.9){hit(u,a.dmg*coverMul(u),{x:a.x0,z:a.z0,type:'arc',side:1-a.V},true);break;}}
         const eg=fg[a.V];if(eg.rec&&Math.hypot(eg.x-a.x1,eg.z-a.z1)<0.9)generalHit(eg,1.2,null);}
-      else{const T=a.target;if(T.state==='alive'&&Math.hypot(T.x-a.x1,T.z-a.z1)<0.9)hit(T,STATS.arc.dmg,a.att);}}
+      else{const T=a.target;if(T.state==='alive'&&Math.hypot(T.x-a.x1,T.z-a.z1)<0.9)hit(T,STATS.arc.dmg*coverMul(T),a.att);}}
   }
 }
 function updateUnits(dt){
   alive[0].length=0;alive[1].length=0;
   for(const u of units)if(u.state==='alive')alive[u.side].push(u);
   buildGrid();
+  if(phase==='fight'||phase==='pursuit'){fieldT-=dt;if(fieldT<=0){fieldT=0.4;computeFields();}}
   const fighting=phase==='fight',dueling=phase==='duel';
   for(let s=0;s<2;s++)if(orders[s]==='retreat'&&fighting){const t=fg[s].x+(s?-1:1)*4;anchor[s]+=(t-anchor[s])*Math.min(1,dt*0.8);}
   const cent=[centroid(alive[0],fg[0]),centroid(alive[1],fg[1])];
@@ -849,7 +912,7 @@ function updateUnits(dt){
   for(const u of alive[0].concat(alive[1])){
     if(u.state!=='alive')continue;
     const st=STATS[u.type];u.atk=Math.max(0,u.atk-dt);u.cd-=dt;
-    let tx=u.x,tz=u.z,move=false;
+    let tx=u.x,tz=u.z,move=false,chase=null;
     if(dueling){tx=u.rx;tz=u.rz;move=Math.hypot(tx-u.x,tz-u.z)>0.3;}
     else if(fighting){
       u.retarget-=dt;if(u.retarget<=0||!u.target||u.target.state!=='alive'){u.target=nearestEnemy(u);u.retarget=R(0.25,0.5);}
@@ -857,17 +920,17 @@ function updateUnits(dt){
       const engage=ord==='charge'?1e9:ord==='hold'?3.2:ord==='retreat'?1.5:3.5;
       const d=T?Math.hypot(T.x-u.x,T.z-u.z):1e9;
       const dg=(eg.rec&&!eg.dead&&!eg.flee)?Math.hypot(eg.x-u.x,eg.z-u.z):1e9;
-      if(dg<2.4&&dg<d){if(dg<=st.rng+0.4){if(u.cd<=0){u.cd=st.cd*R(0.8,1.25);u.atk=0.25;generalHit(eg,st.dmg*0.45,u);}}else{tx=eg.x;tz=eg.z;move=true;}}
+      if(dg<2.4&&dg<d){if(dg<=st.rng+0.4){if(u.cd<=0){u.cd=st.cd*R(0.8,1.25);u.atk=0.25;generalHit(eg,st.dmg*0.45,u);}}else{tx=eg.x;tz=eg.z;move=true;chase=FF[u.side];}}
       else if(T&&d<engage+(u.type==='arc'?st.rng:0)){
         if(d<=st.rng){if(u.cd<=0){u.cd=st.cd*R(0.8,1.25);u.atk=0.25;if(u.type==='arc'&&d>1.2)fireArrow(u,T);else hit(T,u.type==='arc'?0.5:st.dmg,u);}}
-        else{tx=T.x;tz=T.z;move=true;}
+        else{tx=T.x;tz=T.z;move=true;chase=FF[u.side];}
       }else if(ord==='flank'&&T){const c=cent[1-u.side],sd=(u.i%40)<20?-1:1,fx=c.x,fz=clamp(c.z+sd*26,-(FD/2-1.5),FD/2-1.5);
-        if(Math.hypot(fx-u.x,fz-u.z)<6){tx=c.x;tz=c.z;}else{tx=fx;tz=fz;}move=true;}
+        if(Math.hypot(fx-u.x,fz-u.z)<6){tx=c.x;tz=c.z;chase=FF[u.side];}else{tx=fx;tz=fz;}move=true;}
       else if(ord==='hold'){if(u.hs!==holdStamp[u.side]){u.hs=holdStamp[u.side];u.hx=u.x;u.hz=u.z;}tx=u.hx;tz=u.hz;move=Math.hypot(tx-u.x,tz-u.z)>0.4;}
       else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
-    }else if(phase==='pursuit'&&pursuit&&u.side===pursuit.w){const g=fg[pursuit.L];tx=g.x;tz=g.z;move=!g.captured&&Math.hypot(tx-u.x,tz-u.z)>0.5;}
+    }else if(phase==='pursuit'&&pursuit&&u.side===pursuit.w){const g=fg[pursuit.L];tx=g.x;tz=g.z;move=!g.captured&&Math.hypot(tx-u.x,tz-u.z)>0.5;chase=PF;}
     else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
-    let dvx=0,dvz=0;if(move){const dx=tx-u.x,dz=tz-u.z,d=Math.hypot(dx,dz)||1,sp=st.spd*(ord2spd(u));dvx=dx/d*sp;dvz=dz/d*sp;}
+    let dvx=0,dvz=0;if(move){const nd=navDir(u,tx,tz,chase),sp=st.spd*ord2spd(u)*terrSpd(u,u.type);dvx=nd[0]*sp;dvz=nd[1]*sp;}
     const k=Math.min(1,dt*6);u.vx+=(dvx-u.vx)*k;u.vz+=(dvz-u.vz)*k;
   }
   for(let s=0;s<2;s++)for(const a of alive[s]){const cx=gcx(a.x),cz=gcz(a.z);
@@ -875,13 +938,14 @@ function updateUnits(dt){
       for(const b of GA[gz*GW+gx]){if(b.uid<=a.uid)continue;const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)>0.62||Math.abs(dz)>0.62)continue;const d2=dx*dx+dz*dz;if(d2>0.38||d2<1e-6)continue;
         const d=Math.sqrt(d2),push=(0.62-d)*0.5,nx=dx/d*push,nz=dz/d*push;a.x-=nx;a.z-=nz;b.x+=nx;b.z+=nz;}}}}
   for(const u of units){
-    if(u.state==='alive'){const sp=Math.hypot(u.vx,u.vz);u.x+=u.vx*dt;u.z+=u.vz*dt;u.moving=sp>0.35;u.walk+=sp*dt*0.9;}
-    else if(u.state==='flee'){const ex=u.side?FW/2+3:-FW/2-3;u.x+=Math.sign(ex-u.x)*3.4*dt;u.moving=true;u.walk+=3.4*dt*0.9;u.t+=dt;
+    if(u.state==='alive'){const sp=Math.hypot(u.vx,u.vz);moveSlide(u,u.vx*dt,u.vz*dt);u.moving=sp>0.35;u.walk+=sp*dt*0.9;}
+    else if(u.state==='flee'){const ex=u.side?FW/2+3:-FW/2-3;if(!moveSlide(u,Math.sign(ex-u.x)*3.4*dt,0))u.x+=Math.sign(ex-u.x)*3.4*dt*0.2;u.moving=true;u.walk+=3.4*dt*0.9;u.t+=dt;
       if(Math.abs(u.x)>FW/2-0.7){u.state='gone';u.vis=false;}}
     else if(u.state==='dying'){u.t+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}u.x+=u.vx*dt;u.z+=u.vz*dt;if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
       if(u.t>1.0)u.vis=((u.t*16)|0)%2===0;if(u.t>1.7&&u.y===0){u.state='gone';u.vis=false;}}
     if(u.state==='gone'){if(u.vis){u.vis=false;}writeUnit(u,0);continue;}
     u.x=clamp(u.x,-FW/2+0.6,FW/2-0.6);u.z=clamp(u.z,-FD/2+1.2,FD/2-1.2);
+    if(u.state==='alive'){if(navAt(u.x,u.z)===1&&u.lx!==undefined){u.x=u.lx;u.z=u.lz;}else{u.lx=u.x;u.lz=u.z;}}
     const cheer=phase==='duel'&&u.state==='alive'&&Math.hypot(u.x-u.rx,u.z-u.rz)<0.5;
     const f=u.state==='dying'?3:u.atk>0?2:(u.moving||u.state==='flee')?(Math.floor(u.walk*3)%2):cheer?(Math.floor((performance.now()/1000+u.i*0.37)*3)%2):0;
     writeUnit(u,f);
@@ -892,19 +956,19 @@ function ord2spd(u){return phase==='duel'?1:orders[u.side]==='charge'?1.12:order
 function updateGenerals(dt){
   for(const g of fg){if(!g.rec||!g.sp.visible&&!g.flee)continue;g.t+=dt;g.cast=Math.max(0,g.cast-dt);g.cd-=dt;g.moving=false;const dir=g.side?-1:1;
     if(g.captured){g.sp.visible=true;}
-    else if(phase==='pursuit'&&pursuit&&g.side===pursuit.L){const sp=pursuit.t<2?2.2:3.0;g.x-=dir*sp*dt;g.moving=true;g.sp.visible=Math.abs(g.x)<FW/2+1;}
+    else if(phase==='pursuit'&&pursuit&&g.side===pursuit.L){const sp=pursuit.t<2?2.2:3.0;if(Math.abs(g.x)>FW/2-3)g.x-=dir*sp*dt;else if(!moveSlide(g,-dir*sp*dt,0))moveSlide(g,0,(g.z>0?1:-1)*sp*dt);g.moving=true;g.sp.visible=Math.abs(g.x)<FW/2+1;}
     else if(g.flee){g.x-=dir*5*dt;g.moving=true;g.sp.visible=((g.t*10)|0)%2===0&&Math.abs(g.x)<FW/2+1;}
     else if(!g.dead){
-      let tx=g.x,tz=g.z,spd=2.6;
+      let tx=g.x,tz=g.z,spd=2.6;g.chase=false;
       if(phase==='duel'){tx=duel.cx-dir*(2.3-g.lunge*1.7);tz=duel.cz;spd=6;}
       else if(phase==='intro'){tx=dir>0?-52:52;tz=0;}
       else if(phase==='fight'){const own=alive[g.side];
         if(own.length>30&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*7;tz=c.z*0.6;}
         else if(orders[g.side]==='retreat'){tx=dir>0?-52:52;tz=0;}
-        else{let best=null,bd=1e9;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}if(best){tx=best.x;tz=best.z;}}
+        else{let best=null,bd=1e9;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}if(best){tx=best.x;tz=best.z;g.chase=true;}}
         if(g.cd<=0){let best=null,bd=2.2;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
           if(best){g.cd=0.75;g.cast=0.2;hit(best,g.rec.d.atk*0.35,{x:g.x,z:g.z,type:'inf',side:g.side},true);}}}
-      const dx=tx-g.x,dz=tz-g.z,d=Math.hypot(dx,dz);if(d>0.35){const m=Math.min(d,spd*dt);g.x+=dx/d*m;g.z+=dz/d*m;g.moving=true;}
+      const d=Math.hypot(tx-g.x,tz-g.z);if(d>0.35){const nd=navDir(g,tx,tz,g.chase?FF[g.side]:null),m=Math.min(d,spd*terrSpd(g,'inf')*dt);moveSlide(g,nd[0]*m,nd[1]*m);g.moving=true;}
     }
     g.x=clamp(g.x,-FW/2-2,FW/2+2);g.z=clamp(g.z,-FD/2+1.2,FD/2-1.2);
     const fr=GMF[g.rec.d.key][g.side][(g.dead||g.captured)?3:g.cast>0?2:g.moving?(Math.floor(g.t*5)%2):(Math.floor(g.t*2)%2)];
@@ -995,6 +1059,7 @@ function startDuel(){
   if(phase!=='fight')return;phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;
   for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
   duel.cx=clamp((fg[0].x+fg[1].x)/2,-FW/2+26,FW/2-26);duel.cz=clamp((fg[0].z+fg[1].z)/2,-FD/2+22,FD/2-22);
+  {let best=null,bd=1e9;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){if(NAV[z*GW+x]!==0)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5;let ok=true;for(let oz=-2;oz<=2&&ok;oz++)for(let ox=-2;ox<=2;ox++){const k=(z+oz)*GW+x+ox;if(z+oz<0||z+oz>=GD||x+ox<0||x+ox>=GW||NAV[k]!==0){ok=false;break;}}if(!ok)continue;const d=(wx-duel.cx)**2+(wz-duel.cz)**2;if(d<bd){bd=d;best=[wx,wz];}}if(best){duel.cx=best[0];duel.cz=best[1];}}
   for(let s=0;s<2;s++){const L=alive[s],n=Math.max(1,L.length-1);L.forEach((u,i)=>{const a=(s?0:Math.PI)+(i/n-0.5)*Math.PI*0.85,r=11+(i%9)*1.4;u.rx=duel.cx+Math.cos(a)*r;u.rz=clamp(duel.cz+Math.sin(a)*r*0.8,-FD/2+1.5,FD/2-1.5);});}
   duel.stage='approach';duel.t=0;duel.pick=null;duel.log='The armies form a ring.';
   showBanner('Duel!');sfx('fanfare');cheer(0,0.8);cheer(1,0.8);updateModeUI();hudAcc=1;
