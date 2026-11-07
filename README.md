@@ -13,6 +13,9 @@ Each side fields three generals, each leading 400 troops of one type. Spears bea
 - **Capture:** a general who falls in a duel or to a spell is taken prisoner. When an army breaks, its general flees for the map edge and your troops chase him (cavalry is best at this); catch him before he escapes and he's yours. Between rounds you can try to persuade prisoners to join you with fresh troops, and the enemy will try the same with yours. Capturing Vorgrath ends the battle.
 - **Duels:** challenge the enemy general, or answer his challenge. Refusing costs morale. The armies form a ring and each exchange is Strike / Guard / Power: Strike beats Power, Guard beats Strike, Power breaks Guard. A golden glow means he is winding up a Power blow.
 
+## Sound
+Everything is synthesized live in the browser: formant-filtered voices for battle cries and crowd cheers, war drums with rotating rhythms (faster when an army is charging), a din of steel that swells with the fighting, and a valley reverb over it all.
+
 ## Controls
 - **Desktop:** drag to orbit, right-drag or WASD to pan, Q/E to turn, scroll or pinch to zoom. 1-4 orders, 5 duel, 6 withdraw, Space aims your spell (click the field to fire, Esc cancels). In duels J/K/L = Strike/Guard/Power. Y/N answer a challenge. Number keys pick a general.
 - **Quest:** grip to grab the table, both grips to scale and turn it. Left stick slides the battlefield, right stick turns and zooms, B resets. Point the right controller to aim your spell and pull the right trigger to fire (otherwise it orders a charge). Left trigger cycles orders, A challenges to a duel, X twice withdraws. In duels: right trigger Strike, left trigger Guard, A/X Power. When choosing a general: left trigger next, right trigger deploy.
