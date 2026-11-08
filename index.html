@@ -418,7 +418,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 42';
+const BUILD='Build 43';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1664,12 +1664,12 @@ function updateGenerals(dt){
     else if(phase==='pursuit'&&pursuit&&g.side===pursuit.L){if(!efOk)edgeFields();
       if(g.side===1&&g.burst<=0&&g.sta>0.3){const nf=nearestFoe(g);if(nf<7)sprint(g,true);}
       const sp=(pursuit.t<2?2.2:3.0)*terrSpd(g,'inf')*staTick(g,dt),m=sp*dt,E=nearEdge(g),ex=g.x+E.nx*(E.d+4),ez=g.z+E.nz*(E.d+4);
-      if(E.d<2.5){g.x+=E.nx*m;g.z+=E.nz*m;}
+      if(E.d<2.5||pursuit.ghost>0||pursuit.t>20){g.x+=E.nx*m;g.z+=E.nz*m;if(pursuit.ghost>0)pursuit.ghost-=dt;}
       else{const P=pursuit,fv=EF[g.side][gcz(g.z)*GW+gcx(g.x)];if(P.best===undefined||fv<P.best-0.5){P.best=fv;P.stuck=0;}else P.stuck=(P.stuck||0)+dt;
         const sl=g.side===0?Math.hypot(steer.x,steer.z):0;
         if(sl>0.15){P.stuck=0;const nd=navDir(g,ex,ez,EF[g.side]);let vx=steer.x/Math.max(1,sl)+nd[0]*0.35,vz=steer.z/Math.max(1,sl)+nd[1]*0.35;const vl=Math.hypot(vx,vz)||1;vx/=vl;vz/=vl;
           if(!moveSlide(g,vx*m,vz*m))moveSlide(g,nd[0]*m,nd[1]*m);}
-        else if(P.stuck>2.5){g.x+=E.nx*m;g.z+=E.nz*m;}else{const nd=navDir(g,ex,ez,EF[g.side]);if(!moveSlide(g,nd[0]*m,nd[1]*m)&&!moveSlide(g,E.nx*m,E.nz*m))moveSlide(g,E.nz*m,E.nx*m);}}
+        else if(P.stuck>2.5){P.ghost=2.5;P.stuck=0;g.x+=E.nx*m;g.z+=E.nz*m;}else{const nd=navDir(g,ex,ez,EF[g.side]);if(!moveSlide(g,nd[0]*m,nd[1]*m)&&!moveSlide(g,E.nx*m,E.nz*m))moveSlide(g,E.nz*m,E.nx*m);}}
       g.moving=true;g.sp.visible=Math.abs(g.x)<FW/2+1&&Math.abs(g.z)<FD/2+1;}
     else if(g.flee){g.x-=dir*5*dt;g.moving=true;g.sp.visible=((g.t*10)|0)%2===0&&Math.abs(g.x)<FW/2+1;}
     else if(!g.dead){
@@ -1687,7 +1687,7 @@ function updateGenerals(dt){
       if(phase==='fight')spd*=staTick(g,dt);
       const d=Math.hypot(tx-g.x,tz-g.z);if(d>0.35){const nd=navDir(g,tx,tz,g.chase==='gen'?GF[g.side]:g.chase?FF[g.side]:null),m=Math.min(d,spd*terrSpd(g,'inf')*dt);moveSlide(g,nd[0]*m,nd[1]*m);g.moving=true;}
     }
-    g.x=clamp(g.x,-FW/2-2,FW/2+2);g.z=clamp(g.z,-FD/2+1.2,FD/2-1.2);
+    {const fl=phase==='pursuit'&&pursuit&&g.side===pursuit.L;g.x=clamp(g.x,-FW/2-2,FW/2+2);g.z=fl?clamp(g.z,-FD/2-2,FD/2+2):clamp(g.z,-FD/2+1.2,FD/2-1.2);}
     const fr=GMF[g.rec.d.key][g.side][(g.dead||g.captured)?3:g.cast>0?2:g.moving?(Math.floor(g.t*5)%2):(Math.floor(g.t*2)%2)];
     if(g.sp.material!==fr.m)g.sp.material=fr.m;g.sp.scale.set(fr.w,fr.h,1);g.sp.position.set(g.x,Hb(g.x,g.z),g.z);
   }
