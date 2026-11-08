@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 51';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 52';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1034,11 +1034,16 @@ function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!
   for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const k=z*GW+x;if(NAV[k]===1)continue;
     if(ox&&oz&&(NAV[cz*GW+x]===1||NAV[z*GW+cx]===1))continue;if(F[k]<best-1e-3){best=F[k];bx=ox;bz=oz;}}
   if(!bx&&!bz)return[dx/d,dz/d];const wx=(cx+bx+0.5)*GC-FW/2-5,wz=(cz+bz+0.5)*GC-FD/2-5,ex=wx-e.x,ez=wz-e.z,el=Math.hypot(ex,ez)||1;return[ex/el,ez/el];}
+/* exact collision with wall and fence blocks and rocks (the nav grid is only 2 units fine, so diagonal walls leaked through) */
+function solid(x,z){if(navAt(x,z)===1)return true;
+  for(const w of MAP.walls){if(x<(w.x1<w.x2?w.x1:w.x2)-1.3||x>(w.x1>w.x2?w.x1:w.x2)+1.3||z<(w.z1<w.z2?w.z1:w.z2)-1.3||z>(w.z1>w.z2?w.z1:w.z2)+1.3)continue;if(segD(x,z,w)<w.th/2+0.35)return true;}
+  for(const b of MAP.rocks){const dx=x-b.x,dz=z-b.z,r=b.r+0.3;if(dx*dx+dz*dz<r*r)return true;}
+  return false;}
 function moveSlide(e,mx,mz){const nx=e.x+mx,nz=e.z+mz;
-  if(navAt(nx,nz)!==1){e.x=nx;e.z=nz;return true;}
-  if(navAt(nx,e.z)!==1){e.x=nx;return true;}
-  if(navAt(e.x,nz)!==1){e.z=nz;return true;}
-  const j=(Math.random()-0.5)*Math.hypot(mx,mz)*2;if(navAt(e.x,e.z+j)!==1)e.z+=j;return false;}
+  if(!solid(nx,nz)||solid(e.x,e.z)){e.x=nx;e.z=nz;return true;}
+  if(!solid(nx,e.z)){e.x=nx;return true;}
+  if(!solid(e.x,nz)){e.z=nz;return true;}
+  const j=(Math.random()-0.5)*Math.hypot(mx,mz)*2;if(!solid(e.x,e.z+j))e.z+=j;return false;}
 const terrSpd=(e,type)=>FLY[type]?1:navAt(e.x,e.z)===2?(type==='cav'||type==='kni'?0.45:0.6):1;
 const coverMul=u=>inWoods(u.x,u.z)?0.5:1;
 let mapChoice='random',lastType='';
@@ -1875,13 +1880,13 @@ function updateUnits(dt){
         const d=Math.sqrt(d2),push=(0.62-d)*0.5,nx=dx/d*push,nz=dz/d*push;a.x-=nx;a.z-=nz;b.x+=nx;b.z+=nz;}}}}
   for(const u of units){
     if(u.state==='alive'){const sp=Math.hypot(u.vx,u.vz);if(FLY[u.type]){u.x+=u.vx*dt;u.z+=u.vz*dt;}else moveSlide(u,u.vx*dt,u.vz*dt);u.moving=sp>0.35;u.walk+=sp*dt*0.9;}
-    else if(u.state==='flee'){const ex=u.side?FW/2+3:-FW/2-3;if(!moveSlide(u,Math.sign(ex-u.x)*3.4*dt,0))u.x+=Math.sign(ex-u.x)*3.4*dt*0.2;u.moving=true;u.walk+=3.4*dt*0.9;u.t+=dt;
-      if(Math.abs(u.x)>FW/2-0.7){u.state='gone';u.vis=false;}}
-    else if(u.state==='dying'){u.t+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}u.x+=u.vx*dt;u.z+=u.vz*dt;if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
+    else if(u.state==='flee'){if(!efOk)edgeFields();const E=nearEdge(u),m=3.4*dt;if(FLY[u.type]){u.x+=E.nx*m;u.z+=E.nz*m;}else{const nd=navDir(u,u.x+E.nx*(E.d+4),u.z+E.nz*(E.d+4),EF[0]);if(!moveSlide(u,nd[0]*m,nd[1]*m))moveSlide(u,E.nx*m,E.nz*m);}
+      u.moving=true;u.walk+=3.4*dt*0.9;u.t+=dt;if(E.d<2.6||u.t>25){u.state='gone';u.vis=false;}}
+    else if(u.state==='dying'){u.t+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}{const nx=u.x+u.vx*dt,nz=u.z+u.vz*dt;if(FLY[u.type]||!solid(nx,nz)){u.x=nx;u.z=nz;}else{u.vx*=-0.3;u.vz*=-0.3;}}if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
       if(u.t>1.0)u.vis=((u.t*16)|0)%2===0;if(u.t>1.7&&u.y===0){u.state='gone';u.vis=false;}}
     if(u.state==='gone'){if(u.vis){u.vis=false;}writeUnit(u,0);continue;}
     u.x=clamp(u.x,-FW/2+0.6,FW/2-0.6);u.z=clamp(u.z,-FD/2+1.2,FD/2-1.2);
-    if(u.state==='alive'&&!FLY[u.type]){if(navAt(u.x,u.z)===1&&u.lx!==undefined){u.x=u.lx;u.z=u.lz;}else{u.lx=u.x;u.lz=u.z;}}
+    if(u.state==='alive'&&!FLY[u.type]){if(u.lx!==undefined&&solid(u.x,u.z)){u.x=u.lx;u.z=u.lz;}else{u.lx=u.x;u.lz=u.z;}}
     const cheer=phase==='duel'&&u.state==='alive'&&Math.hypot(u.x-u.rx,u.z-u.rz)<0.5;
     const f=u.state==='dying'?3:u.atk>0?2:(u.moving||u.state==='flee')?(Math.floor(u.walk*3)%2):cheer?(Math.floor((performance.now()/1000+u.i*0.37)*3)%2):0;
     writeUnit(u,f);
