@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 52';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 53';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -962,11 +962,11 @@ function buildBattlefield(type){efOk=false;
   battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);
   const D=new THREE.Object3D();
   if(MAP.rocks.length){const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshPhongMaterial({color:BIO.rock,flatShading:true,shininess:4}),MAP.rocks.length);
-    MAP.rocks.forEach((b,i)=>{D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);}
-  const blocks=[];for(const s of MAP.walls){const L=Math.hypot(s.x2-s.x1,s.z2-s.z1),n=Math.max(1,Math.ceil(L/1.6)),ang=-Math.atan2(s.z2-s.z1,s.x2-s.x1);
-    for(let i=0;i<n;i++){const t=(i+0.5)/n,x=s.x1+(s.x2-s.x1)*t,z=s.z1+(s.z2-s.z1)*t,h=mrand()<0.2?0.8+mrand()*0.6:1.6+mrand()*1.8;blocks.push([x,z,L/n+0.05,h,ang]);}}
+    MAP.rocks.forEach((b,i)=>{b.i=i;D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);MAP.rockIM=im;}
+  const blocks=[];for(const s of MAP.walls){const L=Math.hypot(s.x2-s.x1,s.z2-s.z1),n=Math.max(1,Math.ceil(L/1.6)),ang=-Math.atan2(s.z2-s.z1,s.x2-s.x1);s.bi=[];
+    for(let i=0;i<n;i++){s.bi.push(blocks.length);const t=(i+0.5)/n,x=s.x1+(s.x2-s.x1)*t,z=s.z1+(s.z2-s.z1)*t,h=mrand()<0.2?0.8+mrand()*0.6:1.6+mrand()*1.8;blocks.push([x,z,L/n+0.05,h,ang]);}}
   if(blocks.length){const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshPhongMaterial({color:BIO.wall,flatShading:true,shininess:4}),blocks.length);
-    blocks.forEach((b,i)=>{D.rotation.set(0,b[4],0);D.position.set(b[0],Hb(b[0],b[1])+b[3]/2-0.2,b[1]);D.scale.set(b[2],b[3],1.2);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);}
+    blocks.forEach((b,i)=>{D.rotation.set(0,b[4],0);D.position.set(b[0],Hb(b[0],b[1])+b[3]/2-0.2,b[1]);D.scale.set(b[2],b[3],1.2);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);MAP.wallIM=im;}
   const railM=new THREE.MeshLambertMaterial({color:BIO.bridge==='stone'?0x7a746a:0x6a4426});
   for(const r of MAP.rivers)for(const c of r.cross){if(c.t!=='bridge')continue;const bx=rX(r,c.z),by=Hb(bx,c.z),len=2*(r.w+2.2)+0.4;
     for(const sd of[-1,1]){const rl=new THREE.Mesh(new THREE.BoxGeometry(len,0.5,0.25),railM);rl.position.set(bx,by+0.45,c.z+sd*1.9);mapGroup.add(rl);
@@ -1667,18 +1667,26 @@ function tickPU(dt){puT-=dt;if(puT<=0){puT=R(10,16);spawnPU();}fury[0]=Math.max(
 const AMB0=0xffe8d0,SUN0=0xfff0d8;
 let SIEGE=null;const wallGeo=new THREE.BoxGeometry(1,1,1),wallMat=new THREE.MeshLambertMaterial({color:0x8a8478}),gateMat=new THREE.MeshLambertMaterial({color:0x6a4424}),siegeGrp=new THREE.Group();
 function clearSiege(){SIEGE=null;while(siegeGrp.children.length)siegeGrp.remove(siegeGrp.children[0]);}
-function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(-3.2),gz1=gcz(3.2),gate=[];
+const _zm=new THREE.Matrix4().makeScale(0,0,0);
+function laneCost(zc){let c=0;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b.r)c+=3;for(const w of MAP.walls)if(Math.min(w.z1,w.z2)<zc+6&&Math.max(w.z1,w.z2)>zc-6)c+=4;
+  for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++)if(NAV[gcz(zc)*GW+x]===1)c+=1;return c+Math.abs(zc)*0.05;}
+function clearLane(zc){const half=5.4;let n=0;
+  MAP.rocks=MAP.rocks.filter(b=>{if(Math.abs(b.z-zc)<half+b.r){if(MAP.rockIM&&b.i!==undefined){MAP.rockIM.setMatrixAt(b.i,_zm);MAP.rockIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
+  MAP.walls=MAP.walls.filter(w=>{const zmin=Math.min(w.z1,w.z2)-1,zmax=Math.max(w.z1,w.z2)+1;if(zmax>zc-half&&zmin<zc+half){if(MAP.wallIM&&w.bi){for(const i of w.bi)MAP.wallIM.setMatrixAt(i,_zm);MAP.wallIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
+  if(n)DE4LOG.info('siege lane at z '+zc+' cleared '+n+' obstacles');}
+function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;for(let z=-24;z<=24;z+=2){const c=laneCost(z);if(c<best){best=c;gzc=z;}}clearLane(gzc);
+  const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(gzc-3.2),gz1=gcz(gzc+3.2),gate=[];
   for(let z=gz0-1;z<=gz1+1;z++)for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++){const k=z*GW+x;if(NAV[k]===1)NAV[k]=2;}
   for(let z=0;z<GD;z++)for(let x=x0;x<=x1;x++){const k=z*GW+x;NAV[k]=1;if(z>=gz0&&z<=gz1)gate.push(k);}
   const app=[];for(let z=gz0;z<=gz1;z++){const ax=def?x0-1:x1+1;app.push(z*GW+ax);}
-  const hpMax=180+fort*120;SIEGE={def,att,wx,gx:wx,gate,app,hp:hpMax,max:hpMax,fort,gateMesh:null};
+  const hpMax=180+fort*120;SIEGE={def,att,wx,gx:wx,gz:gzc,gate,app,hp:hpMax,max:hpMax,fort,gateMesh:null};
   const cx=(x0+x1+1)*GC/2-FW/2-5,thick=(x1-x0+1)*GC,H=3.4+fort*0.6;
   for(let z=0;z<GD;z++){if(z>=gz0&&z<=gz1)continue;const wz=(z+0.5)*GC-FD/2-5;if(Math.abs(wz)>FD/2)continue;const m=new THREE.Mesh(wallGeo,wallMat),y=Hb(cx,wz);m.scale.set(thick,H+(z%2?0.6:0),GC*0.98);m.position.set(cx,y+(H+(z%2?0.6:0))/2-0.3,wz);siegeGrp.add(m);}
-  for(const tz of[-1,1]){const tzz=tz*((gz1-gz0+1)*GC/2+GC),m=new THREE.Mesh(wallGeo,wallMat),y=Hb(cx,tzz);m.scale.set(thick+1.2,H+2.4,GC*1.6);m.position.set(cx,y+(H+2.4)/2-0.3,tzz);siegeGrp.add(m);}
-  const g=new THREE.Mesh(wallGeo,gateMat),gy=Hb(cx,0);g.scale.set(thick*0.7,H*0.85,(gz1-gz0+1)*GC);g.position.set(cx,gy+H*0.85/2-0.3,0);siegeGrp.add(g);SIEGE.gateMesh=g;efOk=false;}
-function gateHit(u,dmg){const S=SIEGE;if(!S||S.hp<=0)return;S.hp-=dmg;if(Math.random()<0.3){chips(S.gx,Hb(S.gx,0)+1.5,u.z*0.3,3,2,4,u.side?-2:2,[T_CHIPS[0],T_CHIPS[4]]);sfx('clang');}
+  for(const tz of[-1,1]){const tzz=gzc+tz*((gz1-gz0+1)*GC/2+GC),m=new THREE.Mesh(wallGeo,wallMat),y=Hb(cx,tzz);m.scale.set(thick+1.2,H+2.4,GC*1.6);m.position.set(cx,y+(H+2.4)/2-0.3,tzz);siegeGrp.add(m);}
+  const gmz=((gz0+gz1+1)/2)*GC-FD/2-5,g=new THREE.Mesh(wallGeo,gateMat),gy=Hb(cx,gmz);g.scale.set(thick*0.7,H*0.85,(gz1-gz0+1)*GC);g.position.set(cx,gy+H*0.85/2-0.3,gmz);siegeGrp.add(g);SIEGE.gateMesh=g;efOk=false;}
+function gateHit(u,dmg){const S=SIEGE;if(!S||S.hp<=0)return;S.hp-=dmg;if(Math.random()<0.3){chips(S.gx,Hb(S.gx,S.gz)+1.5,S.gz+(u.z-S.gz)*0.3,3,2,4,u.side?-2:2,[T_CHIPS[0],T_CHIPS[4]]);sfx('clang');}
   if(S.hp<=0){S.hp=0;for(const k of S.gate)NAV[k]=0;if(S.gateMesh){siegeGrp.remove(S.gateMesh);S.gateMesh=null;}efOk=false;fieldT=0;
-    impact(S.gx,0,S.def,false);showBanner('The gate is broken!',S.att===1);sfx('boom');slowMo(0.8);if(S.att===0)buzz(1,300);morale[S.def]=clamp(morale[S.def]-0.15,0,1);morale[S.att]=clamp(morale[S.att]+0.15,0,1);}}
+    impact(S.gx,S.gz,S.def,false);showBanner('The gate is broken!',S.att===1);sfx('boom');slowMo(0.8);if(S.att===0)buzz(1,300);morale[S.def]=clamp(morale[S.def]-0.15,0,1);morale[S.att]=clamp(morale[S.att]+0.15,0,1);}}
 const GATEM={kni:2.2,inf:1.2,cav:0.6,arc:0.25,monk:0.3,mage:1.4,harp:0.3,drag:1.8};
 const behindWall=T=>SIEGE&&T.side===SIEGE.def&&(SIEGE.def?T.x>SIEGE.wx-2:T.x<SIEGE.wx+2);
 function rollMod(){clearBlood();clearSiege();if(!SK&&AGE>=2&&Math.random()<Math.min(0.45,0.2*(AGE-1))){MOD=AGE>=3&&Math.random()<0.5?'bloodmoon':'blizzard';applyMod();shrine.on=false;BOSS.on=!!(pendingBattle&&pendingBattle.e.some(r=>r.d.key==='vorgrath'));BOSS.hp=BOSS.max=520;BOSS.dead=false;BOSS.slain=false;BOSS.next=6;dragon.mode='idle';dragon.sp.visible=true;dragon.sp.rotation.z=0;ecl=[0,0];return;}BOSS.on=!!(pendingBattle&&pendingBattle.e.some(r=>r.d.key==='vorgrath'))||!!(SK&&skSel[1].includes('vorgrath'));BOSS.hp=BOSS.max=520;BOSS.dead=false;BOSS.slain=false;BOSS.next=6;dragon.mode='idle';dragon.sp.visible=true;dragon.sp.rotation.z=0;ecl=[0,0];const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';if(SK&&SK.cond!=='random')MOD=SK.cond;applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
@@ -1853,7 +1861,7 @@ function updateUnits(dt){
       u.retarget-=dt;if(u.retarget<=0||!u.target||u.target.state!=='alive'){u.target=nearestEnemy(u);u.retarget=R(0.25,0.5);}
       const T=u.target,ord=orders[u.side],eg=fg[1-u.side];
       if(u.side===0&&bossActive()&&dragon.mode==='ground'&&Math.hypot(u.x-dragon.x,u.z-dragon.z)<(RANGED[u.type]?rg+4:5.5)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;bossHit(st.dmg*(RANGED[u.type]?1.2:1)*(abil[0].t>0?1.3:1));if(RANGED[u.type])spawn({x:u.x,y:Hb(u.x,u.z)+1,z:u.z,vx:(dragon.x-u.x)*2,vy:6,vz:(dragon.z-u.z)*2,tex:T_SPARK,w:0.3,h:0.3,life:0.4});}u.vx*=0.5;u.vz*=0.5;continue;}
-      if(SIEGE&&SIEGE.hp>0&&u.side===SIEGE.att&&!FLY[u.type]&&Math.abs(u.x-SIEGE.gx)<3.6&&Math.abs(u.z)<5&&!(T&&Math.hypot(T.x-u.x,T.z-u.z)<=st.rng)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;gateHit(u,st.dmg*(GATEM[u.type]||1)*(abil[u.side].t>0?1.3:1));}u.vx*=0.5;u.vz*=0.5;continue;}
+      if(SIEGE&&SIEGE.hp>0&&u.side===SIEGE.att&&!FLY[u.type]&&Math.abs(u.x-SIEGE.gx)<3.6&&Math.abs(u.z-SIEGE.gz)<5&&!(T&&Math.hypot(T.x-u.x,T.z-u.z)<=st.rng)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;gateHit(u,st.dmg*(GATEM[u.type]||1)*(abil[u.side].t>0?1.3:1));}u.vx*=0.5;u.vz*=0.5;continue;}
       let pu=null;if(pups.length&&(u.i%3===0||u.type==='cav')){let pd=ord==='hold'?4:9;for(const p of pups){const dd=Math.hypot(p.x-u.x,p.z-u.z);if(dd<pd){pd=dd;pu=p;}}}
       const tdist=T?Math.hypot(T.x-u.x,T.z-u.z):1e9;
       const engage=ord==='charge'?1e9:ord==='hold'?3.2:ord==='retreat'?1.5:3.5;
