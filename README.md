@@ -14,6 +14,24 @@ Pick one on the title screen (left trigger in VR):
 
 **Ludicrous gore** (checkbox under the slider) ignores the slider: every death leaves big splatters and a fountain of droplets, and about one death in sixteen erupts in a huge blood explosion that paints the ground around it. **Blood** is set with the slider on the title screen (0 = off, remembered between visits). Every soldier who dies leaves a splatter on the ground where he fell, with a spray of droplets at higher settings; higher settings make splatters bigger and more frequent. Splatters stay for the whole battle (up to about 680 at once) and clear when the next battle begins.
 
+## Factions and rosters
+
+Every general belongs to one faction for good (Brannoch is always Aldmere blue, Hask always Ashen red, Corvin always Duskmarch purple), and each faction has its own general for every troop type:
+
+| | Aldmere | Ashen Legion | Duskmarch |
+|---|---|---|---|
+| Ruler | **Kaelen** (Infantry) | **Vorgrath** (Cavalry + Wyrm) | **Ysolde** (Cavalry, Eclipse) |
+| Infantry | (Kaelen) | Hask, Skarn | Corvin, Odric |
+| Cavalry | Brannoch, Maelis | (Vorgrath) | (Ysolde) |
+| Archers | Seren, Ivo | Mordrae, Veyra | Brisa |
+| Knights | Aldric | Morvane the Iron | Sir Evander Gloam |
+| Monks | Elowen | Ashpriest Vell | Mother Aveline |
+| Mages | Oriel Brightquill | Zareth | Thessaly |
+| Harpies | Wren Skyward | Shrike | Nyx |
+| Dragonriders | Tamsin Gale | Kessa | Rook Nightwing |
+
+Each campaign the three rulers always take the field, and the rest of each roster is drawn at random to fill the faction's castles (Aldmere 6, Ashen 6, Duskmarch 5), so every war has a different line-up. In New Game+, your surviving generals carry over and the enemy rosters are redrawn. Skirmish lets you pick from all of them. Wandering generals (Garrick, Lyra, Tor) still turn up through Search.
+
 ## Troop types
 
 | Type | Strong against | Weak against | Notes |

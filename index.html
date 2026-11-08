@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 56';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 57';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -724,6 +724,16 @@ Object.assign(GPAL,{
   hask:{cape:'#5a4a3a',capeD:'#3a2e24',metal:'#7a7068',metalL:'#9a9088',metalD:'#3e3832',dark:'#1a1612',accent:'#c84a1a',eye:'#ff7a2a',blade:'#c8c0b8',gem:'#c84a1a',horn:'#d8ccb0'},
   mordrae:{cape:'#5a2a7a',capeD:'#341848',metal:'#4a4458',metalL:'#6e6684',metalD:'#262230',dark:'#140f1a',accent:'#c08aff',eye:'#e0a0ff',blade:'#d8d0e8',gem:'#c08aff',horn:'#fff'}});
 Object.assign(GPAL,{
+  oriel:{cape:'#3a6ad0',capeD:'#22408a',metal:'#e0d0a0',metalL:'#fff6d0',metalD:'#8a7a50',dark:'#1a1a2a',accent:'#9ad0ff',eye:'#9ad0ff',blade:'#f0f8ff',gem:'#9ad0ff',horn:'#fff'},
+  wren:{cape:'#5aa0c8',capeD:'#2e6a8a',metal:'#d8e0e8',metalL:'#ffffff',metalD:'#7a8a98',dark:'#14202a',accent:'#f0e090',eye:'#9fe8ff',blade:'#f0f8ff',gem:'#f0e090',horn:'#fff'},
+  tamsin:{cape:'#2a5aa8',capeD:'#183a70',metal:'#7a9ab8',metalL:'#a8c8e8',metalD:'#3a5068',dark:'#0e1620',accent:'#ffd23a',eye:'#ffd23a',blade:'#e8f0ff',gem:'#ffd23a',horn:'#e8dcc0'},
+  morvane:{cape:'#2a1a1a',capeD:'#140c0c',metal:'#3a3438',metalL:'#5a5258',metalD:'#18141a',dark:'#0a0808',accent:'#e8401a',eye:'#ff3a1a',blade:'#a8a0a8',gem:'#e8401a',horn:'#c8bca0'},
+  vell:{cape:'#8a2a14',capeD:'#5a180a',metal:'#c88a3a',metalL:'#f0b860',metalD:'#6a4418',dark:'#1a0e08',accent:'#ffd23a',eye:'#ffb347',blade:'#ffe0a0',gem:'#ff7a1a',horn:'#fff'},
+  shrike:{cape:'#5a1a2a',capeD:'#340e18',metal:'#6a5a5a',metalL:'#8a7a7a',metalD:'#2a2222',dark:'#120a0c',accent:'#ff5a7a',eye:'#ff5a3a',blade:'#e0d0d0',gem:'#ff5a7a',horn:'#d8ccb0'},
+  evander:{cape:'#3a2a5a',capeD:'#221838',metal:'#b8b8d0',metalL:'#e8e8f8',metalD:'#5a5a78',dark:'#12101e',accent:'#c08aff',eye:'#c0d8ff',blade:'#f0f0ff',gem:'#c08aff',horn:'#fff'},
+  aveline:{cape:'#d8d0e0',capeD:'#9a90a8',metal:'#a898c0',metalL:'#d8c8f0',metalD:'#5a4a78',dark:'#1a1622',accent:'#7fe8c8',eye:'#7fe8c8',blade:'#f0e8ff',gem:'#7fe8c8',horn:'#fff'},
+  rook:{cape:'#1a1a2a',capeD:'#0c0c16',metal:'#4a4a6a',metalL:'#6a6a8a',metalD:'#24243a',dark:'#08080e',accent:'#7fe8c8',eye:'#b48aff',blade:'#d0d0e8',gem:'#b48aff',horn:'#d8ccb0'}});
+Object.assign(GPAL,{
   garrick:{cape:'#6a5a3a',capeD:'#3e3420',metal:'#9a8a6a',metalL:'#c8b890',metalD:'#5a4a30',dark:'#1e1a10',accent:'#e8c060',eye:'#ffe39a',blade:'#e8e0d0',gem:'#e8c060',horn:'#fff'},
   lyra:{cape:'#3a8aa8',capeD:'#205a70',metal:'#c8d8e0',metalL:'#ffffff',metalD:'#6a7a88',dark:'#102028',accent:'#ffd8f0',eye:'#9fe8ff',blade:'#f0f8ff',gem:'#ff9ad8',horn:'#fff'},
   tor:{cape:'#8a3a1a',capeD:'#5a200c',metal:'#7a6a5a',metalL:'#a8988a',metalD:'#3a3028',dark:'#1a120c',accent:'#ffb347',eye:'#ffb347',blade:'#e0d8d0',gem:'#ffb347',horn:'#e8dcc0'}});
@@ -757,6 +767,15 @@ const GENDEFS=[
   {key:'ysolde',side:1,nat:'dusk',lvl:7,name:'Ysolde Marrow',short:'Ysolde',troop:'cav',hp:70,atk:12,def:9,spell:'eclipse',pal:GPAL.ysolde,horned:false,bio:'Queen of Duskmarch. Patient, cold and rarely wrong.'},
   {key:'corvin',side:1,nat:'dusk',lvl:4,name:'Corvin Gall',short:'Corvin',troop:'inf',hp:56,atk:10,def:7,spell:'starfall',pal:GPAL.corvin,horned:true,bio:'Her sworn shield. Calls the stars down when the line breaks.'},
   {key:'brisa',side:1,nat:'dusk',lvl:3,name:'Brisa Fenwright',short:'Brisa',troop:'arc',hp:42,atk:7,def:4,spell:'volley',pal:GPAL.brisa,horned:false,bio:'Fen-born scout who knows every bog path.'},
+  {key:'oriel',side:0,nat:'aldmere',lvl:3,name:'Oriel Brightquill',short:'Oriel',troop:'mage',hp:42,atk:9,def:4,spell:'starfall',pal:GPAL.oriel,horned:false,bio:'Court magus of Highmere. Her ink still smokes.'},
+  {key:'wren',side:0,nat:'aldmere',lvl:3,name:'Wren Skyward',short:'Wren',troop:'harp',hp:44,atk:8,def:5,spell:'volley',pal:GPAL.wren,horned:false,bio:'Raised by the cliff harpies of Saltmarsh. Whistles orders in their tongue.'},
+  {key:'tamsin',side:0,nat:'aldmere',lvl:4,name:'Tamsin Gale',short:'Tamsin',troop:'drag',hp:58,atk:11,def:6,spell:'thunder',pal:GPAL.tamsin,horned:false,bio:'The only dragonrider Aldmere has ever had. Her wyrm is old and grumpy.'},
+  {key:'morvane',side:1,nat:'ashen',lvl:5,name:'Morvane the Iron',short:'Morvane',troop:'kni',hp:66,atk:10,def:11,spell:'ashrain',pal:GPAL.morvane,horned:true,bio:'The Black Knight of Emberfall. Has not lifted his visor in twenty years.'},
+  {key:'vell',side:1,nat:'ashen',lvl:4,name:'Ashpriest Vell',short:'Vell',troop:'monk',hp:48,atk:7,def:6,spell:'mend',pal:GPAL.vell,horned:false,bio:'Tends the Ashen wounded with fire and prayer. Mostly fire.'},
+  {key:'shrike',side:1,nat:'ashen',lvl:4,name:'Shrike',short:'Shrike',troop:'harp',hp:42,atk:10,def:4,spell:'thunder',pal:GPAL.shrike,horned:true,bio:'A harpy queen who sold her flock to the Tyrant for an iron crown.'},
+  {key:'evander',side:1,nat:'dusk',lvl:4,name:'Sir Evander Gloam',short:'Evander',troop:'kni',hp:62,atk:9,def:10,spell:'starfall',pal:GPAL.evander,horned:false,bio:"Duskmarch's last true knight, sworn to Ysolde since they were children."},
+  {key:'aveline',side:1,nat:'dusk',lvl:4,name:'Mother Aveline',short:'Aveline',troop:'monk',hp:46,atk:6,def:7,spell:'mend',pal:GPAL.aveline,horned:false,bio:'Keeper of the Ravenspire infirmary. Has buried more soldiers than she can count.'},
+  {key:'rook',side:1,nat:'dusk',lvl:5,name:'Rook Nightwing',short:'Rook',troop:'drag',hp:60,atk:12,def:6,spell:'thunder',pal:GPAL.rook,horned:true,bio:'Flies a black wyrm over Duskmarch at night. Nobody has seen him land.'},
   {key:'garrick',side:0,nat:'wander',lvl:4,name:'Garrick the Sellsword',short:'Garrick',troop:'inf',hp:58,atk:10,def:7,spell:'ashrain',pal:GPAL.garrick,horned:false,bio:'Has fought for every crown in the realm. Currently between employers.'},
   {key:'lyra',side:0,nat:'wander',lvl:4,name:'Lyra Swiftwind',short:'Lyra',troop:'harp',hp:44,atk:9,def:5,spell:'thunder',pal:GPAL.lyra,horned:false,bio:'A wind-singer who rides with a flock of tame harpies.'},
   {key:'tor',side:0,nat:'wander',lvl:5,name:'Tor Ironhoof',short:'Tor',troop:'cav',hp:60,atk:11,def:7,spell:'thunder',pal:GPAL.tor,horned:true,bio:'A horse-lord from the eastern steppe, looking for a war worth winning.'},
@@ -1235,13 +1254,16 @@ function initCampaign(){
   Object.assign(CAMP,{vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
   CASTLES.forEach(c=>{c.o=c.o0;c.fort=c.cap?1:0;c.task='rest';});
   GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
-  at('kaelen','Highmere');at('seren','Highmere');at('brannoch','Thornwick');at('ivo','Greenhollow');at('maelis','Saltmarsh');
-  at('vorgrath','Cindervault');at('mordrae','Cindervault');at('hask','Emberfall');at('skarn','Blackmoor');at('veyra','Scorchgate');
-  at('ysolde','Greywatch');at('corvin','Greywatch');at('brisa','Coldbrook');at('odric','Ravenspire');
   for(const r of GENS){r.loy=r.d.key==='kaelen'?100:70;if(r.nat==='wander'){r.alive=false;r.loc=null;}}
-  at('aldric','Thornwick');at('elowen','Saltmarsh');at('zareth','Duneholt');at('kessa','Cindervault');at('nyx','Ravenspire');at('thessaly','Coldbrook');
+  const SLOTS={aldmere:['Highmere','Thornwick','Greenhollow','Saltmarsh','Thornwick','Saltmarsh'],ashen:['Cindervault','Emberfall','Blackmoor','Scorchgate','Duneholt','Cindervault'],dusk:['Greywatch','Coldbrook','Ravenspire','Ravenspire','Coldbrook']};
+  at('kaelen','Highmere');at('vorgrath','Cindervault');at('ysolde','Greywatch');const picked=[];
+  for(const n of['aldmere','ashen','dusk']){const pool=GENS.filter(r=>r.nat===n&&r.d.key!==NATIONS[n].ruler),k=SLOTS[n].length;
+    for(let i=pool.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+    let pick=pool.slice(0,k);for(const t of['inf','arc','cav'])if(!pick.some(r=>r.d.troop===t)&&!(t==='cav'&&n!=='aldmere')){const sw=pool.slice(k).find(r=>r.d.troop===t);if(sw){const out=pick.findIndex(r=>pick.filter(x=>x.d.troop===r.d.troop).length>1);if(out>=0)pick[out]=sw;}}
+    pick.forEach((r,i)=>at(r.d.key,SLOTS[n][i]));pool.filter(r=>!pick.includes(r)).forEach(r=>{r.alive=false;r.loc=null;r.absent=true;});picked.push(NATIONS[n].name+': '+pick.map(r=>r.d.short).join(', '));}
+  DE4LOG.info('rosters · '+picked.join(' · '));
   buildLabels();updateCampPanel();
-  clog('Week 1. Aldmere stands between the Ashen Legion and Duskmarch. Difficulty: '+DIFF.name+'.');if(DIFF.peace)clog(`Duskmarch has sworn a truce with Aldmere until week ${DIFF.peace+1}. The Ashen Legion has not.`);
+  clog('Week 1. Aldmere stands between the Ashen Legion and Duskmarch. Difficulty: '+DIFF.name+'.');clog('This war: '+GENS.filter(r=>r.alive&&r.nat!=='aldmere').length+' enemy generals take the field. Generals left out will appear in other wars.');if(DIFF.peace)clog(`Duskmarch has sworn a truce with Aldmere until week ${DIFF.peace+1}. The Ashen Legion has not.`);
 }
 function makeArmy(nat,gens,path){
   const a={id:CAMP.nextId++,nat,gens,path,seg:0,t:0,from:path[0],x:CASTLES[path[0]].x,z:CASTLES[path[0]].z};
@@ -1339,6 +1361,10 @@ function snapshotAge(){const gens={};for(const r of GENS)if(r.alive&&r.nat==='al
 function saveAge(d){try{localStorage.setItem('de4-ngp',JSON.stringify(d));}catch(e){}}
 function loadAge(){try{const v=JSON.parse(localStorage.getItem('de4-ngp')||'null');return v&&v.age>1?v:null;}catch(e){return null;}}
 function applyAge(save){const hq=CASTLES.findIndex(c=>c.n==='Highmere');
+  if(save&&save.gens){const home=['Highmere','Thornwick','Greenhollow','Saltmarsh'].map(n=>CASTLES.findIndex(c=>c.n===n));let hi=0;
+    const mine=GENS.filter(r=>r.nat==='aldmere'&&r.d.key!=='kaelen');for(const r of mine){if(save.gens[r.d.key]){if(!r.alive||r.absent){r.alive=true;r.absent=false;r.loc=home[(hi++)%home.length];}}else{r.alive=false;r.loc=null;r.absent=true;}}
+    const have=GENS.filter(r=>r.nat==='aldmere'&&r.alive&&r.d.key!=='kaelen').length;const extra=mine.filter(r=>r.absent&&!save.gens[r.d.key]).sort(()=>Math.random()-0.5).slice(0,Math.max(0,4-have));
+    for(const r of extra){r.alive=true;r.absent=false;r.loc=home[(hi++)%home.length];lvlTo(r,r.d.lvl+AGE-1);}}
   for(const r of GENS){const c=save&&save.gens[r.d.key];
     if(c){if(r.nat==='wander'){r.alive=true;r.nat='aldmere';r.loc=hq;}if(r.nat==='aldmere'){lvlTo(r,c.lvl);r.xp=c.xp||0;r.loy=Math.max(60,c.loy??70);if(c.relic)giveRelic(r,c.relic);}}
     if(r.nat==='ashen'||r.nat==='dusk'){lvlTo(r,r.d.lvl+2*(AGE-1));if(Math.random()<Math.min(0.8,0.3*(AGE-1)))giveRelic(r,RELK[(Math.random()*RELK.length)|0]);}}
@@ -1755,6 +1781,15 @@ function deploy(){try{DE4LOG.info('deploy round '+(round+1)+': '+active[0].d.key
 }
 /* ---------- pre-battle taunts ---------- */
 const TAUNTS={
+  oriel:['I have read every book on war. You are in chapter one.','Stand still while I spell your name in fire.','The stars answer when Highmere asks.'],
+  wren:['Look up. No, higher.','My flock has been watching you all morning.','You walk. We do not.'],
+  tamsin:['Old Bramble here has eaten bigger than you.','Mind the tail.','Aldmere flies today.'],
+  morvane:['...','Iron does not bargain.','Break on me. Everyone does.'],
+  vell:['Your wounds will be a gift to the fire.','I heal my own. I burn the rest.','The ash remembers every name.'],
+  shrike:['Pretty little archers. Do they bleed pretty?','I traded wings for a crown. I kept the claws.','From above, you all look like supper.'],
+  evander:['For the Queen, and for every morning she has given us.','A knight does not run. A knight waits.','Yield, and I will see you fed.'],
+  aveline:['I would rather mend you than bury you. Choose.','Every one of mine walks home tonight.','Gently now. War is long.'],
+  rook:['You will not hear us coming.','The night is mine and so is the sky.','Run, and the wyrm gets bored. Stay, and it gets fed.'],
   aldric:['Shields up. Let them break on us.','Highmere does not retreat. Highmere advances slowly.','Your swords will dull before my armor does.'],
   elowen:['Go home. I would rather tend your wounds than cause them.','Every soldier I mend fights twice.','The Light is patient. So am I.'],
   zareth:['Do you smell that? That is your banner, burning.','Fire is honest. It takes everything.','Stand closer together. It saves me effort.'],
@@ -1775,7 +1810,7 @@ const TAUNTS={
   corvin:['My queen need not lift a hand. I am her hand.','When the stars fall, stand very still.','No one passes while I hold the line.'],
   brisa:['You took the dry path? Shame. That is the one I trapped.','Every bog in this land is a friend of mine.','You will be stuck long before you are beaten.'],
   odric:['I have held passes for twenty winters. One more.','Come. Break yourselves on me.','The mountain does not move. Neither do I.']};
-const VOICE={aldric:105,elowen:250,zareth:130,kessa:210,nyx:280,thessaly:230,kaelen:140,seren:260,brannoch:110,ivo:240,maelis:220,vorgrath:80,hask:95,mordrae:230,skarn:100,veyra:250,ysolde:200,corvin:120,brisa:270,odric:90};
+const VOICE={oriel:240,wren:270,tamsin:230,morvane:75,vell:115,shrike:290,evander:125,aveline:210,rook:100,aldric:105,elowen:250,zareth:130,kessa:210,nyx:280,thessaly:230,kaelen:140,seren:260,brannoch:110,ivo:240,maelis:220,vorgrath:80,hask:95,mordrae:230,skarn:100,veyra:250,ysolde:200,corvin:120,brisa:270,odric:90};
 const pickLine=k=>{const L=TAUNTS[k]||['Your end begins here.'];return L[(Math.random()*L.length)|0];};
 const talkC=cv(512,168),talkX=talkC.getContext('2d'),talkT=tex(talkC,true);
 const talkCard=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:talkT,transparent:true,depthTest:false}));talkCard.renderOrder=11;talkCard.visible=false;battle.add(talkCard);
@@ -2165,7 +2200,7 @@ const TUT_PAGES=[
   d:[['Enter / →','Next page'],['←','Back'],['Esc','Skip']],v:[['R trigger','Next page'],['L trigger','Back'],['A','Skip']]},
  {h:'The war table',q:['rt','lt','a','x'],b:'Time passes in weeks. <b>Select one of your castles</b>, tick the generals you want to send, then <b>pick any castle</b> to march on it. You can send several armies at once: just select another castle while the first one marches. <b>Click a marching army</b> to change its orders: redirect it, halt it, or turn it back. Each of your castles also has a <b>weekly task</b>: Rest, Search (relics and wandering generals), Fortify (stronger gates) or Reward (loyalty). Neglected generals with low loyalty may defect. Armies that meet on a road fight, and an army that reaches an enemy castle attacks it. Generals left in your castles rest and refill their troops. Stuck? Read the <b>advisor line</b>: it always tells you what to do next.',
   d:[['Click','Select a castle or army, then a target'],['Space','Pause or resume'],['Esc','Cancel selection']],v:[['Point + R trig','Select a castle or army, then a target'],['A (army)','Change course'],['X (army)','Halt / march on'],['L trigger','Pause or resume']]},
- {h:'Choose your general',q:['lt','rt'],b:'A battle is a series of rounds. Before each one you pick a general, and he fights with his own troop type. Match-ups matter a lot: the cards show <b>Strong</b>, <b>Weak</b> or <b>Even</b> against the enemy general. Beyond the classic three there are <b>Knights</b> (armored, beat infantry and cavalry, melt to mages), <b>Monks</b> (heal their army), <b>Mages</b> (ranged magic, shred knights), <b>Harpies</b> (fly over everything, hunt mages and archers, but archers shoot them down) and <b>Dragonriders</b> (few but deadly flyers).',art:()=>TRI('Spears','Cavalry','Archers','#9ab8ff','#ffb09a','#8fe39a'),
+ {h:'Choose your general',q:['lt','rt'],b:'A battle is a series of rounds. Before each one you pick a general, and he fights with his own troop type. Every faction has its own general for every troop type; each war randomly decides which of them take the field (the three rulers always do). Match-ups matter a lot: the cards show <b>Strong</b>, <b>Weak</b> or <b>Even</b> against the enemy general. Beyond the classic three there are <b>Knights</b> (armored, beat infantry and cavalry, melt to mages), <b>Monks</b> (heal their army), <b>Mages</b> (ranged magic, shred knights), <b>Harpies</b> (fly over everything, hunt mages and archers, but archers shoot them down) and <b>Dragonriders</b> (few but deadly flyers).',art:()=>TRI('Spears','Cavalry','Archers','#9ab8ff','#ffb09a','#8fe39a'),
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
