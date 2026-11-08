@@ -225,6 +225,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .tutno{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--dim);cursor:pointer}.tutno input{accent-color:var(--gold);width:16px;height:16px}
 .tutnav{display:flex;gap:8px}.tutnav .go{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700}
 .tutdots{display:flex;gap:6px;justify-content:center}.tutdots i{width:8px;height:8px;background:#2a2238;display:block}.tutdots i.on{background:var(--gold)}
+.bloodset{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.bloodset input{width:160px;accent-color:#b01818}.bloodset b{font-family:var(--f-term);font-size:16px;font-weight:400;color:var(--ink);min-width:3.5em}
 .cta .start{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700;padding:12px 20px;font-size:13px}
 .fine{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--f-term);font-size:15px;color:#7d7394;border-top:1px solid #2a2238;padding-top:10px}
 @media (max-width:560px){
@@ -400,6 +402,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
         <div class="cta">
           <div class="diff" role="group" aria-label="Difficulty"><button data-diff="squire">Squire</button><button data-diff="knight">Knight</button><button data-diff="warlord">Warlord</button></div>
           <p id="diffBlurb"></p>
+          <label class="bloodset" for="bloodR"><span>Blood</span><input type="range" id="bloodR" min="0" max="100" step="5" value="50"><b id="bloodV">50%</b></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="start" id="startBtn">Press Start</button>
           <button id="vrBtn2" disabled>Enter VR</button>
           <button id="howBtn">How to play</button></div>
@@ -415,7 +418,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 41';
+const BUILD='Build 42';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1400,6 +1403,21 @@ for(const k of PUK){const c=cv(64,64),x=c.getContext('2d'),g=x.createRadialGradi
   x.fillStyle=g;x.beginPath();x.arc(32,32,30,0,7);x.fill();x.fillStyle='#120e1c';x.beginPath();x.arc(32,32,15,0,7);x.fill();x.strokeStyle=PU[k].col;x.lineWidth=3;x.stroke();
   x.fillStyle=PU[k].col;x.font='bold 20px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(PU[k].g,32,33);PUT[k]=tex(c,true);}
 const pups=[],fury=[0,0];let puT=6;
+let blood=0.5;try{const v=localStorage.getItem('de4-blood');if(v!==null&&v!=='')blood=clamp(+v/100,0,1);}catch(e){}
+const BLOODT=[0,1,2,3].map(i=>{const c=cv(128,128),x=c.getContext('2d');const rnd=(a,b)=>a+Math.random()*(b-a);
+  for(let k=0;k<7+i*2;k++){const a=rnd(0,6.28),r=k<4?rnd(0,14):rnd(14,40),cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,rr=k<4?rnd(16,26):rnd(3,9);
+    const g=x.createRadialGradient(cx,cy,rr*0.2,cx,cy,rr);g.addColorStop(0,'rgba(120,6,8,0.95)');g.addColorStop(0.7,'rgba(95,4,6,0.85)');g.addColorStop(1,'rgba(70,2,4,0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,rr,0,7);x.fill();}
+  return tex(c,true);});
+const T_DROP=(()=>{const c=cv(8,8),x=c.getContext('2d');x.fillStyle='#8a0a0c';x.beginPath();x.arc(4,4,3.5,0,7);x.fill();return tex(c);})();
+const DEC_N=170,decals=BLOODT.map(t=>{const m=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,opacity:0.88,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),DEC_N);
+  m.count=0;m.frustumCulled=false;m.renderOrder=1;battle.add(m);return{m,i:0,n:0};});
+const _dm=new THREE.Matrix4(),_dq=new THREE.Quaternion(),_dp=new THREE.Vector3(),_ds=new THREE.Vector3(),_de=new THREE.Euler();
+function addBlood(x,z){if(blood<=0||Math.random()>0.35+blood*0.65)return;const D=decals[(Math.random()*decals.length)|0],sc=(0.9+Math.random()*0.8)*(0.6+blood*1.0);
+  _de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x+R(-0.25,0.25),Hb(x,z)+0.07,z+R(-0.25,0.25));_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
+  D.m.setMatrixAt(D.i,_dm);D.i=(D.i+1)%DEC_N;D.n=Math.min(DEC_N,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;
+  if(blood>0.3)for(let k=0,n=Math.round(blood*4);k<n;k++)spawn({x,y:Hb(x,z)+0.7,z,vx:R(-2.5,2.5),vy:R(2,5),vz:R(-2.5,2.5),g:-22,life:R(0.4,0.8),tex:T_DROP,w:0.18,h:0.18,ground:true});}
+function clearBlood(){for(const D of decals){D.i=0;D.n=0;D.m.count=0;}}
+function setBlood(v){blood=clamp(v,0,1);try{localStorage.setItem('de4-blood',String(Math.round(blood*100)));}catch(e){}const r=document.getElementById('bloodR'),b=document.getElementById('bloodV');if(r)r.value=Math.round(blood*100);if(b)b.textContent=blood?Math.round(blood*100)+'%':'Off';}
 const tcloud=[{t:0,n:0},{t:0,n:0}];
 const cloudTex=(()=>{const c=cv(256,128),x=c.getContext('2d');for(const[cx,cy,r,col]of[[70,78,40,'#3b3550'],[128,60,52,'#4a4363'],[188,76,42,'#3b3550'],[105,90,36,'#2c2740'],[160,92,38,'#2c2740'],[128,48,34,'#5a5278']]){const g=x.createRadialGradient(cx,cy-r*0.3,r*0.2,cx,cy,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(30,26,44,0.0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();}return tex(c,true);})();
 const cloudSp=[0,1].map(()=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,transparent:true,depthWrite:false,color:0xffffff}));sp.scale.set(22,11,1);sp.visible=false;sp.renderOrder=7;battle.add(sp);return sp;});
@@ -1443,7 +1461,7 @@ function tickPU(dt){puT-=dt;if(puT<=0){puT=R(10,16);spawnPU();}fury[0]=Math.max(
     for(let s=0;s<2&&!best;s++){const g=fg[s];if(okGen(g)&&Math.hypot(g.x-p.x,g.z-p.z)<1.2)best={side:s};}
     if(best)claimPU(p,best.side);}}
 const AMB0=0xffe8d0,SUN0=0xfff0d8;
-function rollMod(){const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
+function rollMod(){clearBlood();const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
 function applyMod(){ambLight.intensity=MOD==='night'?0.3:MOD==='storm'?0.44:0.62;sun.intensity=MOD==='night'?0.3:MOD==='storm'?0.46:0.78;
   if(MOD==='night'){ambLight.color.setHex(0x8f9fff);sun.color.setHex(0xa8b8ff);}scene.fog=MOD==='fog'?new THREE.Fog(0xa8a6b4,10,100):null;modT=R(6,10);}
 function clearMod(){MOD='none';applyMod();ambLight.color.setHex(AMB0);sun.color.setHex(SUN0);shrRing.visible=shrRune.visible=false;shrine.on=false;}
@@ -1541,7 +1559,7 @@ function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=n
     if(best&&(r*GC)*(r*GC)>bd)break;}
   return best;}
 function kill(u,fx,fz,power=3,launch=0){
-  u.state='dying';u.t=0;const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
+  u.state='dying';u.t=0;if(state==='battle')addBlood(u.x,u.z);const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
   killTally[1-u.side]++;BST.kills[1-u.side]++;if(state==='battle')onKill(1-u.side);mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
@@ -2212,6 +2230,7 @@ $('wdBtn').addEventListener('click',withdraw);
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
+setBlood(blood);$('bloodR').addEventListener('input',e=>setBlood(+e.target.value/100));
 $('howBtn').addEventListener('click',()=>{audioInit();openTut(null);});
 $('tutNext').addEventListener('click',()=>tutGo(1));$('tutBack').addEventListener('click',()=>tutGo(-1));$('tutSkip').addEventListener('click',closeTut);
 $('tut').addEventListener('click',e=>{if(e.target.id==='tut')closeTut();});
