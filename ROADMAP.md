@@ -7,6 +7,7 @@
 - Generals who level up, gain rank and command more troops
 
 ## Next
+- Several generals on the battlefield at once per side, each with his own troops and spell; select one general (or all) to give orders
 1. **Castle sieges.** Defenders behind walls with a gate the attackers must break; castles as places to rest and resupply.
 2. **Weekly cycle and castle management.** Rest, search for wandering generals and items, fortify walls, reward generals; loyalty and defection.
 3. **More troop types.** Monks (heal), mages (back-line spells), harpies or wyverns (fly over rivers, walls and cliffs), beasts, heavy knights, dragonriders.
