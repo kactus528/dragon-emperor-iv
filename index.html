@@ -958,7 +958,9 @@ function campTick(dt,now){
 function arrive(a,c){
   if(c.o===a.nat){a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);updateCampPanel();return;}
   const def=garrison(c).filter(r=>r.troops>0||r.hp>0);
-  if(!def.length){const was=c.o;c.o=a.nat;a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);
+  if(!def.length){const was=c.o;c.o=a.nat;
+    if(a.seg<a.path.length-1){refreshCastle(c);if(a.nat==='aldmere'||was==='aldmere')clog(`${NATIONS[a.nat].name} claims ${c.n} on the march.`);checkCampaignEnd();updateCampPanel();return;}
+    a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);
     if(a.nat==='aldmere'||was==='aldmere')clog(`${NATIONS[a.nat].name} takes ${c.n}${was!=='none'?' from '+NATIONS[was].name:''}.`);checkCampaignEnd();updateCampPanel();return;}
   clash({kind:'castle',att:a,castle:c,x:c.x,z:c.z,b:c.b});
 }
@@ -989,12 +991,16 @@ function resolveOutcome(ctx,attWon){
 function collapse(n){if(n==='aldmere')return;CASTLES.forEach(c=>{if(c.o===n){c.o='none';refreshCastle(c);}});GENS.forEach(r=>{if(r.nat===n&&r.alive){r.alive=false;r.scattered=true;}});
   CAMP.armies.filter(a=>a.nat===n).forEach(removeArmy);clog(`${NATIONS[n].name} collapses without its ruler. Its castles stand empty.`);}
 function checkCampaignEnd(){if(CAMP.over)return;
+  for(const n of['ashen','dusk']){if(CASTLES.some(c=>c.o===n))continue;
+    const left=CAMP.armies.filter(a=>a.nat===n);if(left.length||GENS.some(r=>r.alive&&r.nat===n)){left.forEach(removeArmy);GENS.forEach(r=>{if(r.alive&&r.nat===n){r.alive=false;r.scattered=true;}});clog(`${NATIONS[n].name} has no castles left. Its last armies scatter.`);}}
   const mine=CASTLES.filter(c=>c.o==='aldmere').length,k=GENS.find(r=>r.d.key==='kaelen');
-  const foes=CASTLES.filter(c=>c.o==='ashen'||c.o==='dusk').length+CAMP.armies.filter(a=>a.nat!=='aldmere').length;
-  if(!mine||(k&&!k.alive&&k.nat==='aldmere')){CAMP.over=true;campaignOver(false);}else if(!foes){CAMP.over=true;campaignOver(true);}}
-function campaignOver(win){
+  if(!mine||(k&&!k.alive&&k.nat==='aldmere')){CAMP.over=true;campaignOver(false);}
+  else{if(!CASTLES.some(c=>c.o==='ashen'||c.o==='dusk')&&mine<CASTLES.length){CASTLES.forEach(c=>{if(c.o==='none'){c.o='aldmere';refreshCastle(c);}});clog('With your rivals gone, every unclaimed castle swears fealty to Aldmere.');}
+    if(CASTLES.every(c=>c.o==='aldmere')){CAMP.over=true;campaignOver(true);}}}
+function campaignOver(win){CAMP.won=win;if(state==='kingdom')showCampaignEnd();}
+function showCampaignEnd(){const win=CAMP.won;
   $('endTitle').textContent=win?'The Realm Is Yours':'Aldmere Falls';
-  $('endText').textContent=win?`In week ${CAMP.week} the last banner of your enemies came down. Aldmere rules the realm. Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.`:`In week ${CAMP.week} the last of Aldmere's castles fell. The Eternal War goes on without you.`;
+  $('endText').textContent=win?`In week ${CAMP.week} the last castle raised the blue banner of Aldmere. The realm is united under Kaelen. Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.`:`In week ${CAMP.week} the last of Aldmere's castles fell. The Eternal War goes on without you.`;
   $('againBtn').textContent='New campaign';$('againBtn').hidden=false;$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 function aiCampaign(n){
   const own=CASTLES.filter(c=>c.o===n);if(!own.length)return;
@@ -1546,7 +1552,7 @@ function endBattle(win,why){
   const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
   const eName=pendingBattle?NATIONS[pendingBattle.eNat].name:'the enemy';
   applyCampaignBattle(win);
-  schedule(1.8,()=>{$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
+  schedule(1.8,()=>{if(CAMP.over){showCampaignEnd();return;}$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
     $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion breaks apart.':win?`You win the battle at ${where} against ${eName}.`:`${eName} wins the battle at ${where}. Your survivors fall back.`)
       +(caps.length?' Prisoners taken: '+caps.join(', ')+'.':'')+(lost.length?' Captured by the enemy: '+lost.join(', ')+'.':'')+(grown.length?' Your generals: '+grown.join(', ')+'.':'');
     $('againBtn').hidden=true;$('mapBtn').hidden=false;$('mapBtn').textContent='Return to the war table';
