@@ -146,6 +146,31 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 #endp h2{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(28px,7vw,44px);color:var(--gold)}
 #endp p{margin:0;color:var(--dim);line-height:1.5;font-size:11px}
 #endp .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#endp .panel.res{max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;position:relative}
+#endStats{display:grid;gap:12px}#endStats[hidden]{display:none}
+.estats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.estats div{background:rgba(11,9,18,.7);border:1px solid var(--line);padding:8px 4px;display:grid;gap:2px}
+.estats b{font-family:var(--f-display);font-weight:900;font-size:clamp(20px,5vw,28px);color:#fff;font-variant-numeric:tabular-nums}
+.estats span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.egrade{position:absolute;top:14px;right:16px;display:grid;justify-items:center;transform:rotate(-12deg)}
+.egrade[hidden]{display:none}.egrade b{font-family:var(--f-display);font-weight:900;font-size:52px;line-height:1;color:var(--gold);text-shadow:3px 3px 0 #0b0912}
+.egrade span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.egrade.slam{animation:slam .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes slam{0%{opacity:0;transform:rotate(-12deg) scale(3)}100%{opacity:1;transform:rotate(-12deg) scale(1)}}
+#esGens{display:grid;gap:6px;text-align:left}
+.esg{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(11,9,18,.55);border:1px solid var(--line);padding:6px 8px}
+.esg img{width:40px;height:53px;image-rendering:pixelated;background:#0b0912}
+.esg .nm{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--ink);font-weight:700}
+.esg .nm em{font-style:normal;color:var(--dim);font-weight:400;white-space:nowrap}
+.esg .xb{height:8px;background:#2a2238;margin-top:5px;position:relative;overflow:hidden}
+.esg .xb i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#c98a1e,#ffd23a);display:block}
+.esg .tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;white-space:nowrap;color:var(--dim);border:1px solid var(--line)}
+.esg .tag.up{color:#2a1604;background:var(--gold);border-color:#ffe7a3;animation:slam .35s cubic-bezier(.2,1.6,.4,1)}
+.esg .tag.bad{color:#ffb09a;border-color:#7a2a20}.esg .tag.new{color:#9ab8ff;border-color:#3a4f8a}
+.esg.lv{box-shadow:0 0 0 1px var(--gold),0 0 18px rgba(240,192,85,.35)}
+#esSpoils{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:11px;color:var(--ink)}
+@media (max-width:560px){.egrade{top:8px;right:8px}.egrade b{font-size:38px}#endp .panel.res #endText{padding-right:48px}}
+#esSpoils li{opacity:0;transition:opacity .3s}#esSpoils li.on{opacity:1}#esSpoils li.big{color:var(--gold);font-weight:700;font-size:13px}#esSpoils li.bad{color:#ffb09a}
 /* title / box art */
 #title{position:fixed;inset:0;z-index:8;overflow:auto;display:grid;place-items:center;padding-block:calc(env(safe-area-inset-top,0px) + 18px) calc(env(safe-area-inset-bottom,0px) + 18px);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -294,6 +319,12 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   <div class="panel">
     <h2 id="endTitle">Victory</h2>
     <p id="endText"></p>
+    <div id="endStats" hidden>
+      <div class="egrade" id="esGrade" hidden><b id="esGradeL">A</b><span>Rank</span></div>
+      <div class="estats"><div><b id="esK">0</b><span>Enemy slain</span></div><div><b id="esL">0</b><span>Soldiers lost</span></div><div><b id="esR">0–0</b><span>Rounds won</span></div></div>
+      <div id="esGens"></div>
+      <ul id="esSpoils"></ul>
+    </div>
     <div class="row">
       <button id="againBtn">Fight again</button>
       <button id="mapBtn">War table</button>
@@ -336,7 +367,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 24';
+const BUILD='Build 25';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -973,6 +1004,8 @@ const RANKS=['Captain','Captain','Commander','Commander','General','General','Ma
 const rankOf=l=>RANKS[clamp(l,1,10)-1];
 const xpNeed=l=>60+l*40;
 let GENS=[],levelUps=[];
+const BST={kills:[0,0],rounds:[0,0],snap:new Map()};let RES=null,resBoard=null;
+const xpTot=(l,x)=>{let t=x;for(let i=0;i<l;i++)t+=xpNeed(i);return t;};
 function mkRec(d){const cp=Object.assign({},d);const tm=troopCap(d.lvl);return{d:cp,nat:d.nat,lvl:d.lvl,xp:0,hp:cp.hp,troops:tm,troopsMax:tm,out:false,captor:null,turned:false,tried:-1,loc:null,alive:true};}
 function turnRec(r,side,nat){return Object.assign({},r,{d:Object.assign({},r.d,{side}),nat,hp:Math.max(10,r.d.hp*0.6),troops:Math.round((r.troopsMax||NPS)*0.6),out:false,captor:null,turned:false,tried:-1,alive:true,loc:null});}
 function gainXP(r,n){if(!r||r.lvl===undefined||!r.alive)return;r.xp+=n*(r.nat==='aldmere'?DIFF.xp:1);
@@ -1079,6 +1112,7 @@ function showCampaignEnd(){const win=CAMP.won;CAMP.endShown=true;CAMP.sel=null;C
   clog(win?`Week ${CAMP.week}: every castle flies Aldmere's banner. The realm is yours.`:`Week ${CAMP.week}: Aldmere has fallen.`);
   $('endTitle').textContent=win?'The Realm Is Yours':'Aldmere Falls';
   $('endText').textContent=win?`In week ${CAMP.week} the last castle raised the blue banner of Aldmere. The realm is united under Kaelen. Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.`:`In week ${CAMP.week} the last of Aldmere's castles fell. The Eternal War goes on without you.`;
+  $('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='New campaign';$('againBtn').hidden=false;$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 function aiCampaign(n){
   const own=CASTLES.filter(c=>c.o===n);if(!own.length)return;
@@ -1193,6 +1227,8 @@ function sfx(k){if(!AC)return;const t=AC.currentTime;
   else if(k==='flame'){if(t-lastFlame<0.12)return;lastFlame=t;noise(t,0.3,'lowpass',1800,300,0.14);}
   else if(k==='zap'){noise(t,0.35,'highpass',2000,600,0.4);tone(t,'square',1800,120,0.3,0.1);}
   else if(k==='blip'){tone(t,'square',arguments[1]||160,0,0.035,0.035);}
+  else if(k==='lvlup'){[523,659,784,1047,1319].forEach((f,i)=>tone(t+i*0.07,'square',f,0,i===4?0.35:0.08,0.06));tone(t+0.3,'triangle',2093,0,0.4,0.04);}
+  else if(k==='stamp'){tone(t,'sine',140,38,0.35,0.45);tone(t,'square',90,40,0.12,0.12);}
   else if(k==='charge'){const o=AC.createOscillator(),g=AC.createGain();o.type='sawtooth';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(900,t+0.6);env(g,t,0.05,0.12,0.6);o.connect(g);g.connect(MG);o.start(t);o.stop(t+0.7);}
   else if(k==='lock'){tone(t,'square',660,0,0.06,0.08);tone(t+0.06,'square',990,0,0.08,0.07);}
   else if(k==='horn'){[0,0.55].forEach((d,i)=>{const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type=o2.type='sawtooth';
@@ -1334,7 +1370,7 @@ function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=n
 function kill(u,fx,fz,power=3,launch=0){
   u.state='dying';u.t=0;const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
-  killTally[1-u.side]++;mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
+  killTally[1-u.side]++;BST.kills[1-u.side]++;mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
@@ -1616,11 +1652,47 @@ function startGame(){
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();
 }
 function togglePause(){if(state!=='kingdom')return;CAMP.paused=!CAMP.paused;clog(CAMP.paused?'Paused.':'The war resumes.');}
-function backToKingdom(){
+function showResults(){if(!RES)return;RES.t=0;RES.live=true;
+  $('endStats').hidden=false;$('endp').firstElementChild.classList.add('res');const g=$('esGrade');g.hidden=true;g.classList.remove('slam');$('esGradeL').textContent=RES.grade;
+  $('esGens').innerHTML=RES.rows.map((x,i)=>`<div class="esg" id="esg${i}"><img src="${portrait(x.r.d.key)}" alt=""><div><div class="nm"><span>${x.r.d.short}</span><em id="esLv${i}">${rankOf(x.lv0)} · Lv ${x.lv0}</em></div><div class="xb"><i id="esX${i}" style="width:0"></i></div></div><span class="tag ${x.cls}" id="esT${i}">${x.tag||'+0 XP'}</span></div>`).join('');
+  $('esSpoils').innerHTML=RES.spoils.map(([c,t])=>`<li class="${c}">${t}</li>`).join('');
+  if(!xrActive)$('endp').hidden=false;
+  if(xrActive){if(!resBoard){resBoard=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:resT,transparent:true,depthTest:false}));resBoard.renderOrder=13;battle.add(resBoard);}
+    resBoard.visible=true;resBoard.scale.set(60,37.5,1);resBoard.position.set(0,Hb(0,0)+20,12);}
+  updateResults(0);}
+const resC=cv(1024,640),resX=resC.getContext('2d'),resT=tex(resC,true);
+function updateResults(dt){const Q=RES;if(!Q||!Q.live)return;const pt=Q.t;Q.t=Math.min(Q.T,Q.t+dt);const t=Q.t;
+  const c=clamp(t/1.0,0,1),e=1-Math.pow(1-c,3);
+  if(t<1.0&&t-Q.lastBlip>0.05){Q.lastBlip=t;sfx('blip',220+c*400);}
+  $('esK').textContent=Math.round(Q.K*e);$('esL').textContent=Math.round(Q.Lo*e);$('esR').textContent=Q.R[0]+'–'+Q.R[1];
+  const xk=clamp((t-1.0)/1.6,0,1),xe=1-Math.pow(1-xk,2);
+  Q.rows.forEach((x,i)=>{const v=x.v0+(x.v1-x.v0)*xe,lv=Math.floor(v+1e-6);$('esX'+i).style.width=((v-lv)*100).toFixed(1)+'%';
+    if(lv>x.shownLv){x.shownLv=lv;sfx('lvlup');buzz(0.4,120);const T=$('esT'+i);T.textContent='Level up!';T.className='tag up';$('esg'+i).classList.add('lv');}
+    $('esLv'+i).textContent=rankOf(lv)+' · Lv '+lv;
+    if(!x.tag&&x.shownLv===x.lv0&&xk>0)$('esT'+i).textContent='+'+Math.round(x.gain*xe)+' XP';});
+  if(t>=2.9&&!Q.stamped){Q.stamped=true;const g=$('esGrade');g.hidden=false;g.classList.add('slam');sfx('stamp');buzz(0.8,160);if(Q.grade==='S')cheer(0,1);}
+  const nS=Math.min(Q.spoils.length,Math.floor(Math.max(0,t-3.2)/0.3)+(t>=3.2?1:0));
+  while(Q.spoiled<nS){const li=$('esSpoils').children[Q.spoiled];if(li){li.classList.add('on');if(li.classList.contains('big'))sfx('fanfare');}Q.spoiled++;}
+  if(xrActive&&resBoard&&resBoard.visible&&(t!==pt||dt===0))drawResBoard();}
+function skipResults(){if(!RES||!RES.live||RES.t>=RES.T)return false;updateResults(RES.T);return true;}
+function drawResBoard(){const Q=RES,x=resX,W=1024,H=640;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.92)';x.fillRect(0,0,W,H);x.strokeStyle='#f0c055';x.lineWidth=6;x.strokeRect(6,6,W-12,H-12);
+  x.textBaseline='top';x.textAlign='center';x.font='900 64px Silkscreen, monospace';x.fillStyle=Q.win?'#f0c055':'#ff5a3a';x.fillText(Q.why==='tyrant'?'THE TYRANT FALLS':Q.win?'VICTORY':'DEFEAT',W/2,24);
+  x.font='20px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText((Q.win?'Won':'Lost')+' at '+Q.where+' vs '+Q.eName,W/2,96);
+  const st=[[$('esK').textContent,'ENEMY SLAIN'],[$('esL').textContent,'SOLDIERS LOST'],[Q.R[0]+'-'+Q.R[1],'ROUNDS WON']];
+  st.forEach(([v,l],i)=>{const cx=W/2+(i-1)*230;x.fillStyle='rgba(11,9,18,0.8)';x.fillRect(cx-100,130,200,96);x.font='900 42px Silkscreen, monospace';x.fillStyle='#fff';x.fillText(v,cx,140);x.font='14px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(l,cx,196);});
+  x.textAlign='left';Q.rows.slice(0,5).forEach((r,i)=>{const y=246+i*58,lv=r.shownLv,el=$('esX'+i),w=el?parseFloat(el.style.width)||0:0,tg=$('esT'+i);
+    x.imageSmoothingEnabled=false;x.drawImage(GCV[r.r.d.key][0],60,y,36,48);x.font='700 22px Silkscreen, monospace';x.fillStyle='#fff';x.fillText(r.r.d.short,110,y+2);
+    x.font='16px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(rankOf(lv)+' Lv '+lv,330,y+6);x.fillStyle='#2a2238';x.fillRect(110,y+34,500,10);x.fillStyle='#ffd23a';x.fillRect(110,y+34,5*w,10);
+    const up=tg&&tg.classList.contains('up');x.font='700 18px Silkscreen, monospace';x.fillStyle=up?'#f0c055':tg&&tg.classList.contains('bad')?'#ffb09a':'#9ab8ff';x.fillText(tg?tg.textContent.toUpperCase():'',640,y+14);});
+  if(Q.stamped){x.save();x.translate(W-130,250);x.rotate(-0.2);x.textAlign='center';x.font='900 120px Silkscreen, monospace';x.fillStyle='#0b0912';x.fillText(Q.grade,5,5);x.fillStyle='#f0c055';x.fillText(Q.grade,0,0);x.font='18px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('RANK',0,126);x.restore();}
+  x.textAlign='center';x.font='700 18px Silkscreen, monospace';const sp=Q.spoils.slice(0,Q.spoiled).slice(-2);sp.forEach(([c,t],i)=>{x.fillStyle=c==='bad'?'#ffb09a':'#f0c055';x.fillText(t.slice(0,70),W/2,546+i*26-(sp.length>1?13:0));});
+  x.font='16px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText(Q.t<Q.T?'TRIGGER: SKIP':'TRIGGER: RETURN TO THE WAR TABLE',W/2,604);resT.needsUpdate=true;}
+function backToKingdom(){if(skipResults())return;
+  if(RES)RES.live=false;if(resBoard)resBoard.visible=false;
   state='kingdom';phase='intro';battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
   $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();updateCampPanel();checkCampaignEnd();
 }
-function fightAgain(){$('endp').hidden=true;initCampaign();backToKingdom();}
+function fightAgain(){$('endp').hidden=true;RES=null;initCampaign();backToKingdom();}
 function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);orders[0]=o;setOrderUI();}
 function cycleOrder(){setOrder(ORDERS[(ORDERS.indexOf(orders[0])+1)%ORDERS.length]);}
 function setOrderUI(){document.querySelectorAll('[data-ord]').forEach(b=>b.classList.toggle('on',b.dataset.ord===orders[0]));$('ordLbl').textContent=orders[0].toUpperCase();}
@@ -1680,7 +1752,7 @@ function endEngagement(w,reason){
   const L=1-w,lr=active[L],wr=active[w];
   wr.troops=alive[w].length;
   for(const u of alive[L])startFlee(u);
-  sfx(w===0?'fanfare':'defeat');updateModeUI();hudAcc=1;cheer(w,1);gainXP(wr,40);gainXP(lr,12);
+  BST.rounds[w]++;sfx(w===0?'fanfare':'defeat');updateModeUI();hudAcc=1;cheer(w,1);gainXP(wr,40);gainXP(lr,12);
   if(reason==='withdraw'){lr.troops=alive[L].length;fg[L].flee=true;schedule(0.6,()=>showBanner(lr.d.short+' withdraws',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
   lr.out=true;lr.troops=0;
   if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
@@ -1700,12 +1772,24 @@ function endBattle(win,why){
   const caps=roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
   const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
   const eName=pendingBattle?NATIONS[pendingBattle.eNat].name:'the enemy';
+  const cst=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle:null,cBefore=cst&&cst.o;
+  const gens=roster[0].map(r=>{const sn=BST.snap.get(r);return{r,sn,cap:r.captor===1&&!r.turned,def:r.turned&&r.captor===1};});
   applyCampaignBattle(win);
+  {const K=BST.kills[0],Lo=BST.kills[1],ratio=K/Math.max(1,Lo),lostG=gens.some(g=>g.cap||g.def);
+   const grade=why==='tyrant'?'S':!win?'D':ratio>=2.5&&!lostG?'S':ratio>=1.5?'A':ratio>=0.9?'B':'C';
+   const spoils=[];if(cst&&cst.o!==cBefore){if(cst.o==='aldmere')spoils.push(['big',cst.n+' raises the banner of Aldmere!']);else if(cBefore==='aldmere')spoils.push(['bad',cst.n+' has fallen to '+NATIONS[cst.o].name+'.']);}
+   if(caps.length)spoils.push(['','Prisoners taken: '+caps.join(', ')]);
+   const rows=gens.map(g=>{const r=g.r;let tag='',cls='';
+     if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?'Rescued':'Captured';cls='bad';}
+     const v0=g.sn?g.sn.lvl+Math.min(0.999,g.sn.xp/xpNeed(g.sn.lvl)):r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl)),v1=r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl));
+     return{r,tag,cls,v0,v1,gain:g.sn?Math.round(xpTot(r.lvl,r.xp)-xpTot(g.sn.lvl,g.sn.xp)):0,lv0:g.sn?g.sn.lvl:r.lvl,shownLv:g.sn?g.sn.lvl:r.lvl};});
+   for(const x of rows)if(x.r.lvl>x.lv0)spoils.push(['big',x.r.d.short+' is now '+rankOf(x.r.lvl)+' · leads '+x.r.troopsMax+' troops']);
+   RES={t:0,T:4.2,win,K,Lo,R:[...BST.rounds],grade,rows,spoils,stamped:false,spoiled:0,lastBlip:0,where,eName,why};}
   schedule(1.8,()=>{if(CAMP.over){showCampaignEnd();return;}$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
     $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion breaks apart.':win?`You win the battle at ${where} against ${eName}.`:`${eName} wins the battle at ${where}. Your survivors fall back.`)
-      +(caps.length?' Prisoners taken: '+caps.join(', ')+'.':'')+(lost.length?' Captured by the enemy: '+lost.join(', ')+'.':'')+(grown.length?' Your generals: '+grown.join(', ')+'.':'');
+    ;
     $('againBtn').hidden=true;$('mapBtn').hidden=false;$('mapBtn').textContent='Return to the war table';
-    if(!xrActive)$('endp').hidden=false;});
+    showResults();});
 }
 function fightTick(dt){
   for(let s=0;s<2;s++){const lv=(active[s]&&active[s].lvl)||1;const pf=MPPROF[active[s].d.troop]||MPPROF.inf;mp[s]=Math.min(mpMax[s],mp[s]+dt/(pf.every*(s?DIFF.eMP:1))*(1+0.04*(lv-1)));spellCD[s]=Math.max(0,spellCD[s]-dt);
@@ -1807,7 +1891,7 @@ function drawVrHud(){
       x.font='700 30px Silkscreen, monospace';x.fillStyle=on?'#ffe39a':'#ff7a4a';x.fillText('DUEL CHALLENGE!',24,100);
       line(B.d.short+' challenges '+A.d.short+'!',140,'#f1e8d4','18px');line('A: ACCEPT    X: DECLINE',170,'#f0c055','20px');
       x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
-    else if(state==='end'){line('Trigger: return to the war table',110,'#f0c055');}
+    else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
     else{line('ORDER: '+orders[0].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);
       line(mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,mp[0]>=1?'#f0c055':'#857aa0');
       line(withdrawArm>0?'Press X again to withdraw':(seekDuel[0]?'A stop seeking':'A seek duel')+' · X withdraw · B reset',160,withdrawArm>0?'#ffb09a':'#857aa0');}
@@ -1968,7 +2052,7 @@ function loop(tms){
   if(state==='transition'){
     trT+=dt;const sMax=xrActive?1.6:3.2;
     if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(KS*s);kingdom.position.set(PASS.x*KS*(1-s),-k*2.5,PASS.z*KS*(1-s));}
-    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();}
+    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();BST.kills=[0,0];BST.rounds=[0,0];BST.snap=new Map(roster[0].map(r=>[r,{lvl:r.lvl,xp:r.xp,troops:r.troops}]));RES=null;if(resBoard)resBoard.visible=false;active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();}
       const k=ease(Math.min(1,(trT-0.8)/0.9));battle.scale.setScalar(0.35+0.65*k);battle.position.y=(1-k)*2;
       if(trT>1.75){battle.scale.setScalar(1);battle.position.y=0;state='battle';startSelect();showBanner(BIO.name);}}
   }
@@ -1980,7 +2064,7 @@ function loop(tms){
       else if(phase==='duel')updateDuel(dt);
       else if(phase==='pursuit'&&pursuit)updatePursuit(dt);
     }
-    if(state==='end')endT+=dt;
+    if(state==='end'){endT+=dt;updateResults(dt);}
     updateUnits(dt);updateGenerals(dt);updateArrows(dt);updateParticles(dt);updateDragon(dt,now);
     clouds.forEach(c=>{c.position.x+=dt*0.6;if(c.position.x>100)c.position.x=-100;});
     if(BIO.embers&&Math.random()<dt*7)ember();
