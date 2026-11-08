@@ -407,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 34';
+const BUILD='Build 35';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1373,7 +1373,7 @@ function deploy(){
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf;mpMax[s]=pf.max;mp[s]=pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
-    if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
+    if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
       const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);for(let k=0;k<40&&navAt(u.x,u.z)===1;k++)u.x+=(u.side?1:-1)*0.8;u.vis=true;}
     else{u.state='gone';u.vis=false;}}
   dragon.mode='idle';dragon.t=0;for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
@@ -1501,6 +1501,7 @@ function updateUnits(dt){
     }else if(phase==='pursuit'&&pursuit&&u.side===pursuit.w){const g=fg[pursuit.L];tx=g.x;tz=g.z;move=!g.captured&&Math.hypot(tx-u.x,tz-u.z)>0.5;chase=PF;}
     else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
     let dvx=0,dvz=0;if(move){const nd=navDir(u,tx,tz,chase),sp=st.spd*ord2spd(u)*terrSpd(u,u.type);dvx=nd[0]*sp;dvz=nd[1]*sp;}
+    if(u.dodgeT>0){u.dodgeT-=dt;dvx=u.dodx*5.2;dvz=u.dodz*5.2;}
     const k=Math.min(1,dt*6);u.vx+=(dvx-u.vx)*k;u.vz+=(dvz-u.vz)*k;
   }
   for(let s=0;s<2;s++)for(const a of alive[s]){const cx=gcx(a.x),cz=gcz(a.z);
@@ -1580,6 +1581,7 @@ function castSpell(side,tgt){
   return true;
 }
 function dropMeteor(x,z,V){
+  for(const u of alive[V]){if(u.type!=='arc'||u.state!=='alive'||u.dodgeT>0)continue;const dx=u.x-x,dz=u.z-z,d=Math.hypot(dx,dz);if(d>4.2||Math.random()>0.5)continue;const l=d||1;u.dodx=d?dx/l:R(-1,1);u.dodz=d?dz/l:R(-1,1);u.dodgeT=0.55;}
   const sx=x-14,sy=44,sz=z-12,ey=Hb(x,z);sfx('whoosh');
   spawn({x:sx,y:sy,z:sz,tex:T_METEOR,w:2.2,h:2.2,life:0.62,update:(p)=>{const k=p.age/p.life;p.x=sx+(x-sx)*k;p.y=sy+(ey-sy)*k;p.z=sz+(z-sz)*k;
     if(Math.random()<0.7)spawn({x:p.x-0.4,y:p.y+0.4,z:p.z,frames:SMOKE,w:0.9,h:0.9,life:0.5,grow:0.8,vy:0.4});},onEnd:()=>impact(x,z,V,false)});
