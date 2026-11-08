@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 53';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 54';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1178,7 +1178,14 @@ function advise(){
   const rec=GENS.filter(r=>r.alive&&r.nat==='aldmere'&&typeof r.loc==='number');if(!rec.length)return{t:'You have no generals left in your castles.'};
   const nx=rec.map(r=>({r,w:weeksToReady(r)})).sort((a,b)=>a.w-b.w)[0];
   return{t:`Your generals are recovering. ${nx.r.d.short} is ready in about ${nx.w} week${nx.w>1?'s':''}. Time is fast-forwarding.`};}
-function campRings(now){const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
+const kCrystMat=new THREE.MeshPhongMaterial({color:0x5b8cff,emissive:0x1d3a80,specular:0xffffff,shininess:90,flatShading:true});
+const kCrystMatR=new THREE.MeshPhongMaterial({color:0x9ad0ff,emissive:0x3a6ad0,specular:0xffffff,shininess:90,flatShading:true});
+const kCrystGeo=new THREE.LatheGeometry([new THREE.Vector2(0,-1.25),new THREE.Vector2(0.55,-0.5),new THREE.Vector2(0.55,0.5),new THREE.Vector2(0,1.25)],6);
+const kCryst=CASTLES.map(c=>{const m=new THREE.Mesh(kCrystGeo,kCrystMat);m.scale.set(0.32,0.32,0.32);m.visible=false;kingdom.add(m);return m;});
+function campCrystals(now){const R=new Set(ownReady());CASTLES.forEach((c,i)=>{const m=kCryst[i],G=c.o==='aldmere'?garrison(c):[];m.visible=G.length>0&&state==='kingdom';if(!m.visible)return;
+  const rd=R.has(c);m.material=rd?kCrystMatR:kCrystMat;const s=(0.26+Math.min(4,G.length)*0.03)*(rd?1+Math.sin(now*4+i)*0.08:1);m.scale.set(s,s,s);
+  m.position.set(c.x,c.y+(c.cap?6.1:5.3)+Math.sin(now*2+i)*0.12,c.z);m.rotation.y=now*1.4+i;});}
+function campRings(now){campCrystals(now);const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
   const cand=S&&S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size?new Set(S.castle.adj):S&&S.army&&S.army.nat==='aldmere'?new Set(CASTLES[S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]].adj.concat([S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]])):null;
   for(const c of CASTLES){const m=castleRing(c);let col=null,op=0.85;
     if(T.has(c)){col=0xff5a3a;op=pulse+0.1;}else if(cand&&cand.has(c.id)){col=0xffffff;op=0.7;}else if((!S||S.army)&&R.has(c)){col=0xf0c055;op=pulse;}
@@ -1629,14 +1636,16 @@ const _cloudC=new THREE.Color(0x9a90b8);
 const glowTex=(()=>{const c=cv(128,128),x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.25,'rgba(255,255,255,0.55)');g.addColorStop(0.6,'rgba(255,255,255,0.12)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return tex(c,true);})();
 const orbGeo=new THREE.SphereGeometry(0.75,24,16),coreGeo=new THREE.SphereGeometry(0.42,16,12),orbRingGeo=new THREE.TorusGeometry(1.15,0.07,8,40),padGeo=new THREE.PlaneGeometry(1,1);
 const puLights=[0,1,2].map(()=>{const L=new THREE.PointLight(0xffffff,0,8,2);battle.add(L);return L;});
+const crystGeo=new THREE.LatheGeometry([new THREE.Vector2(0,-1.25),new THREE.Vector2(0.55,-0.5),new THREE.Vector2(0.55,0.5),new THREE.Vector2(0,1.25)],6);
+const crystCoreGeo=new THREE.LatheGeometry([new THREE.Vector2(0,-0.8),new THREE.Vector2(0.28,-0.3),new THREE.Vector2(0.28,0.3),new THREE.Vector2(0,0.8)],6);
 function makeOrb(k){const col=new THREE.Color(PU[k].col),G=new THREE.Group();
-  const orb=new THREE.Mesh(orbGeo,new THREE.MeshLambertMaterial({color:col,emissive:col.clone().multiplyScalar(0.55),transparent:true,opacity:0.88}));
-  const core=new THREE.Mesh(coreGeo,new THREE.MeshBasicMaterial({color:col.clone().lerp(new THREE.Color(0xffffff),0.6)}));
-  const ring=new THREE.Mesh(orbRingGeo,new THREE.MeshBasicMaterial({color:col}));ring.rotation.x=1.2;
+  const orb=new THREE.Mesh(crystGeo,new THREE.MeshPhongMaterial({color:col,emissive:col.clone().multiplyScalar(0.45),specular:0xffffff,shininess:90,flatShading:true,transparent:true,opacity:0.92}));
+  const core=new THREE.Mesh(crystCoreGeo,new THREE.MeshBasicMaterial({color:col.clone().lerp(new THREE.Color(0xffffff),0.65)}));
+  const ring=new THREE.Group();ring.add(orb,core);
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));halo.scale.set(4.2,4.2,1);
   const pad=new THREE.Mesh(padGeo,new THREE.MeshBasicMaterial({map:glowTex,color:col,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,opacity:0.8}));pad.rotation.x=-Math.PI/2;pad.scale.set(5,5,1);
-  const icon=new THREE.Sprite(new THREE.SpriteMaterial({map:PUT[k],transparent:true,depthWrite:false}));icon.scale.set(1.1,1.1,1);icon.position.y=1.6;
-  G.add(orb,core,ring,halo,icon);G.userData={ring,halo,pad,icon};return{G,pad};}
+  const icon=new THREE.Sprite(new THREE.SpriteMaterial({map:PUT[k],transparent:true,depthWrite:false}));icon.scale.set(1,1,1);icon.position.y=2.1;
+  G.add(ring,halo,icon);G.userData={ring,halo,pad,icon};return{G,pad};}
 function spawnPU(){if(pups.length>=3)return;const c0=centroid(alive[0],fg[0]),c1=centroid(alive[1],fg[1]),mx=(c0.x+c1.x)/2,mz=(c0.z+c1.z)/2;
   for(let t=0;t<60;t++){const x=clamp(mx+R(-18,18),-FW/2+4,FW/2-4),z=clamp(mz+R(-26,26),-FD/2+4,FD/2-4);if(navAt(x,z)!==0||pups.some(p=>Math.hypot(p.x-x,p.z-z)<8))continue;
     const k=PUK[(Math.random()*PUK.length)|0],{G,pad}=makeOrb(k);battle.add(G);battle.add(pad);pad.position.set(x,Hb(x,z)+0.12,z);
@@ -2153,7 +2162,7 @@ const TUT_PAGES=[
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
- {h:'Battle tactics',q:['y','ls'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). Fight Vorgrath and his <b>Ashen Wyrm</b> joins the battle as a boss: it swoops with fire and lands to stomp, and while it is down your troops and spells can wound it. Queen Ysolde can cast <b>Eclipse</b>, darkening the sun and weakening your troops. Castle battles are <b>sieges</b>: the defender sits behind a wall, and attackers must batter down the gate first (knights and dragonriders hit it hardest; flyers just fly over). <b>Power-ups</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (mana, healing, reinforcements, a war banner, a dread horn, swift boots, a thundercloud that rains lightning on the enemy, or a red resurrection orb that raises your fallen). Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
+ {h:'Battle tactics',q:['y','ls'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). Fight Vorgrath and his <b>Ashen Wyrm</b> joins the battle as a boss: it swoops with fire and lands to stomp, and while it is down your troops and spells can wound it. Queen Ysolde can cast <b>Eclipse</b>, darkening the sun and weakening your troops. Castle battles are <b>sieges</b>: the defender sits behind a wall, and attackers must batter down the gate first (knights and dragonriders hit it hardest; flyers just fly over). <b>Power-up crystals</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (mana, healing, reinforcements, a war banner, a dread horn, swift boots, a thundercloud that rains lightning on the enemy, or a red resurrection orb that raises your fallen). Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
   d:[['F / buttons','Change formation'],['R','General ability']],v:[['Y','Cycle formation'],['L stick click','General ability']]},
  {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) and <b>Arrow Storm</b> (archers) are aimed by hand: one charge gives you a run of bolts or tight arrow volleys, and every click or trigger pull lands one exactly where you aim. Snipe the enemy general or pick apart his clumps. Anything unused fires on its own after 10 seconds.',
   d:[['Space','Aim the spell'],['Click','Fire (Thunder/Arrows: one per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder/Arrows: one per pull)'],['R stick','Turn and zoom to find a target']]},
@@ -2725,7 +2734,7 @@ function loopInner(tms){
     if(frameK>=5&&state==='battle'){stopHit(Math.min(0.11,0.05+frameK*0.004));shake=Math.max(shake,0.5);if(xrActive)buzz(0.5,90);}frameK=0;
     if(!(state==='battle'&&phase==='fight'))for(const t of tagS)t.visible=false;
     if(pups.length){const ws=battle.getWorldScale(_fv).x;for(const p of pups){const y=Hb(p.x,p.z)+1.6+Math.sin(now*2.4+p.x)*0.25,U=p.sp.userData;p.sp.position.set(p.x,y,p.z);
-      U.ring.rotation.z=now*1.8;U.ring.rotation.x=1.2+Math.sin(now*1.3+p.z)*0.25;const pl=1+Math.sin(now*5+p.x)*0.12;U.halo.scale.set(4.2*pl,4.2*pl,1);p.pad.scale.set(5*pl,5*pl,1);
+      U.ring.rotation.y=now*1.6+p.x;U.ring.rotation.z=Math.sin(now*1.1+p.z)*0.12;if(Math.random()<dt*3)spawn({x:p.x+R(-0.6,0.6),y:y+R(-0.8,0.8),z:p.z+0.4,tex:T_SPARK,w:0.3,h:0.3,life:0.3,blink:true});const pl=1+Math.sin(now*5+p.x)*0.12;U.halo.scale.set(4.2*pl,4.2*pl,1);p.pad.scale.set(5*pl,5*pl,1);
       if(p.L){p.L.position.set(p.x,y+0.5,p.z);p.L.intensity=1.4*pl;p.L.distance=9*ws;}}}
     {const dk=(ecl[0]>0||ecl[1]>0)?0.45:1;ambLight.intensity+=((MOD==='night'?0.3:MOD==='storm'?0.44:MOD==='bloodmoon'?0.4:0.62)*dk-ambLight.intensity)*Math.min(1,dt*3);}
     if(shrine.on){shrRune.position.set(shrine.x,Hb(shrine.x,shrine.z)+2.4+Math.sin(now*2)*0.3,shrine.z);shrRune.material.rotation=now*0.6;}
