@@ -407,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 27';
+const BUILD='Build 28';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1023,17 +1023,19 @@ function advise(){
     if(c.o==='aldmere')return CAMP.picked.size?{t:`Now click any castle to march there with ${CAMP.picked.size} general${CAMP.picked.size>1?'s':''}. Castles one road away are ringed white.`}
       :{t:`No one at ${c.n} can march yet. Troops recover every week. Click empty ground to deselect.`};
     return{t:`${c.n} belongs to ${NATIONS[c.o].name}. To attack it, first click one of your blue castles, then click ${c.n}.`};}
-  if(S&&S.army)return S.army.nat==='aldmere'?{t:`Your army reaches ${CASTLES[S.army.path[S.army.path.length-1]].n} in about ${sec(etaOf(S.army))}. Click a castle to send it somewhere else.`}:{t:`${NATIONS[S.army.nat].name} army heading for ${CASTLES[S.army.path[S.army.path.length-1]].n}.`};
+  if(S&&S.army)return S.army.nat==='aldmere'?{t:`Your army reaches ${CASTLES[S.army.path[S.army.path.length-1]].n} in about ${sec(etaOf(S.army))}. Click an enemy castle to redirect it, or one of your castles to send another army.`}:{t:`${NATIONS[S.army.nat].name} army heading for ${CASTLES[S.army.path[S.army.path.length-1]].n}.`};
   if(T.size){const[c,th]=[...T.entries()].sort((a,b)=>a[1].eta-b[1].eta)[0];return{warn:true,t:`${NATIONS[th.a.nat].name} army marching on ${c.n}! It arrives in about ${sec(th.eta)}. Your generals there will defend it.`};}
-  const mine=myArmies();if(mine.length){const a=mine.sort((x,y)=>etaOf(x)-etaOf(y))[0];return{t:`Your army reaches ${CASTLES[a.path[a.path.length-1]].n} in about ${sec(etaOf(a))}.`};}
-  const R=ownReady();if(R.length){const c=R[0],G=garrison(c).filter(ready).map(r=>r.d.short);return{t:`${names(G.slice(0,3))} ${G.length>1?'are':'is'} ready at ${c.n}. Click ${c.n} (gold ring), then click a castle to attack.`};}
+  const mine=myArmies(),R=ownReady();
+  if(mine.length&&R.length){const c=R[0],G=garrison(c).filter(ready).map(r=>r.d.short);return{t:`${mine.length>1?mine.length+' armies are':'An army is'} on the march. ${names(G.slice(0,3))} ${G.length>1?'are':'is'} also ready at ${c.n}: click it (gold ring) to send a second army.`};}
+  if(mine.length){const a=mine.sort((x,y)=>etaOf(x)-etaOf(y))[0];return{t:`Your army reaches ${CASTLES[a.path[a.path.length-1]].n} in about ${sec(etaOf(a))}.`+(mine.length>1?` ${mine.length} armies on the march.`:'')};}
+  if(R.length){const c=R[0],G=garrison(c).filter(ready).map(r=>r.d.short);return{t:`${names(G.slice(0,3))} ${G.length>1?'are':'is'} ready at ${c.n}. Click ${c.n} (gold ring), then click a castle to attack.`};}
   const rec=GENS.filter(r=>r.alive&&r.nat==='aldmere'&&typeof r.loc==='number');if(!rec.length)return{t:'You have no generals left in your castles.'};
   const nx=rec.map(r=>({r,w:weeksToReady(r)})).sort((a,b)=>a.w-b.w)[0];
   return{t:`Your generals are recovering. ${nx.r.d.short} is ready in about ${nx.w} week${nx.w>1?'s':''}. Time is fast-forwarding.`};}
 function campRings(now){const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
   const cand=S&&S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size?new Set(S.castle.adj):S&&S.army&&S.army.nat==='aldmere'?new Set(CASTLES[S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]].adj.concat([S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]])):null;
   for(const c of CASTLES){const m=castleRing(c);let col=null,op=0.85;
-    if(T.has(c)){col=0xff5a3a;op=pulse+0.1;}else if(cand&&cand.has(c.id)){col=0xffffff;op=0.7;}else if(!S&&R.has(c)){col=0xf0c055;op=pulse;}
+    if(T.has(c)){col=0xff5a3a;op=pulse+0.1;}else if(cand&&cand.has(c.id)){col=0xffffff;op=0.7;}else if((!S||S.army)&&R.has(c)){col=0xf0c055;op=pulse;}
     m.visible=col!==null&&state==='kingdom';if(m.visible){m.material.color.setHex(col);m.material.opacity=op;}}}
 function refreshCastle(c){c.sp.material=castleMats[NATIONS[c.o||'none'].mat];dropLabel(c);const g=garrison(c).length;
   c.lab=makeLabel(c.n.toUpperCase()+(g?' ·'+g:''),NATIONS[c.o||'none'].col);c.lab.position.set(c.x,c.y+(c.cap?4.7:3.9),c.z);kingdom.add(c.lab);}
@@ -1055,6 +1057,7 @@ const ready=r=>r.alive&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
 
 /* ---------- campaign state ---------- */
 const WEEK=18;
+let flashArmy=null,flashT=0;
 const CAMP={on:false,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false,nextId:1};
 const garrison=c=>GENS.filter(r=>r.alive&&r.loc===c.id);
 const nationOf=r=>r.nat;
@@ -1087,7 +1090,7 @@ function hostile(a,b){return a&&b&&a!==b&&a!=='none'&&b!=='none';}
 function campTick(dt,now){
   if(!CAMP.on||CAMP.over||state!=='kingdom')return;
   checkCampaignEnd();if(CAMP.over||CAMP.paused)return;
-  const sdt=dt*effSpeed();
+  flashT=Math.max(0,flashT-dt);const sdt=dt*effSpeed();
   CAMP.t+=sdt;if(CAMP.t>=WEEK){CAMP.t-=WEEK;CAMP.week++;
     for(const r of GENS)if(r.alive&&typeof r.loc==='number'){const pl=r.nat==='aldmere';r.hp=Math.min(r.d.hp,r.hp+r.d.hp*(pl?DIFF.recHP:0.3));r.troops=Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*(pl?DIFF.recTr:0.4)));}
     clog('Week '+CAMP.week+'. Garrisons rest and muster fresh troops.');marchBeat();updateCampPanel();}
@@ -1206,7 +1209,7 @@ function updateCampPanel(){
   else if(s.army){const a=s.army,own=a.nat==='aldmere';selRing.visible=false;
     $('cpName').textContent=own?'Your army':NATIONS[a.nat].name+' army';$('cpName').style.color=NATIONS[a.nat].col;$('cpSub').textContent='Marching to '+CASTLES[a.path[a.path.length-1]].n;
     html=a.gens.map(r=>genRow(r,false,false)).join('');
-    if(own)btns='<span class="cpnote">Click any castle to redirect.</span><button id="cpBack">Turn back</button>';}
+    if(own)btns=CAMP.target?'<span class="cpnote">Click the castle to march to instead.</span><button id="cpCancel">Cancel</button>':'<span class="cpnote">Click an enemy castle to redirect, or Change course for any castle.</span><button id="cpRedirect">Change course</button><button id="cpBack">Turn back</button>';}
   $('cpList').innerHTML=html;$('cpBtns').innerHTML=btns+'<button id="cpClose">Close</button>';
   $('cpList').querySelectorAll('input[data-g]').forEach(i=>i.addEventListener('change',e=>{const r=GENS[+e.target.dataset.g];if(e.target.checked){if(CAMP.picked.size>=5){e.target.checked=false;return;}CAMP.picked.add(r);}else CAMP.picked.delete(r);updateCampPanel();}));
   const on=(id,f)=>{const b=$(id);if(b)b.addEventListener('click',f);};
@@ -1220,12 +1223,14 @@ function redirect(a,to){const here=a.t>0.5?a.path[a.seg+1]:a.path[a.seg],p=bfs(h
 function campClick(hit){
   if(!hit){if(!CAMP.target){CAMP.sel=null;updateCampPanel();}return;}
   const c=hit.userData.castle,a=hit.userData.army;
-  const S=CAMP.sel,canMarch=S&&((S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size)||(S.army&&S.army.nat==='aldmere'));
+  const S=CAMP.sel,ownArmy=S&&S.army&&S.army.nat==='aldmere';
+  const freshCastle=c&&c.o==='aldmere'&&garrison(c).some(r=>r.troops>0&&r.hp>0);
+  const canMarch=S&&((S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size)||(ownArmy&&(CAMP.target||!freshCastle)));
   if(c&&S&&(CAMP.target||canMarch)&&!(S.castle===c)){
     if(S.castle&&!CAMP.picked.size){clog(`No one at ${S.castle.n} can march. Tick a general first.`);updateCampPanel();return;}
     if(CAMP.sel.castle){const from=CAMP.sel.castle;
       const gens=[...CAMP.picked].filter(r=>r.alive&&r.loc===from.id);const army=dispatch('aldmere',gens,from.id,c.id);
-      if(army){clog(`Your army marches from ${from.n} to ${c.n}.`);sfx('fanfare');CAMP.picked.clear();CAMP.sel={army};CAMP.target=false;}else clog('No road leads there.');}
+      if(army){const more=ownReady().filter(o=>o!==from).length;clog(`Your army marches from ${from.n} to ${c.n}.`+(more?' Select another castle to send more.':''));sfx('fanfare');CAMP.picked.clear();CAMP.sel=null;CAMP.target=false;flashArmy=army;flashT=1.2;}else clog('No road leads there.');}
     else if(CAMP.sel.army)redirect(CAMP.sel.army,c.id);
     updateCampPanel();return;}
   CAMP.target=false;CAMP.picked.clear();
@@ -1238,7 +1243,9 @@ function pickAt(o,d){ray.set(o,d);const h=ray.intersectObjects(pickables,false)[
 function campTokens(now){
   for(const a of CAMP.armies){const lead=a.gens[0];if(!lead)continue;const fr=GMF[lead.d.key][a.dir||0][Math.floor(now*4)%2];
     a.tok.material=fr.m;a.tok.scale.set(fr.w*0.7,fr.h*0.7,1);const y=Hk(a.x,a.z);a.tok.position.set(a.x,y,a.z);if(a.lab)a.lab.position.set(a.x,y+fr.h*0.7+0.2,a.z);}
-  if(CAMP.sel&&CAMP.sel.army){selRing.visible=true;selRing.position.set(CAMP.sel.army.x,Hk(CAMP.sel.army.x,CAMP.sel.army.z)+0.1,CAMP.sel.army.z);}
+  const ra=CAMP.sel&&CAMP.sel.army?CAMP.sel.army:flashT>0&&!CAMP.sel&&flashArmy&&CAMP.armies.includes(flashArmy)?flashArmy:null;
+  if(ra){selRing.visible=((now*6)|0)%2===0||ra===(CAMP.sel&&CAMP.sel.army);selRing.position.set(ra.x,Hk(ra.x,ra.z)+0.1,ra.z);}
+  else if(flashArmy&&!CAMP.sel){selRing.visible=false;flashArmy=null;}
 }
 
 /* ---------- VR furniture ---------- */
@@ -1697,7 +1704,7 @@ const TRI=(a,b,c,ca,cb,cc)=>`<svg viewBox="0 0 340 150" role="img" aria-label="$
 const TUT_PAGES=[
  {h:'Welcome, Commander',q:['rt','lt','a'],b:'You lead <b>Aldmere</b>, the blue banners. The <b>Ashen Legion</b> (red) and <b>Duskmarch</b> (purple) want the realm too. You win the campaign when every castle on the war table flies blue. You lose if Aldmere loses every castle, or if Kaelen is taken for good.',
   d:[['Enter / →','Next page'],['←','Back'],['Esc','Skip']],v:[['R trigger','Next page'],['L trigger','Back'],['A','Skip']]},
- {h:'The war table',q:['rt','lt','a','x'],b:'Time passes in weeks. <b>Select one of your castles</b>, tick the generals you want to send, then <b>pick any castle</b> to march on it. Armies that meet on a road fight, and an army that reaches an enemy castle attacks it. Generals left in your castles rest and refill their troops. Stuck? Read the <b>advisor line</b>: it always tells you what to do next.',
+ {h:'The war table',q:['rt','lt','a','x'],b:'Time passes in weeks. <b>Select one of your castles</b>, tick the generals you want to send, then <b>pick any castle</b> to march on it. You can send several armies at once: just select another castle while the first one marches. Armies that meet on a road fight, and an army that reaches an enemy castle attacks it. Generals left in your castles rest and refill their troops. Stuck? Read the <b>advisor line</b>: it always tells you what to do next.',
   d:[['Click','Select a castle, then a target'],['Space','Pause or resume'],['Esc','Cancel selection']],v:[['Point + R trig','Select a castle, then a target'],['L trigger','Pause or resume'],['A or X','Cancel selection']]},
  {h:'Choose your general',q:['lt','rt'],b:'A battle is a series of rounds. Before each one you pick a general, and he fights with his own troop type. Match-ups matter a lot: the cards show <b>Good</b>, <b>Bad</b> or <b>Even</b> against the enemy general.',art:()=>TRI('Spears','Cavalry','Archers','#9ab8ff','#ffb09a','#8fe39a'),
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
