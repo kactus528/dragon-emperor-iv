@@ -1248,13 +1248,13 @@ function drawTalkCard(r,txt,foe){const x=talkX,W=512,H=168;x.clearRect(0,0,W,H);
   talkT.needsUpdate=true;}
 function startTaunt(){taunt={i:0,t:0,lines:[pickLine(active[0].d.key),pickLine(active[1].d.key)],shown:-1};phase='taunt';updateModeUI();showTauntLine();}
 function showTauntLine(){const s=taunt.i,g=fg[s],r=active[s],dir=s?-1:1;
-  setOrbitGoal({theta:dir*0.32,phi:1.28,r:15,ty:1.2,tx:g.x+dir*4,tz:g.z},0.55);
+  setOrbitGoal({theta:dir*0.28,phi:1.36,r:9.5,ty:1.5,tx:g.x+dir*2,tz:g.z},0.45);if(xrActive)vrFocus(g);
   $('talkPor').src=portrait(r.d.key);$('talkName').textContent=r.d.name;$('talkTxt').textContent='';$('talk').className='panel'+(s?' foe':'');$('talk').hidden=xrActive;
-  talkCard.visible=true;talkCard.scale.set(18,5.9,1);talkCard.position.set(g.x+dir*6,Hb(g.x,g.z)+8,g.z+1);drawTalkCard(r,'',s===1);}
+  talkCard.visible=true;if(xrActive){talkCard.scale.set(6.5,2.13,1);talkCard.position.set(g.x+dir*4.2,Hb(g.x,g.z)+3.4,g.z+0.6);}else{talkCard.scale.set(18,5.9,1);talkCard.position.set(g.x+dir*6,Hb(g.x,g.z)+8,g.z+1);}drawTalkCard(r,'',s===1);}
 function updateTaunt(dt){const s=taunt.i,txt=taunt.lines[s];taunt.t+=dt;fg[s].cast=0.15;
   const n=Math.min(txt.length,Math.floor(taunt.t*30));if(n!==taunt.shown){if(n>taunt.shown&&n%2===0&&n<txt.length&&txt[n]!==' ')sfx('blip',VOICE[active[s].d.key]||160);taunt.shown=n;const part=txt.slice(0,n);$('talkTxt').textContent=part;drawTalkCard(active[s],part,s===1);if(xrActive){vrMsg='';}}
   if(taunt.t>txt.length/30+1.6){if(s===0){taunt.i=1;taunt.t=0;taunt.shown=-1;showTauntLine();}else endTaunt();}}
-function endTaunt(){if(phase!=='taunt')return;taunt=null;$('talk').hidden=true;talkCard.visible=false;phase='intro';introT=0;showBanner('Ready');updateModeUI();setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.8);}
+function endTaunt(){if(phase!=='taunt')return;taunt=null;if(vrSaved)vrRestore();$('talk').hidden=true;talkCard.visible=false;phase='intro';introT=0;showBanner('Ready');updateModeUI();setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.8);}
 function buildGrid(){for(let i=0;i<GA.length;i++){GA[i].length=0;GB[0][i].length=0;GB[1][i].length=0;}
   for(let s=0;s<2;s++)for(const u of alive[s]){const k=gcz(u.z)*GW+gcx(u.x);GA[k].push(u);GB[s][k].push(u);}}
 function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=null,bd=1e18;
@@ -1798,7 +1798,17 @@ $('resetView').addEventListener('click',()=>setOrbitGoal(battle.visible?{theta:0
 
 /* ---------- XR ---------- */
 let xrActive=false;const vr={pos:new THREE.Vector3(0,0.88,-0.95),scale:0.015,yaw:0};
-function vrReset(){vr.pos.set(0,0.88,-0.95);vr.scale=0.015;vr.yaw=0;}
+function vrReset(){vr.pos.set(0,0.88,-0.95);vr.scale=0.015;vr.yaw=0;vrTw=null;vrSaved=null;}
+/* taunt close-ups in VR: the diorama glides so the speaking general stands in front of you */
+let vrTw=null,vrSaved=null;
+function vrTweenTo(pos,scale,yaw,d){let dy=((yaw-vr.yaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;vrTw={p0:vr.pos.clone(),s0:vr.scale,y0:vr.yaw,p1:pos.clone(),s1:scale,y1:vr.yaw+dy,t:0,d};}
+function vrFocus(g){if(!vrSaved)vrSaved={pos:vr.pos.clone(),scale:vr.scale,yaw:vr.yaw};
+  const head=camera.position.clone(),f=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);f.y=0;if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();
+  const S=0.13,yaw=Math.atan2(-f.x,-f.z),P=new THREE.Vector3(g.x,Hb(g.x,g.z)+1.4,g.z).multiplyScalar(S).applyAxisAngle(UPV,yaw);
+  const T=head.addScaledVector(f,0.75);T.y-=0.15;vrTweenTo(T.sub(P),S,yaw,0.9);}
+function vrRestore(){const s=vrSaved;vrSaved=null;vrTweenTo(s.pos,s.scale,s.yaw,0.9);}
+function vrTweenStep(dt){if(!vrTw)return;vrTw.t+=dt;const k=ease(Math.min(1,vrTw.t/vrTw.d));
+  vr.pos.lerpVectors(vrTw.p0,vrTw.p1,k);vr.scale=vrTw.s0*Math.pow(vrTw.s1/vrTw.s0,k);vr.yaw=vrTw.y0+(vrTw.y1-vrTw.y0)*k;if(k>=1)vrTw=null;}
 function applyWorldXform(){if(xrActive){world.scale.setScalar(vr.scale);world.position.copy(vr.pos);world.rotation.y=vr.yaw;}else{world.scale.setScalar(1);world.position.set(0,0,0);world.rotation.y=0;}}
 const grabbing=new Set();let g1=null,g2=null;const btnPrev=new WeakMap(),btnPrevA=new WeakMap();
 function initGrab(){const h=[...grabbing];g1=g2=null;
@@ -1876,7 +1886,7 @@ function loop(tms){
   }
   updateHud(dt);updateDin(dt);
   // XR sticks
-  if(xrActive){vrInput(dt);applyWorldXform();vrAim(now);if(vrMsgT>0||Math.random()<0.05)drawVrHud();renderer.render(scene,camera);return;}
+  if(xrActive){if(vrTw||vrSaved)vrTweenStep(dt);else vrInput(dt);applyWorldXform();vrAim(now);if(vrMsgT>0||Math.random()<0.05)drawVrHud();renderer.render(scene,camera);return;}
   // desktop camera
   if(state==='title')orbit.theta=0.4*Math.sin(now*0.12);
   if(orbit.g){const k=1-Math.pow(0.04,dt/orbit.gs);let done=true;for(const key of Object.keys(orbit.g)){orbit[key]+=(orbit.g[key]-orbit[key])*k;if(Math.abs(orbit.g[key]-orbit[key])>0.01)done=false;}if(done)orbit.g=null;}
