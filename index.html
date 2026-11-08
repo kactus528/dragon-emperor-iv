@@ -407,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 31';
+const BUILD='Build 32';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1526,7 +1526,10 @@ function updateGenerals(dt){
       const sp=(pursuit.t<2?2.2:3.0)*terrSpd(g,'inf')*staTick(g,dt),m=sp*dt,ex=-dir*(FW/2+4);
       if(Math.abs(g.x)>FW/2-3)g.x-=dir*m;
       else{const P=pursuit,fv=EF[g.side][gcz(g.z)*GW+gcx(g.x)];if(P.best===undefined||fv<P.best-0.5){P.best=fv;P.stuck=0;}else P.stuck=(P.stuck||0)+dt;
-        if(P.stuck>2.5)g.x-=dir*m;else{const nd=navDir(g,ex,g.z,EF[g.side]);if(!moveSlide(g,nd[0]*m,nd[1]*m)&&!moveSlide(g,-dir*m,0))moveSlide(g,0,(g.z>0?1:-1)*m);}}
+        const sl=g.side===0?Math.hypot(steer.x,steer.z):0;
+        if(sl>0.15){P.stuck=0;const nd=navDir(g,ex,g.z,EF[g.side]);let vx=steer.x/Math.max(1,sl)+nd[0]*0.35,vz=steer.z/Math.max(1,sl)+nd[1]*0.35;const vl=Math.hypot(vx,vz)||1;vx/=vl;vz/=vl;
+          if(!moveSlide(g,vx*m,vz*m))moveSlide(g,nd[0]*m,nd[1]*m);}
+        else if(P.stuck>2.5)g.x-=dir*m;else{const nd=navDir(g,ex,g.z,EF[g.side]);if(!moveSlide(g,nd[0]*m,nd[1]*m)&&!moveSlide(g,-dir*m,0))moveSlide(g,0,(g.z>0?1:-1)*m);}}
       g.moving=true;g.sp.visible=Math.abs(g.x)<FW/2+1;}
     else if(g.flee){g.x-=dir*5*dt;g.moving=true;g.sp.visible=((g.t*10)|0)%2===0&&Math.abs(g.x)<FW/2+1;}
     else if(!g.dead){
@@ -1633,6 +1636,7 @@ function answerChallenge(yes){if(!chal)return;chal=null;$('chal').hidden=true;
   if(yes)startDuel();else{morale[0]=clamp(morale[0]-0.12,0,1);morale[1]=clamp(morale[1]+0.08,0,1);showBanner('Your troops waver',true);}}
 let duelBoard=null;
 const okGen=g=>g.rec&&!g.dead&&!g.flee&&!g.captured;
+const steer={x:0,z:0},_sq=new THREE.Quaternion();let vrSteered=false;const fleeing0=()=>state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0&&!fg[0].captured;
 const STA={drain:0.42,regen:0.09,mult:1.9,min:0.2};
 function sprint(g,auto){if(g.burst>0||g.sta<STA.min||g.captured||g.dead)return false;g.burst=1.8;sfx('whoosh');if(!auto&&g.side===0)buzz(0.5,120);hudAcc=1;return true;}
 function staTick(g,dt){if(g.burst>0){g.burst-=dt;g.sta=Math.max(0,g.sta-STA.drain*dt);if(g.sta<=0)g.burst=0;
@@ -1738,8 +1742,8 @@ const TUT_PAGES=[
   d:[['Space','Aim the spell'],['Click','Fire (Thunder: one bolt per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder: one bolt per pull)'],['R stick','Turn and zoom to find a target']]},
  {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
   d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
- {h:'Spoils of war',q:['rt','lt'],b:'A beaten or withdrawing general must run all the way to <b>his own edge of the field</b> to escape. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
-  d:[['Space','Sprint while fleeing'],['Click a prisoner','Try to persuade him']],v:[['R trigger','Sprint while fleeing'],['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
+ {h:'Spoils of war',q:['rt','lt','ls'],b:'A beaten or withdrawing general must run all the way to <b>his own edge of the field</b> to escape. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: steer him with <b>WASD</b> (or the left stick) and press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
+  d:[['WASD / arrows','Steer while fleeing'],['Space','Sprint while fleeing'],['Click a prisoner','Try to persuade him']],v:[['L stick','Steer while fleeing'],['R trigger','Sprint while fleeing'],['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
  {h:'Your view',q:['lg','rg','ls','rs','b'],b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Good luck, Commander.',
   d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['L stick','Slide the battlefield'],['R stick','Turn and zoom'],['B','Reset the table']]}];
 function padSVG(on,fontless){const O=new Set(on||[]),G='#f0c055',D='#4a3d63',F='#1c1730',T='#857aa0',ff=fontless?'monospace':'Silkscreen,monospace';
@@ -1903,7 +1907,7 @@ function endEngagement(w,reason){
   if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
   phase='pursuit';pursuit={t:0,L,w,withdraw:wd};fg[L].flee=false;battleCry(w,16,0.9);
   schedule(0.3,()=>showBanner(L===1?'Run him down before he reaches the edge!':lr.d.short+(wd?' withdraws':' flees')+'! Reach the edge!',L===0));
-  if(L===0)schedule(1.9,()=>showBanner(xrActive?'Right trigger: sprint!':'Space: sprint!',true));
+  if(L===0)schedule(1.9,()=>showBanner(xrActive?'Left stick steers · R trigger sprints':'WASD steers · Space sprints',true));
   setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(fg[L].x,-50,50),tz:clamp(fg[L].z,-20,20)},0.9);
 }
 function updatePursuit(dt){
@@ -2040,7 +2044,7 @@ function drawVrHud(){
       line(B.d.short+' challenges '+A.d.short+'!',140,'#f1e8d4','18px');line('A: ACCEPT    X: DECLINE',170,'#f0c055','20px');
       x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
     else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
-    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! R TRIG: SPRINT':'RUN HIM DOWN!',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
+    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · R TRIG SPRINT':'RUN HIM DOWN!',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
     else{line('ORDER: '+orders[0].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);
       line(storm.on?'STORM: R TRIG = BOLT · '+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
       line(withdrawArm>0?'Press X again to withdraw':(seekDuel[0]?'A stop seeking':'A seek duel')+' · X withdraw · B reset',160,withdrawArm>0?'#ffb09a':'#857aa0');}
@@ -2161,10 +2165,11 @@ function vrInput(dt){
   if(g1){vr.pos.copy(g1.p0).add(g1.c.position).sub(g1.c0);}
   else if(g2){const a=g2.a.position,b=g2.b.position,mid=a.clone().add(b).multiplyScalar(0.5),d=Math.max(0.05,a.distanceTo(b)),dy=Math.atan2(b.x-a.x,b.z-a.z)-g2.ang0;
     vr.scale=clamp(g2.s0*d/g2.d0,0.0015,1.5);const r=vr.scale/g2.s0;vr.yaw=g2.y0+dy;const off=g2.p0.clone().sub(g2.mid0).multiplyScalar(r).applyAxisAngle(UPV,dy);vr.pos.copy(mid).add(off);}
-  const s=renderer.xr.getSession();if(!s)return;
+  const s=renderer.xr.getSession();if(!s)return;vrSteered=false;
   const f=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);f.y=0;if(f.lengthSq()<1e-6)f.set(0,0,-1);f.normalize();const rt=new THREE.Vector3(-f.z,0,f.x);
   for(const src of s.inputSources){const gp=src.gamepad;if(!gp||gp.axes.length<4)continue;const dz=v=>Math.abs(v)<0.15?0:v;const ax=dz(gp.axes[2]),ay=dz(gp.axes[3]);
-    if(src.handedness==='left'){const sp=dt*1.1;vr.pos.addScaledVector(f,ay*sp).addScaledVector(rt,-ax*sp);}
+    if(src.handedness==='left'){if(fleeing0()){const v=f.clone().multiplyScalar(-ay).addScaledVector(rt,ax);battle.getWorldQuaternion(_sq);v.applyQuaternion(_sq.invert());steer.x=v.x;steer.z=v.z;vrSteered=true;}
+      else{const sp=dt*1.1;vr.pos.addScaledVector(f,ay*sp).addScaledVector(rt,-ax*sp);}}
     else{if(ax){const th=ax*dt*1.2;aroundHead(o=>o.applyAxisAngle(UPV,th));vr.yaw+=th;}
       if(ay){const ns=clamp(vr.scale*(1-ay*dt*1.3),0.0015,1.5),r=ns/vr.scale;aroundHead(o=>o.multiplyScalar(r));vr.scale=ns;}}
     const b=gp.buttons[5]&&gp.buttons[5].pressed;if(b&&!btnPrev.get(gp)){vrReset();grabbing.clear();g1=g2=null;}btnPrev.set(gp,!!b);
@@ -2233,8 +2238,10 @@ function loop(tms){
   // desktop camera
   if(state==='title')orbit.theta=0.4*Math.sin(now*0.12);
   if(orbit.g){const k=1-Math.pow(0.04,dt/orbit.gs);let done=true;for(const key of Object.keys(orbit.g)){orbit[key]+=(orbit.g[key]-orbit[key])*k;if(Math.abs(orbit.g[key]-orbit[key])>0.01)done=false;}if(done)orbit.g=null;}
+  if(!fleeing0()||(xrActive&&!vrSteered)){steer.x=steer.z=0;}
   if(state!=='title'){let sx=0,fw=0;if(keys.has('a')||keys.has('arrowleft'))sx-=1;if(keys.has('d')||keys.has('arrowright'))sx+=1;if(keys.has('w')||keys.has('arrowup'))fw+=1;if(keys.has('s')||keys.has('arrowdown'))fw-=1;
-    if(sx||fw){orbit.g=null;panBy(sx*orbit.r*0.7*dt,fw*orbit.r*0.7*dt);}if(keys.has('q'))orbit.theta=clamp(orbit.theta+dt*1.2,-1.35,1.35);if(keys.has('e'))orbit.theta=clamp(orbit.theta-dt*1.2,-1.35,1.35);}
+    if(fleeing0()&&!xrActive){const th=orbit.theta;steer.x=sx*Math.cos(th)-fw*Math.sin(th);steer.z=-sx*Math.sin(th)-fw*Math.cos(th);}
+    else if(sx||fw){orbit.g=null;panBy(sx*orbit.r*0.7*dt,fw*orbit.r*0.7*dt);}if(keys.has('q'))orbit.theta=clamp(orbit.theta+dt*1.2,-1.35,1.35);if(keys.has('e'))orbit.theta=clamp(orbit.theta-dt*1.2,-1.35,1.35);}
   const gy=orbit.ty+(battle.visible?Hb(orbit.tx,orbit.tz):Hk(orbit.tx/KS,orbit.tz/KS)*KS)*0.7;
   const sp=Math.sin(orbit.phi);camera.position.set(orbit.tx+Math.sin(orbit.theta)*sp*orbit.r,gy+Math.cos(orbit.phi)*orbit.r,orbit.tz+Math.cos(orbit.theta)*sp*orbit.r);
   camera.lookAt(orbit.tx,gy,orbit.tz);
