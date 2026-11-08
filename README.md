@@ -39,6 +39,11 @@ Select one of your castles to set its task for the coming weeks (in VR, press Y 
 
 Every general but Kaelen has **loyalty** (♥ in the castle panel). Wins raise it, losses and idle weeks lower it, and a relic gift gives +20. A general under 40 is restless; under 25, he may defect to a neighbouring enemy castle. Enemy castles fortify too, slowly.
 
+## Boss battles
+
+- **The Ashen Wyrm.** In any battle where Vorgrath fights, his dragon is a boss with its own health bar. Every 7-11 seconds it either swoops with fire across your densest ranks or **lands**: the landing stomp flattens nearby troops, and for about 4 seconds it sits on the field breathing fire while your soldiers, archers and mages can attack it. Your spells also wound it whenever it is low (landing, grounded or diving). Slay it and the enemy's morale collapses, Vorgrath loses his Dragon's Breath for the rest of the battle, and the campaign rewards the **Wyrmheart** relic (+20% spell power, +10 HP, +1 spell charge).
+- **Queen Ysolde's Eclipse** (costs 2 charges): the sun goes dark for 7 seconds, your troops deal 30% less damage, your morale drops, and lightning strikes your thickest ranks.
+
 ## Sieges
 
 Every battle for a castle is a siege. A stone wall with towers runs the full width of the field in front of the defenders, with a wooden gate in the middle and a cleared causeway leading to it. Attackers path to the gate and batter it (Knights ×2.2, Dragonriders ×1.8, Mages ×1.4, Infantry ×1.2, Cavalry ×0.6, Archers and Monks barely scratch it). The gate starts at 180 HP plus 120 per level of fortification. Defenders behind the wall take 30% less damage from arrows, bolts and spells, and the defending AI holds the wall while the gate stands. Harpies and Dragonriders fly straight over. When the gate falls the defenders lose heart and the attackers surge. A broken gate stays broken for the rest of the battle. The HUD shows the gate's health. Skirmish can also set up a siege either way round.
