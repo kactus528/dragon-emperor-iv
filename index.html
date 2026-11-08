@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 57';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 58';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1205,7 +1205,7 @@ const kCryst=CASTLES.map(c=>{const m=new THREE.Mesh(kCrystGeo,kCrystMat);m.scale
 function campCrystals(now){const R=new Set(ownReady());CASTLES.forEach((c,i)=>{const m=kCryst[i],G=c.o==='aldmere'?garrison(c):[];m.visible=G.length>0&&state==='kingdom';if(!m.visible)return;
   const rd=R.has(c);m.material=rd?kCrystMatR:kCrystMat;const s=(0.26+Math.min(4,G.length)*0.03)*(rd?1+Math.sin(now*4+i)*0.08:1);m.scale.set(s,s,s);
   m.position.set(c.x,c.y+(c.cap?6.1:5.3)+Math.sin(now*2+i)*0.12,c.z);m.rotation.y=now*1.4+i;});}
-function campRings(now){campCrystals(now);const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
+function campRings(now){campCrystals(now);updateCastBoard();const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
   const cand=S&&S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size?new Set(S.castle.adj):S&&S.army&&S.army.nat==='aldmere'?new Set(CASTLES[S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]].adj.concat([S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]])):null;
   for(const c of CASTLES){const m=castleRing(c);let col=null,op=0.85;
     if(T.has(c)){col=0xff5a3a;op=pulse+0.1;}else if(cand&&cand.has(c.id)){col=0xffffff;op=0.7;}else if((!S||S.army)&&R.has(c)){col=0xf0c055;op=pulse;}
@@ -1448,6 +1448,7 @@ function updateCampPanel(){
     html=G.length?G.map(r=>genRow(r,own,CAMP.picked.has(r))).join(''):'<p class="cpnote">No generals stationed here.</p>';
     html=`<p class="cpnote">Walls: level ${c.fort||0}${own?' · Task this week:':''}</p>`+(own?`<div class="tasks">${Object.keys(TASKS).map(k=>`<button data-task="${k}" class="${(c.task||'rest')===k?'on':''}" title="${TASKD[k]}">${TASKS[k]}</button>`).join('')}</div><p class="cpnote">${TASKD[c.task||'rest']}</p>`:'')+html;
     const V=CAMP.vault||[];if(own&&G.length&&V.length)html+=`<p class="cpnote">Vault: ${V.map((k,i)=>`<button data-vault="${i}" title="${RELICS[k].d}">Give ${RELICS[k].n}</button>`).join(' ')} (goes to the first ticked general without a relic)</p>`;
+    if(own&&G.length>0)html=`<p class="cpnote"><b style="color:var(--gold)">Marching party: ${CAMP.picked.size}/5</b> · tick the generals who should go</p>`+html;
     if(own&&G.length)btns=CAMP.picked.size?`<span class="cpnote">Click any castle on the map to march there with ${CAMP.picked.size} general${CAMP.picked.size>1?'s':''}.</span>`:'<span class="cpnote">Tick at least one general with troops to march.</span>';}
   else if(s.army){const a=s.army,own=a.nat==='aldmere';selRing.visible=false;
     $('cpName').textContent=own?'Your army':NATIONS[a.nat].name+' army';$('cpName').style.color=NATIONS[a.nat].col;$('cpSub').textContent=(a.halt?'Halted · heading for ':'Marching to ')+CASTLES[a.path[a.path.length-1]].n;
@@ -1466,6 +1467,24 @@ function redirect(a,to){a.halt=false;const here=a.t>0.5?a.path[a.seg+1]:a.path[a
   if(p.length<2){if(CASTLES[to].o===a.nat){arrive(a,CASTLES[to]);}return;}
   const cx=a.x,cz=a.z;a.path=p;a.seg=0;a.t=0;const A=CASTLES[p[0]],B=CASTLES[p[1]],L=Math.hypot(B.x-A.x,B.z-A.z);a.t=clamp(1-Math.hypot(B.x-cx,B.z-cz)/L,0,0.95);
   CAMP.target=false;clog('Your army changes course for '+CASTLES[to].n+'.');updateCampPanel();}
+const castC=cv(1024,640),castX=castC.getContext('2d'),castT=tex(castC,true);let castBoard=null,castHash='',castHover=-1,castRows=[];
+function updateCastBoard(){const S=CAMP.sel,c=S&&S.castle,show=xrActive&&state==='kingdom'&&!CAMP.over&&c&&c.o==='aldmere'&&garrison(c).length>0&&!storyVR&&!TUT.open;
+  if(!show){if(castBoard)castBoard.visible=false;castHover=-1;return;}
+  if(!castBoard){castBoard=new THREE.Mesh(new THREE.PlaneGeometry(56,35),new THREE.MeshBasicMaterial({map:castT,transparent:true,depthTest:false}));castBoard.renderOrder=13;world.add(castBoard);}
+  castBoard.visible=true;castBoard.position.set(-60,20,-18);castBoard.rotation.set(0,0.75,0);
+  const G=garrison(c).slice(0,8);castRows=G;const h=c.id+'|'+G.map(r=>r.d.key+(CAMP.picked.has(r)?1:0)+r.troops).join(',')+'|'+castHover+'|'+(c.task||'');if(h===castHash)return;castHash=h;
+  const x=castX,W=1024,H=640;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.94)';x.fillRect(0,0,W,H);x.strokeStyle='#4a3d63';x.lineWidth=4;x.strokeRect(2,2,W-4,H-4);
+  x.textBaseline='top';x.textAlign='left';x.font='900 38px Silkscreen, monospace';x.fillStyle='#5b8cff';x.fillText(c.n.toUpperCase(),32,24);
+  x.font='700 20px Silkscreen, monospace';x.fillStyle='#f0c055';x.textAlign='right';x.fillText('PARTY '+CAMP.picked.size+'/5',W-32,34);x.textAlign='left';
+  x.font='16px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('Task: '+TASKS[c.task||'rest']+' (Y to change) · walls level '+(c.fort||0),32,72);
+  G.forEach((r,i)=>{const y=110+i*58,on=CAMP.picked.has(r),hv=i===castHover;x.fillStyle=hv?'rgba(240,192,85,0.18)':i%2?'rgba(255,255,255,0.03)':'rgba(0,0,0,0)';x.fillRect(20,y-4,W-40,54);
+    x.strokeStyle=on?'#f0c055':'#6a5e86';x.lineWidth=4;x.strokeRect(36,y+8,30,30);if(on){x.fillStyle='#f0c055';x.fillRect(43,y+15,16,16);}
+    x.imageSmoothingEnabled=false;x.drawImage(GCV[r.d.key][0],84,y,34,46);
+    x.font='700 22px Silkscreen, monospace';x.fillStyle=on?'#ffffff':'#d8d0e8';x.fillText(r.d.short,134,y+2);
+    x.font='15px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(`${rankOf(r.lvl)} Lv ${r.lvl} · ${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} troops · HP ${Math.ceil(r.hp)}${r.relic?' · '+RELICS[r.relic].n:''}`,134,y+28);
+    const rdy=r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;x.textAlign='right';x.font='700 15px Silkscreen, monospace';x.fillStyle=rdy?'#7fe39a':'#ffb347';x.fillText(rdy?'READY':'RESTING',W-36,y+12);x.textAlign='left';});
+  x.textAlign='center';x.font='700 17px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText('POINT + TRIGGER: TICK GENERALS · THEN TRIGGER ANY CASTLE TO MARCH',W/2,604);castT.needsUpdate=true;}
+function castToggle(i){const r=castRows[i];if(!r)return;if(CAMP.picked.has(r))CAMP.picked.delete(r);else{if(CAMP.picked.size>=5){clog('A party can take at most 5 generals.');return;}if(r.troops<=0){clog(r.d.short+' has no troops to march with.');return;}CAMP.picked.add(r);}sfx('blip',CAMP.picked.has(r)?500:300);castHash='';updateCampPanel();}
 function campClick(hit){
   if(!hit){if(!CAMP.target){CAMP.sel=null;updateCampPanel();}return;}
   const c=hit.userData.castle,a=hit.userData.army;
@@ -2622,7 +2641,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
 function xrSelect(hand){audioInit();
   if(TUT.open){tutGo(hand==='left'?-1:1);return;}
   if(storyVR&&storyVR!=='sticky'){closeStoryBoard();return;}
-  if(state==='title'){if(hand==='left'){const K=Object.keys(DIFFS);setDiff(K[(K.indexOf(diffKey)+1)%K.length]);drawVrHud();}else startGame();}else if(state==='kingdom'){if(CAMP.over){if(!CAMP.won&&hand!=='left'&&performance.now()-(CAMP.endAt||0)>2500){closeStoryBoard();fightAgain();}return;}if(hand==='left')togglePause();else campClick(vrHover);drawVrHud();}
+  if(state==='title'){if(hand==='left'){const K=Object.keys(DIFFS);setDiff(K[(K.indexOf(diffKey)+1)%K.length]);drawVrHud();}else startGame();}else if(state==='kingdom'){if(CAMP.over){if(!CAMP.won&&hand!=='left'&&performance.now()-(CAMP.endAt||0)>2500){closeStoryBoard();fightAgain();}return;}if(hand==='left')togglePause();else if(castHover>=0)castToggle(castHover);else campClick(vrHover);drawVrHud();}
   else if(state==='battle'){
     if(phase==='taunt'){endTaunt();return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
@@ -2718,7 +2737,7 @@ function vrInput(dt){
     const fa=gp.buttons[4]&&gp.buttons[4].pressed;if(fa&&!btnPrevA.get(gp))xrFace(src.handedness);btnPrevA.set(gp,!!fa);}
 }
 renderer.xr.addEventListener('sessionstart',()=>{DE4LOG.info('XR session start');xrActive=true;camera.near=0.02;camera.far=300;camera.updateProjectionMatrix();vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='hidden');drawVrHud();if(TUT.open)drawTutBoard();});
-renderer.xr.addEventListener('sessionend',()=>{closeStoryBoard();DE4LOG.info('XR session end');DE4LOG.flush();xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='');if(tutBoard)tutBoard.visible=false;if(TUT.open)$('tut').hidden=false;onResize();});
+renderer.xr.addEventListener('sessionend',()=>{closeStoryBoard();if(castBoard)castBoard.visible=false;DE4LOG.info('XR session end');DE4LOG.flush();xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='');if(tutBoard)tutBoard.visible=false;if(TUT.open)$('tut').hidden=false;onResize();});
 async function setupVR(){
   const btns=[$('vrBtn'),$('vrBtn2')];
   let ok=false;try{ok=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-vr'));}catch(e){ok=false;}
@@ -2733,7 +2752,8 @@ function vrAim(now){
   let rc=null;for(const c of ctrls){c.userData.laser.visible=false;if((c.userData.hand||'right')==='right')rc=c;}
   hoverRing.visible=false;
   if(state==='kingdom'&&rc){world.updateMatrixWorld(true);rc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
-    ray.set(o,d);const h=pickFirst(ray.intersectObjects(pickables,false));vrHover=h?h.object:null;const L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:3;L.material.color.set(CAMP.target?0xf0c055:0xd8d0e8);
+    ray.set(o,d);castHover=-1;if(castBoard&&castBoard.visible){const bh=ray.intersectObject(castBoard,false)[0];if(bh&&bh.uv){const py=(1-bh.uv.y)*640,row=Math.floor((py-106)/58);if(row>=0&&row<castRows.length)castHover=row;const L0=rc.userData.laser;L0.visible=true;L0.scale.z=bh.distance;L0.material.color.set(0xf0c055);vrHover=null;hoverRing.visible=false;updateCastBoard();return;}}
+    const h=pickFirst(ray.intersectObjects(pickables,false));vrHover=h?h.object:null;const L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:3;L.material.color.set(CAMP.target?0xf0c055:0xd8d0e8);
     if(vrHover){hoverRing.visible=true;hoverRing.position.copy(vrHover.position);hoverRing.position.y+=0.12;}return;}
   if(state!=='battle'||!castPhase(0)||!battle.visible||!rc){reticle.visible=false;aim.valid=false;return;}
   world.updateMatrixWorld(true);rc.updateMatrixWorld(true);
