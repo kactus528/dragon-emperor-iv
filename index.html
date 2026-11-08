@@ -1174,7 +1174,7 @@ function updateDin(dt){if(!dinG)return;hitsAcc*=Math.pow(0.35,dt);
 /* ================= GAME STATE ================= */
 let state='title',phase='intro',introT=0,trT=0,swapped=false,endT=0,result=null,conquered=false;
 let kprog=0,kMarch=false,kMet=false;
-const MPMAX=3,spellCD=[0,0];
+const MPPROF={arc:{max:5,start:2,every:10},inf:{max:3,start:1,every:16},cav:{max:3,start:1,every:20}},mpMax=[3,3],spellCD=[0,0];
 const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-35,35],morale=[0.6,0.6];
 let pursuit=null,tyrantTaken=false,traitorMsg='',timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
 const alive=[[],[]];
@@ -1205,7 +1205,7 @@ function clearField(){
 }
 function deploy(){
   round++;phase='taunt';introT=0;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
-  for(let s=0;s<2;s++){const r=active[s],g=fg[s];mp[s]=1;spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
+  for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf;mpMax[s]=pf.max;mp[s]=pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
     if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
       const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);for(let k=0;k<40&&navAt(u.x,u.z)===1;k++)u.x+=(u.side?1:-1)*0.8;u.vis=true;}
@@ -1264,7 +1264,7 @@ function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=n
 function kill(u,fx,fz,power=3,launch=0){
   u.state='dying';u.t=0;const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
-  killTally[1-u.side]++;mp[1-u.side]=Math.min(MPMAX,mp[1-u.side]+0.012);gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
+  killTally[1-u.side]++;mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+0.012);gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
@@ -1560,7 +1560,7 @@ function renderSelect(){
   $('selSub').textContent=(e?`${e.d.short} holds the field with ${e.troops} ${TROOP[e.d.troop].toLowerCase()} and ${Math.ceil(e.hp)} HP.`:'The Ashen Legion picks after you, and it will try to counter you.')+(held.length?` The enemy holds ${held.join(' and ')} prisoner.`:'');
   it.forEach((x,i)=>{const r=x.r,b=document.createElement('button');b.type='button';
     if(x.k==='gen'){const m=e?matchup(r.d.troop,e.d.troop):'';b.className='gcard'+(i===selIdx?' on':'');
-      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${rankOf(r.lvl||1)} Lv ${r.lvl||1} · ${TROOP[r.d.troop]} · ${r.troops}</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
+      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${rankOf(r.lvl||1)} Lv ${r.lvl||1} · ${TROOP[r.d.troop]} · ${r.troops}</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]} ×${(MPPROF[r.d.troop]||MPPROF.inf).max}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
     else{const tried=r.tried===round;b.className='gcard cap'+(i===selIdx?' on':'');b.disabled=tried;
       b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">Prisoner · ${TROOP[r.d.troop]}</span><span class="gh">${tried?'Refused you this round':'Persuade to join · 50%'}</span><span class="gm even">Joins with ${Math.round((r.troopsMax||NPS)*0.6)} troops</span>`;}
     b.addEventListener('click',()=>selAct(x));box.appendChild(b);});
@@ -1619,7 +1619,7 @@ function endBattle(win,why){
     if(!xrActive)$('endp').hidden=false;});
 }
 function fightTick(dt){
-  for(let s=0;s<2;s++){const lv=(active[s]&&active[s].lvl)||1;mp[s]=Math.min(MPMAX,mp[s]+dt/(s?19:16)*(1+0.04*(lv-1)));spellCD[s]=Math.max(0,spellCD[s]-dt);
+  for(let s=0;s<2;s++){const lv=(active[s]&&active[s].lvl)||1;const pf=MPPROF[active[s].d.troop]||MPPROF.inf;mp[s]=Math.min(mpMax[s],mp[s]+dt/(pf.every*(s?1.15:1))*(1+0.04*(lv-1)));spellCD[s]=Math.max(0,spellCD[s]-dt);
     if(orders[s]==='hold'&&morale[s]<0.75)morale[s]=Math.min(0.75,morale[s]+dt*0.012);
     if(orders[s]==='retreat')morale[s]=Math.min(0.85,morale[s]+dt*0.025);}
   duel.cd=Math.max(0,duel.cd-dt);withdrawArm=Math.max(0,withdrawArm-dt);
@@ -1662,7 +1662,7 @@ function updateHud(dt){
     for(let s=0;s<2;s++){const r=active[s],k=s?'B':'A',n=alive[s].length;
       if(lastPor[s]!==r.d.key){lastPor[s]=r.d.key;$('por'+k).src=portrait(r.d.key);$('name'+k).textContent=r.d.short.toUpperCase();}
       $('sub'+k).textContent='LV '+(r.lvl||1)+' · '+TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();
-      $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/MPMAX*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
+      $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     const sp=$('spell'),ready=mp[0]>=1&&spellCD[0]<=0&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
     sp.textContent=aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
@@ -1697,7 +1697,7 @@ function drawVrHud(){
     const bar=(xx,y,w,h,f,c,rt)=>{x.fillStyle='#221b33';x.fillRect(xx,y,w,h);x.fillStyle=c;rt?x.fillRect(xx+w*(1-f),y,w*f,h):x.fillRect(xx,y,w*f,h);};
     bar(24,46,320,12,a/NPS,'#5b8cff');bar(W-344,46,320,12,b/NPS,'#ff5a3a',true);
     bar(24,62,320,5,A.hp/A.d.hp,'#7fe39a');bar(W-344,62,320,5,B.hp/B.d.hp,'#7fe39a',true);
-    bar(24,70,320,4,mp[0]/MPMAX,'#f0c055');bar(W-344,70,320,4,mp[1]/MPMAX,'#f0c055',true);
+    bar(24,70,320,4,mp[0]/mpMax[0],'#f0c055');bar(W-344,70,320,4,mp[1]/mpMax[1],'#f0c055',true);
     bar(24,77,320,4,morale[0],'#8fd0ff');bar(W-344,77,320,4,morale[1],'#8fd0ff',true);
     if(phase==='taunt'&&taunt){const tr=active[taunt.i],tx=taunt.lines[taunt.i].slice(0,Math.max(0,taunt.shown));line(tr.d.name.toUpperCase(),96,taunt.i?'#ffb09a':'#9ab8ff','18px');
       const ws=tx.split(' ');let l1='',l2='';for(const w of ws){if((l1+w).length<50&&!l2)l1+=w+' ';else l2+=w+' ';}line(l1,128,'#f1e8d4','16px');line(l2,152,'#f1e8d4','16px');line('Any trigger: skip',196,'#857aa0','14px');}
