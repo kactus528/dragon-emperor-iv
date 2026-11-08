@@ -88,7 +88,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 /* stat minis */
 .minis{display:grid;grid-template-columns:auto 1fr;gap:2px 6px;align-items:center;font-size:8px;color:var(--dim);letter-spacing:.08em}
 .minis .meter{height:4px}
-.minis .hp i{background:#7fe39a}.minis .mor i{background:#8fd0ff}
+.minis .hp i{background:#7fe39a}.minis .mor i{background:#8fd0ff}.minis .sta i{background:#ffb347}.minis .sta.burst i{background:#fff3a0;box-shadow:0 0 6px #ffd23a}
 /* select */
 #selp{position:fixed;inset:0;display:grid;place-items:center;z-index:7;padding:16px;background:rgba(7,6,12,.45);overflow:auto}
 #selp .panel{padding:20px;width:min(660px,100%);display:grid;gap:12px;box-sizing:border-box}
@@ -243,7 +243,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
         <div class="name" id="nameA">KAELEN</div>
         <div class="sub" id="subA">INFANTRY</div>
         <div class="meter troops"><i id="barA"></i></div>
-        <div class="minis"><span>HP</span><div class="meter mp hp"><i id="hpA"></i></div><span>MP</span><div class="meter mp"><i id="mpA"></i></div><span>MOR</span><div class="meter mp mor"><i id="morA"></i></div></div>
+        <div class="minis"><span>HP</span><div class="meter mp hp"><i id="hpA"></i></div><span>MP</span><div class="meter mp"><i id="mpA"></i></div><span>MOR</span><div class="meter mp mor"><i id="morA"></i></div><span>STA</span><div class="meter mp sta"><i id="staA"></i></div></div>
       </div>
       <div class="count" id="cntA">100</div>
     </div>
@@ -254,7 +254,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
         <div class="name" id="nameB">VORGRATH</div>
         <div class="sub" id="subB">CAVALRY</div>
         <div class="meter troops"><i id="barB"></i></div>
-        <div class="minis"><span>HP</span><div class="meter mp hp"><i id="hpB"></i></div><span>MP</span><div class="meter mp"><i id="mpB"></i></div><span>MOR</span><div class="meter mp mor"><i id="morB"></i></div></div>
+        <div class="minis"><span>HP</span><div class="meter mp hp"><i id="hpB"></i></div><span>MP</span><div class="meter mp"><i id="mpB"></i></div><span>MOR</span><div class="meter mp mor"><i id="morB"></i></div><span>STA</span><div class="meter mp sta"><i id="staB"></i></div></div>
       </div>
       <div class="count" id="cntB">100</div>
     </div>
@@ -407,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 30';
+const BUILD='Build 31';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -968,7 +968,7 @@ function stormStrike(x,z){if(!storm.on||storm.left<=0||storm.gap>0)return false;
 function stormEnd(release){if(!storm.on)return;storm.on=false;aim.mode=false;spellCD[0]=2.5;
   if(release&&storm.left>0&&phase==='fight'){const n=storm.left;showBanner('The storm breaks!');for(let i=0;i<n;i++)schedule(0.1+i*0.16,()=>{const c=densest(alive[1])||fg[1];if(c)lightning(c.x+R(-3,3),c.z+R(-3,3),1,true);});}
   storm.left=0;hudAcc=1;}
-function spellPress(){if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);return;}if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
+function spellPress(){if(state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0){sprint(fg[0]);return;}if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);return;}if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
 
 /* ================= KINGDOM WAR TABLE ================= */
 const kingdom=new THREE.Group();kingdom.scale.setScalar(KS);world.add(kingdom);
@@ -1366,7 +1366,7 @@ function clearField(){
 }
 function deploy(){
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
-  for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf;mpMax[s]=pf.max;mp[s]=pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
+  for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf;mpMax[s]=pf.max;mp[s]=pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
     if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
       const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);for(let k=0;k<40&&navAt(u.x,u.z)===1;k++)u.x+=(u.side?1:-1)*0.8;u.vis=true;}
@@ -1521,7 +1521,9 @@ function ord2spd(u){return phase==='duel'?1:orders[u.side]==='charge'?1.12:order
 function updateGenerals(dt){
   for(const g of fg){if(!g.rec||!g.sp.visible&&!g.flee)continue;g.t+=dt;g.cast=Math.max(0,g.cast-dt);g.cd-=dt;g.moving=false;const dir=g.side?-1:1;
     if(g.captured){g.sp.visible=true;}
-    else if(phase==='pursuit'&&pursuit&&g.side===pursuit.L){if(!efOk)edgeFields();const sp=(pursuit.t<2?2.2:3.0)*terrSpd(g,'inf'),m=sp*dt,ex=-dir*(FW/2+4);
+    else if(phase==='pursuit'&&pursuit&&g.side===pursuit.L){if(!efOk)edgeFields();
+      if(g.side===1&&g.burst<=0&&g.sta>0.3){const nf=nearestFoe(g);if(nf<7)sprint(g,true);}
+      const sp=(pursuit.t<2?2.2:3.0)*terrSpd(g,'inf')*staTick(g,dt),m=sp*dt,ex=-dir*(FW/2+4);
       if(Math.abs(g.x)>FW/2-3)g.x-=dir*m;
       else{const P=pursuit,fv=EF[g.side][gcz(g.z)*GW+gcx(g.x)];if(P.best===undefined||fv<P.best-0.5){P.best=fv;P.stuck=0;}else P.stuck=(P.stuck||0)+dt;
         if(P.stuck>2.5)g.x-=dir*m;else{const nd=navDir(g,ex,g.z,EF[g.side]);if(!moveSlide(g,nd[0]*m,nd[1]*m)&&!moveSlide(g,-dir*m,0))moveSlide(g,0,(g.z>0?1:-1)*m);}}
@@ -1532,13 +1534,14 @@ function updateGenerals(dt){
       if(phase==='duel'){tx=duel.cx-dir*(2.3-g.lunge*1.7);tz=duel.cz;spd=6;}
       else if(phase==='intro'||phase==='taunt'){tx=dir>0?-52:52;tz=0;}
       else if(phase==='fight'){const own=alive[g.side],o=fg[1-g.side],oOk=okGen(o);
-        if(g.side===1&&avoidDuel&&oOk&&Math.hypot(o.x-g.x,o.z-g.z)<16){tx=g.x+(g.x-o.x)*2;tz=g.z+(g.z-o.z)*2;spd=3.4;}
-        else if(seekDuel[g.side]&&oOk){tx=o.x;tz=o.z;spd=3.6;g.chase='gen';}
+        if(g.side===1&&avoidDuel&&oOk&&Math.hypot(o.x-g.x,o.z-g.z)<16){tx=g.x+(g.x-o.x)*2;tz=g.z+(g.z-o.z)*2;spd=3.4;if(Math.hypot(o.x-g.x,o.z-g.z)<7)sprint(g,true);}
+        else if(seekDuel[g.side]&&oOk){tx=o.x;tz=o.z;spd=3.6;g.chase='gen';if(g.burst<=0&&g.sta>0.55&&Math.hypot(o.x-g.x,o.z-g.z)>14)sprint(g,true);}
         else if(own.length>30&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*7;tz=c.z*0.6;}
         else if(orders[g.side]==='retreat'){tx=dir>0?-52:52;tz=0;}
         else{let best=null,bd=1e9;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}if(best){tx=best.x;tz=best.z;g.chase=true;}}
         if(g.cd<=0){let best=null,bd=2.2;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
           if(best){g.cd=0.75;g.cast=0.2;hit(best,g.rec.d.atk*0.35,{x:g.x,z:g.z,type:'inf',side:g.side},true);}}}
+      if(phase==='fight')spd*=staTick(g,dt);
       const d=Math.hypot(tx-g.x,tz-g.z);if(d>0.35){const nd=navDir(g,tx,tz,g.chase==='gen'?GF[g.side]:g.chase?FF[g.side]:null),m=Math.min(d,spd*terrSpd(g,'inf')*dt);moveSlide(g,nd[0]*m,nd[1]*m);g.moving=true;}
     }
     g.x=clamp(g.x,-FW/2-2,FW/2+2);g.z=clamp(g.z,-FD/2+1.2,FD/2-1.2);
@@ -1630,6 +1633,13 @@ function answerChallenge(yes){if(!chal)return;chal=null;$('chal').hidden=true;
   if(yes)startDuel();else{morale[0]=clamp(morale[0]-0.12,0,1);morale[1]=clamp(morale[1]+0.08,0,1);showBanner('Your troops waver',true);}}
 let duelBoard=null;
 const okGen=g=>g.rec&&!g.dead&&!g.flee&&!g.captured;
+const STA={drain:0.42,regen:0.09,mult:1.9,min:0.2};
+function sprint(g,auto){if(g.burst>0||g.sta<STA.min||g.captured||g.dead)return false;g.burst=1.8;sfx('whoosh');if(!auto&&g.side===0)buzz(0.5,120);hudAcc=1;return true;}
+function staTick(g,dt){if(g.burst>0){g.burst-=dt;g.sta=Math.max(0,g.sta-STA.drain*dt);if(g.sta<=0)g.burst=0;
+    if(Math.random()<dt*14)spawn({x:g.x+(g.side?0.6:-0.6)*(phase==='pursuit'&&pursuit&&pursuit.L===g.side?-1:1),y:Hb(g.x,g.z)+0.3,z:g.z+R(-0.3,0.3),frames:SMOKE,w:0.8,h:0.8,life:0.5,grow:0.9,vy:0.5});
+    return STA.mult;}
+  g.sta=Math.min(1,g.sta+STA.regen*dt);return 1;}
+function nearestFoe(g){let bd=1e9;for(const u of alive[1-g.side]){if(u.state!=='alive')continue;const d=Math.abs(u.x-g.x)+Math.abs(u.z-g.z);if(d<bd)bd=d;}return bd;}
 function startDuel(){
   if(phase!=='fight')return;stormEnd(false);phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
   for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
@@ -1728,8 +1738,8 @@ const TUT_PAGES=[
   d:[['Space','Aim the spell'],['Click','Fire (Thunder: one bolt per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder: one bolt per pull)'],['R stick','Turn and zoom to find a target']]},
  {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
   d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
- {h:'Spoils of war',q:['rt','lt'],b:'A beaten or withdrawing general must run all the way to <b>his own edge of the field</b> to escape. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
-  d:[['Click a prisoner','Try to persuade him']],v:[['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
+ {h:'Spoils of war',q:['rt','lt'],b:'A beaten or withdrawing general must run all the way to <b>his own edge of the field</b> to escape. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
+  d:[['Space','Sprint while fleeing'],['Click a prisoner','Try to persuade him']],v:[['R trigger','Sprint while fleeing'],['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
  {h:'Your view',q:['lg','rg','ls','rs','b'],b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Good luck, Commander.',
   d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['L stick','Slide the battlefield'],['R stick','Turn and zoom'],['B','Reset the table']]}];
 function padSVG(on,fontless){const O=new Set(on||[]),G='#f0c055',D='#4a3d63',F='#1c1730',T='#857aa0',ff=fontless?'monospace':'Silkscreen,monospace';
@@ -1893,6 +1903,7 @@ function endEngagement(w,reason){
   if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
   phase='pursuit';pursuit={t:0,L,w,withdraw:wd};fg[L].flee=false;battleCry(w,16,0.9);
   schedule(0.3,()=>showBanner(L===1?'Run him down before he reaches the edge!':lr.d.short+(wd?' withdraws':' flees')+'! Reach the edge!',L===0));
+  if(L===0)schedule(1.9,()=>showBanner(xrActive?'Right trigger: sprint!':'Space: sprint!',true));
   setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(fg[L].x,-50,50),tz:clamp(fg[L].z,-20,20)},0.9);
 }
 function updatePursuit(dt){
@@ -1974,10 +1985,10 @@ function updateHud(dt){
     for(let s=0;s<2;s++){const r=active[s],k=s?'B':'A',n=alive[s].length;
       if(lastPor[s]!==r.d.key){lastPor[s]=r.d.key;$('por'+k).src=portrait(r.d.key);$('name'+k).textContent=r.d.short.toUpperCase();}
       $('sub'+k).textContent='LV '+(r.lvl||1)+' · '+TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();
-      $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
+      $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';$('sta'+k).style.width=((fg[s].sta??1)*100)+'%';$('sta'+k).parentNode.classList.toggle('burst',fg[s].burst>0);}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
-    const sp=$('spell'),ready=storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
-    sp.textContent=storm.on?'Click to strike · '+storm.left+' bolts · '+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
+    const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
+    sp.textContent=phase==='pursuit'&&pursuit&&pursuit.L===0?'Space Sprint · '+Math.round(fg[0].sta*100)+'%':storm.on?'Click to strike · '+storm.left+' bolts · '+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
     if(chal)$('chalTime').style.width=(100*chal.t/chal.max)+'%';
     const db=$('duelBtn');db.disabled=phase!=='fight';db.textContent=seekDuel[0]?'5 Stop seeking':'5 Seek duel';db.classList.toggle('on',seekDuel[0]);
     $('wdBtn').disabled=phase!=='fight'||!avail(0).some(r=>r!==active[0]);
@@ -2029,6 +2040,7 @@ function drawVrHud(){
       line(B.d.short+' challenges '+A.d.short+'!',140,'#f1e8d4','18px');line('A: ACCEPT    X: DECLINE',170,'#f0c055','20px');
       x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
     else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
+    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! R TRIG: SPRINT':'RUN HIM DOWN!',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
     else{line('ORDER: '+orders[0].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);
       line(storm.on?'STORM: R TRIG = BOLT · '+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
       line(withdrawArm>0?'Press X again to withdraw':(seekDuel[0]?'A stop seeking':'A seek duel')+' · X withdraw · B reset',160,withdrawArm>0?'#ffb09a':'#857aa0');}
@@ -2061,6 +2073,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
     if(phase==='select'){const n=parseInt(k,10),it=selItems();if(n>=1&&n<=it.length)selAct(it[n-1]);return;}
     if(phase==='duel'){if(k==='j')duelPick('strike');else if(k==='k')duelPick('guard');else if(k==='l')duelPick('power');return;}
     if(chal){if(k==='y')answerChallenge(true);else if(k==='n')answerChallenge(false);}
+    if(phase==='pursuit'){if(k===' '){e.preventDefault();spellPress();}return;}
     if(k>='1'&&k<='4')setOrder(ORDERS[+k-1]);else if(k==='5')requestDuel();else if(k==='6')withdraw();
     else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){if(storm.on)stormEnd(true);aim.mode=false;hudAcc=1;}
   }else if(state==='kingdom'){if(CAMP.over&&k==='enter'){fightAgain();return;}if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
@@ -2072,6 +2085,7 @@ function xrSelect(hand){audioInit();
     if(phase==='taunt'){endTaunt();return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
+    else if(phase==='pursuit'&&pursuit&&pursuit.L===0)sprint(fg[0]);
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1)setOrder('charge');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
