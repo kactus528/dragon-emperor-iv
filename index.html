@@ -407,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 28';
+const BUILD='Build 29';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -960,7 +960,14 @@ function aimAt(o,d){ray.set(o,d);const h=ray.intersectObject(battleTerrain,false
   const p=battle.worldToLocal(h.point.clone());aim.valid=Math.abs(p.x)<FW/2&&Math.abs(p.z)<FD/2;aim.x=p.x;aim.z=p.z;return h;}
 function placeReticle(show,now){reticle.visible=show&&aim.valid;if(reticle.visible){reticle.position.set(aim.x,Hb(aim.x,aim.z)+0.15,aim.z);reticle.rotation.z=now*0.9;reticle.material.color.set(mp[0]>=1?0xffffff:0x5e5476);}}
 function mouseAim(e){const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);aimAt(ray.ray.origin.clone(),ray.ray.direction.clone());}
-function spellPress(){if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
+const storm={on:false,left:0,t:0,gap:0,tot:0};
+function stormStrike(x,z){if(!storm.on||storm.left<=0||storm.gap>0)return false;storm.left--;storm.gap=0.14;
+  const[cx,cz]=[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];lightning(cx,cz,1,true);buzz(0.6,90);hudAcc=1;
+  if(storm.left<=0){storm.on=false;aim.mode=false;spellCD[0]=2.5;}return true;}
+function stormEnd(release){if(!storm.on)return;storm.on=false;aim.mode=false;spellCD[0]=2.5;
+  if(release&&storm.left>0&&phase==='fight'){const n=storm.left;showBanner('The storm breaks!');for(let i=0;i<n;i++)schedule(0.1+i*0.16,()=>{const c=densest(alive[1])||fg[1];if(c)lightning(c.x+R(-3,3),c.z+R(-3,3),1,true);});}
+  storm.left=0;hudAcc=1;}
+function spellPress(){if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);return;}if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
 
 /* ================= KINGDOM WAR TABLE ================= */
 const kingdom=new THREE.Group();kingdom.scale.setScalar(KS);world.add(kingdom);
@@ -1325,8 +1332,8 @@ function updateDin(dt){if(!dinG)return;hitsAcc*=Math.pow(0.35,dt);
 /* ================= GAME STATE ================= */
 let state='title',phase='intro',introT=0,trT=0,swapped=false,endT=0,result=null,conquered=false;
 let kprog=0,kMarch=false,kMet=false;
-const MPPROF={arc:{max:5,start:2,every:10},inf:{max:3,start:1,every:16},cav:{max:2,start:0,every:26}},mpMax=[3,3],spellCD=[0,0];
-const KILLMP={arc:0.016,inf:0.012,cav:0.006},SPELLCOST={breath:2};
+const MPPROF={arc:{max:5,start:2,every:10},inf:{max:3,start:1,every:16},cav:{max:3,start:1,every:20}},mpMax=[3,3],spellCD=[0,0];
+const KILLMP={arc:0.016,inf:0.012,cav:0.009},SPELLCOST={breath:2};
 const spellCost=s=>(active[s]&&SPELLCOST[active[s].d.spell])||1;
 const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-35,35],morale=[0.6,0.6];
 let pursuit=null,tyrantTaken=false,traitorMsg='',timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
@@ -1357,7 +1364,7 @@ function clearField(){
   dragon.mode='idle';dragon.t=0;timers=[];
 }
 function deploy(){
-  round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
+  storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf;mpMax[s]=pf.max;mp[s]=pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
     if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
@@ -1538,7 +1545,7 @@ function updateGenerals(dt){
 /* ---------- spells ---------- */
 function densest(list){if(!list.length)return null;let best=list[0],bc=-1;const smp=list.length>18?Array.from({length:18},()=>list[(Math.random()*list.length)|0]):list;for(const u of smp){let c=0;for(const v of list)if(Math.abs(v.x-u.x)<3&&Math.abs(v.z-u.z)<3)c++;if(c>bc){bc=c;best=u;}}return best;}
 function castSpell(side,tgt){
-  if(state!=='battle'||phase!=='fight'||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec)return false;
+  if(state!=='battle'||phase!=='fight'||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec||(side===0&&storm.on))return false;
   const g=fg[side],sp=g.rec.d.spell;if(sp==='breath'&&dragon.mode!=='idle')return false;
   mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;
   showBanner(SPELL[sp],side===1);sfx(sp==='breath'?'roar':'chant');
@@ -1548,7 +1555,9 @@ function castSpell(side,tgt){
   const pw=1+0.06*((g.rec.lvl||1)-1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
   if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
-  else if(sp==='thunder'){for(let i=0;i<Math.round(6*pw);i++)schedule(0.5+i*0.22,()=>{const[x,z]=cl(cx+R(-6.5,6.5),cz+R(-6.5,6.5));lightning(x,z,V);});}
+  else if(sp==='thunder'&&side===0){const n=Math.round(8*pw);storm.on=true;storm.left=storm.tot=n;storm.t=10;storm.gap=0.35;aim.mode=true;
+    schedule(0.4,()=>showBanner(n+' bolts · aim and strike!'));if(tgt)schedule(0.35,()=>{storm.gap=0;stormStrike(cx,cz);});}
+  else if(sp==='thunder'){for(let i=0;i<Math.round(8*pw);i++)schedule(0.5+i*0.22,()=>{const[x,z]=cl(cx+R(-4,4),cz+R(-4,4));lightning(x,z,V,true);});}
   else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<Math.round(170*pw);i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
   schedule(2.4,()=>cheer(side,0.8));
@@ -1559,21 +1568,21 @@ function dropMeteor(x,z,V){
   spawn({x:sx,y:sy,z:sz,tex:T_METEOR,w:2.2,h:2.2,life:0.62,update:(p)=>{const k=p.age/p.life;p.x=sx+(x-sx)*k;p.y=sy+(ey-sy)*k;p.z=sz+(z-sz)*k;
     if(Math.random()<0.7)spawn({x:p.x-0.4,y:p.y+0.4,z:p.z,frames:SMOKE,w:0.9,h:0.9,life:0.5,grow:0.8,vy:0.4});},onEnd:()=>impact(x,z,V,false)});
 }
-function lightning(x,z,V){
+function lightning(x,z,V,lance){
   const y=Hb(x,z);sfx('zap');flash(0.4);
-  spawn({x,y:y+9,z,tex:T_BOLT,w:2.4,h:18,life:0.3,blink:true});
-  impact(x,z,V,true);
+  spawn({x,y:y+9,z,tex:T_BOLT,w:2.4,h:18,life:0.3,blink:true});if(lance)spawn({x,y:y+0.2,z,tex:T_RUNE,w:3.6,h:3.6,life:0.45,grow:0.8,blink:true});
+  impact(x,z,V,true,lance);
 }
-function impact(x,z,V,small){
+function impact(x,z,V,small,lance){
   const y=Hb(x,z);if(!small)sfx('boom');shake=Math.max(shake,small?0.5:0.9);flash(small?0.3:0.55);
   spawn({x,y:y+(small?1.6:2.6),z,frames:EXPLO,w:small?4:7,h:small?4:7,life:small?0.7:0.95,grow:0.5,vy:1.5,vz:2.5});
   spawn({x,y:y+0.6,z,frames:FLAME,w:small?2.4:4,h:small?2.4:4,life:0.6,grow:1.2});
   chips(x,y+0.4,z,small?10:22,6,12,4);
   for(let i=0;i<(small?3:8);i++)spawn({x:x+R(-1,1),y:y+R(0.5,2),z:z+R(-1,1),frames:SMOKE,w:1.4,h:1.4,life:R(0.9,1.5),grow:1.4,vy:R(1,3),vz:R(0,2)});
-  const kr=small?1.5:2.4,dr=small?2.7:3.9;
+  const kr=lance?1.9:small?1.5:2.4,dr=lance?3.2:small?2.7:3.9;
   for(const u of alive[V]){if(u.state!=='alive')continue;const d=Math.hypot(u.x-x,u.z-z);
     if(d<kr)kill(u,x,z,R(4,8),R(7,12));else if(d<dr){u.hp-=3;if(u.hp<=0)kill(u,x,z,R(3,5),R(4,7));}}
-  const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,small?5:8,null);
+  const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,lance?7:small?5:8,null);
 }
 function castBreathAt(cx,cz){
   cz=clamp(cz,-30,30);dragon.mode='swoop';dragon.t=0;
@@ -1617,7 +1626,7 @@ function answerChallenge(yes){if(!chal)return;chal=null;$('chal').hidden=true;
 let duelBoard=null;
 const okGen=g=>g.rec&&!g.dead&&!g.flee&&!g.captured;
 function startDuel(){
-  if(phase!=='fight')return;phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
+  if(phase!=='fight')return;stormEnd(false);phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
   for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
   duel.cx=clamp((fg[0].x+fg[1].x)/2,-FW/2+6,FW/2-6);duel.cz=clamp((fg[0].z+fg[1].z)/2,-FD/2+6,FD/2-6);
   {let best=null,bd=64;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){if(NAV[z*GW+x]!==0)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5,d=(wx-duel.cx)**2+(wz-duel.cz)**2;if(d>=bd)continue;let ok=true;for(let oz=-2;oz<=2&&ok;oz++)for(let ox=-2;ox<=2;ox++){const k=(z+oz)*GW+x+ox;if(z+oz<0||z+oz>=GD||x+ox<0||x+ox>=GW||NAV[k]!==0){ok=false;break;}}if(ok){bd=d;best=[wx,wz];}}if(best){duel.cx=best[0];duel.cz=best[1];}}
@@ -1710,8 +1719,8 @@ const TUT_PAGES=[
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
- {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>, cavalry the fewest. Spells hit hard against packed troops, so aim where the enemy is thickest.',
-  d:[['Space','Aim the spell'],['Click','Fire where you aim'],['Esc','Cancel aim']],v:[['Point R hand','Aim at the field'],['R trigger','Fire the spell'],['R stick','Turn and zoom to find a target']]},
+ {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) is different: one charge calls a storm of bolts, and every click or trigger pull drops one bolt exactly where you aim. Snipe the enemy general or pick apart his clumps. Unused bolts strike on their own after 10 seconds.',
+  d:[['Space','Aim the spell'],['Click','Fire (Thunder: one bolt per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder: one bolt per pull)'],['R stick','Turn and zoom to find a target']]},
  {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
   d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
  {h:'Spoils of war',q:['rt','lt'],b:'A beaten general flees for the edge of the field. <b>Catch him</b> (cavalry is fastest) and he becomes your prisoner. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
@@ -1869,7 +1878,7 @@ function captureGen(L,w){const r=active[L];gainXP(active[w],50);r.out=true;r.tro
 function nextRound(){if(state!=='battle')return;if(tyrantTaken)endBattle(true,'tyrant');else if(!avail(1).length)endBattle(true);else if(!avail(0).length)endBattle(false);else startSelect();}
 function endEngagement(w,reason){
   if(state!=='battle'||phase==='between'||phase==='over'||phase==='select'||phase==='pursuit')return;
-  phase='between';duel.on=false;chal=null;$('chal').hidden=true;aim.mode=false;
+  stormEnd(false);phase='between';duel.on=false;chal=null;$('chal').hidden=true;aim.mode=false;
   const L=1-w,lr=active[L],wr=active[w];
   wr.troops=alive[w].length;
   for(const u of alive[L])startFlee(u);
@@ -1916,6 +1925,7 @@ function fightTick(dt){
   for(let s=0;s<2;s++){const lv=(active[s]&&active[s].lvl)||1;const pf=MPPROF[active[s].d.troop]||MPPROF.inf;mp[s]=Math.min(mpMax[s],mp[s]+dt/(pf.every*(s?DIFF.eMP:1))*(1+0.04*(lv-1)));spellCD[s]=Math.max(0,spellCD[s]-dt);
     if(orders[s]==='hold'&&morale[s]<0.75)morale[s]=Math.min(0.75,morale[s]+dt*0.012);
     if(orders[s]==='retreat')morale[s]=Math.min(0.85,morale[s]+dt*0.025);}
+  if(storm.on){storm.gap=Math.max(0,storm.gap-dt);storm.t-=dt;aim.mode=true;if(storm.t<=0)stormEnd(true);}
   duel.cd=Math.max(0,duel.cd-dt);withdrawArm=Math.max(0,withdrawArm-dt);
   aiT+=dt;if(aiT>3){aiT=0;aiThink();}
   drumT-=dt;if(drumT<=0){drumT=R(18,32);const sd=Math.random()<0.5?0:1;warDrums(sd,2+((Math.random()*2)|0),orders[sd]==='charge'?132:104);}
@@ -1960,8 +1970,8 @@ function updateHud(dt){
       $('sub'+k).textContent='LV '+(r.lvl||1)+' · '+TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
-    const sp=$('spell'),ready=mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
-    sp.textContent=aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
+    const sp=$('spell'),ready=storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
+    sp.textContent=storm.on?'Click to strike · '+storm.left+' bolts · '+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
     if(chal)$('chalTime').style.width=(100*chal.t/chal.max)+'%';
     const db=$('duelBtn');db.disabled=phase!=='fight';db.textContent=seekDuel[0]?'5 Stop seeking':'5 Seek duel';db.classList.toggle('on',seekDuel[0]);
     $('wdBtn').disabled=phase!=='fight'||!avail(0).some(r=>r!==active[0]);
@@ -2014,7 +2024,7 @@ function drawVrHud(){
       x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
     else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
     else{line('ORDER: '+orders[0].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);
-      line(mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,mp[0]>=1?'#f0c055':'#857aa0');
+      line(storm.on?'STORM: R TRIG = BOLT · '+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
       line(withdrawArm>0?'Press X again to withdraw':(seekDuel[0]?'A stop seeking':'A seek duel')+' · X withdraw · B reset',160,withdrawArm>0?'#ffb09a':'#857aa0');}
   }
   if(vrMsgT>0){x.font='700 32px Silkscreen, monospace';x.fillStyle='#ffe39a';x.textAlign='right';x.fillText(vrMsg.toUpperCase().slice(0,22),W-24,H-44);x.textAlign='left';}
@@ -2046,7 +2056,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
     if(phase==='duel'){if(k==='j')duelPick('strike');else if(k==='k')duelPick('guard');else if(k==='l')duelPick('power');return;}
     if(chal){if(k==='y')answerChallenge(true);else if(k==='n')answerChallenge(false);}
     if(k>='1'&&k<='4')setOrder(ORDERS[+k-1]);else if(k==='5')requestDuel();else if(k==='6')withdraw();
-    else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){aim.mode=false;hudAcc=1;}
+    else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){if(storm.on)stormEnd(true);aim.mode=false;hudAcc=1;}
   }else if(state==='kingdom'){if(CAMP.over&&k==='enter'){fightAgain();return;}if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
   else if(k==='enter'&&state==='title')startGame();});
 function xrSelect(hand){audioInit();
@@ -2056,7 +2066,7 @@ function xrSelect(hand){audioInit();
     if(phase==='taunt'){endTaunt();return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
-    else if(phase==='fight'){if(hand==='left')cycleOrder();else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1)setOrder('charge');}
+    else if(phase==='fight'){if(hand==='left')cycleOrder();else if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1)setOrder('charge');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
 function xrFace(hand){
@@ -2093,7 +2103,7 @@ function panBy(sx,fw){const c=Math.cos(orbit.theta),sn=Math.sin(orbit.theta),lim
   orbit.tx=clamp(orbit.tx+c*sx-sn*fw,-lim[0],lim[0]);orbit.tz=clamp(orbit.tz-sn*sx-c*fw,-lim[1],lim[1]);}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 let downAt=null;
-canvas.addEventListener('pointerdown',e=>{if(state==='title')return;if(state==='battle'&&phase==='taunt'){endTaunt();return;}downAt={x:e.clientX,y:e.clientY,t:performance.now()};if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
+canvas.addEventListener('pointerdown',e=>{if(state==='title')return;if(state==='battle'&&phase==='taunt'){endTaunt();return;}downAt={x:e.clientX,y:e.clientY,t:performance.now()};if(storm.on&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)stormStrike(aim.x,aim.z);return;}if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
 canvas.addEventListener('pointermove',e=>{if(aim.mode&&!ptrs.size)mouseAim(e);const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
   if(ptrs.size===1){if(p.pan){const k=orbit.r*0.0018;panBy(-dx*k,dy*k);}else{orbit.theta=clamp(orbit.theta-dx*0.005,-1.35,1.35);orbit.phi=clamp(orbit.phi-dy*0.005,0.2,1.5);}}
   else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,900);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
