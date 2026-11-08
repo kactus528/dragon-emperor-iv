@@ -862,7 +862,7 @@ function aimAt(o,d){ray.set(o,d);const h=ray.intersectObject(battleTerrain,false
   const p=battle.worldToLocal(h.point.clone());aim.valid=Math.abs(p.x)<FW/2&&Math.abs(p.z)<FD/2;aim.x=p.x;aim.z=p.z;return h;}
 function placeReticle(show,now){reticle.visible=show&&aim.valid;if(reticle.visible){reticle.position.set(aim.x,Hb(aim.x,aim.z)+0.15,aim.z);reticle.rotation.z=now*0.9;reticle.material.color.set(mp[0]>=1?0xffffff:0x5e5476);}}
 function mouseAim(e){const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);aimAt(ray.ray.origin.clone(),ray.ray.direction.clone());}
-function spellPress(){if(state!=='battle'||phase!=='fight'||mp[0]<1||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
+function spellPress(){if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
 
 /* ================= KINGDOM WAR TABLE ================= */
 const kingdom=new THREE.Group();kingdom.scale.setScalar(KS);world.add(kingdom);
@@ -1174,15 +1174,17 @@ function updateDin(dt){if(!dinG)return;hitsAcc*=Math.pow(0.35,dt);
 /* ================= GAME STATE ================= */
 let state='title',phase='intro',introT=0,trT=0,swapped=false,endT=0,result=null,conquered=false;
 let kprog=0,kMarch=false,kMet=false;
-const MPPROF={arc:{max:5,start:2,every:10},inf:{max:3,start:1,every:16},cav:{max:3,start:1,every:20}},mpMax=[3,3],spellCD=[0,0];
+const MPPROF={arc:{max:5,start:2,every:10},inf:{max:3,start:1,every:16},cav:{max:2,start:0,every:26}},mpMax=[3,3],spellCD=[0,0];
+const KILLMP={arc:0.016,inf:0.012,cav:0.006},SPELLCOST={breath:2};
+const spellCost=s=>(active[s]&&SPELLCOST[active[s].d.spell])||1;
 const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-35,35],morale=[0.6,0.6];
 let pursuit=null,tyrantTaken=false,traitorMsg='',timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
 const alive=[[],[]];
 function schedule(t,fn){timers.push({t,fn});}
 const ORDERS=['charge','hold','flank','retreat'];
 const ORD={charge:{dmg:1.2,def:1.15},hold:{dmg:1,def:0.65},flank:{dmg:1.1,def:1},retreat:{dmg:0.8,def:0.9}};
-const STATS={inf:{hp:6,spd:2.4,rng:0.85,cd:0.95,dmg:1},cav:{hp:7,spd:4.2,rng:0.95,cd:1.15,dmg:1.3},arc:{hp:4,spd:2.1,rng:9,cd:1.8,dmg:0.9}};
-const MULT={inf:{inf:1,cav:1.7,arc:1.25},cav:{inf:1.05,cav:1,arc:2.1},arc:{inf:1.35,cav:0.8,arc:1}};
+const STATS={inf:{hp:6,spd:2.4,rng:0.85,cd:0.95,dmg:1},cav:{hp:7,spd:4.2,rng:0.95,cd:1.15,dmg:1.15},arc:{hp:4,spd:2.1,rng:9,cd:1.8,dmg:0.9}};
+const MULT={inf:{inf:1,cav:1.9,arc:1.25},cav:{inf:1.05,cav:1,arc:1.75},arc:{inf:1.35,cav:1.0,arc:1}};
 const TROOP={inf:'Infantry',cav:'Cavalry',arc:'Archers'};
 const BEATS={inf:'cav',cav:'arc',arc:'inf'};
 const COUNTER={cav:'inf',arc:'cav',inf:'arc'};
@@ -1264,7 +1266,7 @@ function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=n
 function kill(u,fx,fz,power=3,launch=0){
   u.state='dying';u.t=0;const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
-  killTally[1-u.side]++;mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+0.012);gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
+  killTally[1-u.side]++;mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
@@ -1383,9 +1385,9 @@ function updateGenerals(dt){
 /* ---------- spells ---------- */
 function densest(list){if(!list.length)return null;let best=list[0],bc=-1;const smp=list.length>18?Array.from({length:18},()=>list[(Math.random()*list.length)|0]):list;for(const u of smp){let c=0;for(const v of list)if(Math.abs(v.x-u.x)<3&&Math.abs(v.z-u.z)<3)c++;if(c>bc){bc=c;best=u;}}return best;}
 function castSpell(side,tgt){
-  if(state!=='battle'||phase!=='fight'||mp[side]<1||spellCD[side]>0||!fg[side].rec)return false;
+  if(state!=='battle'||phase!=='fight'||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec)return false;
   const g=fg[side],sp=g.rec.d.spell;if(sp==='breath'&&dragon.mode!=='idle')return false;
-  mp[side]-=1;spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;
+  mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;
   showBanner(SPELL[sp],side===1);sfx(sp==='breath'?'roar':'chant');
   morale[side]=clamp(morale[side]+0.08,0,1);morale[1-side]=clamp(morale[1-side]-0.05,0,1);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.4,z:g.z+0.3,tex:T_RUNE,w:3.4,h:3.4,life:1.5,grow:0.6,vy:0.8,blink:true});
@@ -1393,7 +1395,7 @@ function castSpell(side,tgt){
   const pw=1+0.06*((g.rec.lvl||1)-1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
   if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
-  else if(sp==='thunder'){for(let i=0;i<Math.round(9*pw);i++)schedule(0.5+i*0.17,()=>{const[x,z]=cl(cx+R(-6.5,6.5),cz+R(-6.5,6.5));lightning(x,z,V);});}
+  else if(sp==='thunder'){for(let i=0;i<Math.round(6*pw);i++)schedule(0.5+i*0.22,()=>{const[x,z]=cl(cx+R(-6.5,6.5),cz+R(-6.5,6.5));lightning(x,z,V);});}
   else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<Math.round(170*pw);i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
   schedule(2.4,()=>cheer(side,0.8));
@@ -1415,7 +1417,7 @@ function impact(x,z,V,small){
   spawn({x,y:y+0.6,z,frames:FLAME,w:small?2.4:4,h:small?2.4:4,life:0.6,grow:1.2});
   chips(x,y+0.4,z,small?10:22,6,12,4);
   for(let i=0;i<(small?3:8);i++)spawn({x:x+R(-1,1),y:y+R(0.5,2),z:z+R(-1,1),frames:SMOKE,w:1.4,h:1.4,life:R(0.9,1.5),grow:1.4,vy:R(1,3),vz:R(0,2)});
-  const kr=small?1.8:2.4,dr=small?3.0:3.9;
+  const kr=small?1.5:2.4,dr=small?2.7:3.9;
   for(const u of alive[V]){if(u.state!=='alive')continue;const d=Math.hypot(u.x-x,u.z-z);
     if(d<kr)kill(u,x,z,R(4,8),R(7,12));else if(d<dr){u.hp-=3;if(u.hp<=0)kill(u,x,z,R(3,5),R(4,7));}}
   const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,small?5:8,null);
@@ -1637,7 +1639,7 @@ function aiThink(){
   else if(myT==='arc')o=Math.random()<0.7?'hold':'flank';
   else if(me.length>them.length*1.15||BEATS[myT]===thT)o='charge';
   else o=Math.random()<0.5?'charge':'flank';
-  if(o==='hold'&&orders[1]!=='hold')holdStamp[1]++;if(o==='charge'&&orders[1]!=='charge')battleCry(1,14,0.8);orders[1]=o;if(mp[1]>=1)castSpell(1,null);
+  if(o==='hold'&&orders[1]!=='hold')holdStamp[1]++;if(o==='charge'&&orders[1]!=='charge')battleCry(1,14,0.8);orders[1]=o;if(mp[1]>=spellCost(1))castSpell(1,null);
 }
 
 /* ================= UI ================= */
@@ -1664,7 +1666,7 @@ function updateHud(dt){
       $('sub'+k).textContent='LV '+(r.lvl||1)+' · '+TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
-    const sp=$('spell'),ready=mp[0]>=1&&spellCD[0]<=0&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
+    const sp=$('spell'),ready=mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
     sp.textContent=aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
     if(chal)$('chalTime').style.width=(100*chal.t/chal.max)+'%';
     const db=$('duelBtn');db.disabled=phase!=='fight'||duel.cd>0||!!chal;db.textContent=duel.cd>0?'5 Duel '+Math.ceil(duel.cd):'5 Duel';
@@ -1744,7 +1746,7 @@ function xrSelect(hand){audioInit();
     if(phase==='taunt'){endTaunt();return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
-    else if(phase==='fight'){if(hand==='left')cycleOrder();else if(mp[0]>=1&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1)setOrder('charge');}
+    else if(phase==='fight'){if(hand==='left')cycleOrder();else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1)setOrder('charge');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
 function xrFace(hand){
