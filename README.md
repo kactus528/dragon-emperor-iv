@@ -14,6 +14,21 @@ Pick one on the title screen (left trigger in VR):
 
 **Blood** is set with the slider on the title screen (0 = off, remembered between visits). Every soldier who dies leaves a splatter on the ground where he fell, with a spray of droplets at higher settings; higher settings make splatters bigger and more frequent. Splatters stay for the whole battle (up to about 680 at once) and clear when the next battle begins.
 
+## Troop types
+
+| Type | Strong against | Weak against | Notes |
+|---|---|---|---|
+| Infantry | Cavalry | Archers, Knights | Spears and shields |
+| Cavalry | Archers, Mages, Monks | Infantry, Knights | Fastest on the ground |
+| Archers | Infantry, Harpies, Dragonriders | Cavalry, Knights | Keep shooting flyers even up close |
+| Knights | Infantry, Cavalry, Archers | Mages, flyers | 11 HP, slow, 80% troop limit, shrug off spells better |
+| Monks | (none) | Most things | Heal nearby soldiers; Elowen's **Mending Light** heals the army and raises up to 25 fallen |
+| Mages | Knights, Dragonriders | Cavalry, Harpies | Ranged magic bolts |
+| Harpies | Mages, Monks, Archers in melee | Archers at range, Knights | Fly over rivers, walls and woods |
+| Dragonriders | Infantry, Cavalry, Knights | Archers | 14 HP flyers, only 40% troop limit |
+
+New generals: **Sir Aldric Ironvow** (Knights) and **Sister Elowen** (Monks) for Aldmere, **Zareth the Pyromancer** (Mages) and **Kessa Wyrmrider** (Dragonriders) for the Ashen Legion, **Nyx of the Talons** (Harpies) and **Thessaly the Seer** (Mages) for Duskmarch. Each type has its own ability: Shield Wall, Sanctuary, Arcane Surge, Dive and Inferno.
+
 ## Skirmish
 
 **Skirmish** on the title screen sets up a one-off battle: pick up to three generals for each side from all fourteen, the battlefield, the conditions (clear, fog, night, storm or random), a level (as written, all Lv 5 or all Lv 10) and whether generals carry random relics. Nothing carries over to the campaign. Afterwards you can take a rematch with the same setup or go back to the title.
