@@ -4,6 +4,12 @@ Playable demo of Taiyo's fictional 1997 strategy RPG for the Taiyo Vision 32-bit
 
 A miniature war-table kingdom drops into stereoscopic battles of 400 vs 400 sprite soldiers on a 144x80 battlefield, drawn as instanced sprite batches. View it in mono, red/cyan, side-by-side or cross-eye stereo on a desktop, or in WebXR on a Meta Quest (open the GitHub Pages link in the Quest Browser and press Enter VR).
 
+## Difficulty
+Pick one on the title screen (left trigger in VR):
+- **Squire:** enemy troops hit 22% softer, enemy magic recharges slowly, the rivals mostly fight each other, Duskmarch keeps a 10-week truce, your garrisons recover fast, and Kaelen is always rescued if captured.
+- **Knight (default):** enemy troops hit 10% softer, the enemy counter-picks less often, the rivals target each other as well as you, Duskmarch keeps a 6-week truce, your generals level faster, and Kaelen's bodyguard rescues him if he's captured.
+- **Warlord:** the original tuning. Both rivals hunt you first, and losing Kaelen ends the war.
+
 ## The campaign
 The war table is a living map of 18 castles joined by roads. Aldmere (you), the Ashen Legion and Duskmarch all move armies in real time. Click one of your castles (the strongest generals with troops are pre-ticked; tick up to five), then click any castle on the map and your army marches there along the roads. In VR: point at your castle and pull the right trigger, then point at the target and pull it again; A cancels. Armies that meet on a road clash, and an army that reaches an enemy castle attacks it. Every battle drops into a battlefield that matches the castle's region. Taking a castle grows your territory, and armies claim empty castles along their route. Capturing a nation's ruler makes it collapse; a nation left with no castles scatters. Once no rival holds a castle, the unclaimed castles swear fealty and the realm is yours: the war is won when every castle flies Aldmere's banner, and lost if Kaelen is captured or your last castle falls. Every week (18 seconds), generals resting in castles heal and muster fresh troops. An advisor line always says what's happening and what to do next, a short feed lists recent events, and rings on the map mark castles with ready generals (gold), castles under threat (red) and castles one road from your selection (white). When you have nothing to do, time fast-forwards automatically. Pause with Space or the Pause button, and change the speed up to 4x.
 
