@@ -938,7 +938,8 @@ function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.leng
   const any=CASTLES.find(c=>c.o===nat);return any?any.id:null;}
 function initCampaign(){
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);dropLabel(a);pickables.splice(pickables.indexOf(a.tok),1);});
-  Object.assign(CAMP,{on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'Week 1. Aldmere stands between the Ashen Legion and Duskmarch.',sel:null,target:false,picked:new Set(),over:false});
+  if(endCard){kingdom.remove(endCard);endCard=null;}
+  Object.assign(CAMP,{endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'Week 1. Aldmere stands between the Ashen Legion and Duskmarch.',sel:null,target:false,picked:new Set(),over:false});
   CASTLES.forEach(c=>{c.o=c.o0;});
   GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
   at('kaelen','Highmere');at('seren','Highmere');at('brannoch','Thornwick');at('ivo','Greenhollow');at('maelis','Saltmarsh');
@@ -956,7 +957,8 @@ function removeArmy(a){kingdom.remove(a.tok);dropLabel(a);const i=pickables.inde
 function dispatch(nat,gens,from,to){const path=bfs(from,to);if(!path||path.length<2||!gens.length)return null;return makeArmy(nat,gens,path);}
 function hostile(a,b){return a&&b&&a!==b&&a!=='none'&&b!=='none';}
 function campTick(dt,now){
-  if(!CAMP.on||CAMP.over||CAMP.paused||state!=='kingdom')return;
+  if(!CAMP.on||CAMP.over||state!=='kingdom')return;
+  checkCampaignEnd();if(CAMP.over||CAMP.paused)return;
   const sdt=dt*CAMP.speed;
   CAMP.t+=sdt;if(CAMP.t>=WEEK){CAMP.t-=WEEK;CAMP.week++;
     for(const r of GENS)if(r.alive&&typeof r.loc==='number'){r.hp=Math.min(r.d.hp,r.hp+r.d.hp*0.25);r.troops=Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*0.3));}
@@ -1015,8 +1017,11 @@ function checkCampaignEnd(){if(CAMP.over)return;
   if(!mine||(k&&!k.alive&&k.nat==='aldmere')){CAMP.over=true;campaignOver(false);}
   else{if(!CASTLES.some(c=>c.o==='ashen'||c.o==='dusk')&&mine<CASTLES.length){CASTLES.forEach(c=>{if(c.o==='none'){c.o='aldmere';refreshCastle(c);}});clog('With your rivals gone, every unclaimed castle swears fealty to Aldmere.');}
     if(CASTLES.every(c=>c.o==='aldmere')){CAMP.over=true;campaignOver(true);}}}
-function campaignOver(win){CAMP.won=win;if(state==='kingdom')showCampaignEnd();}
-function showCampaignEnd(){const win=CAMP.won;
+function campaignOver(win){CAMP.won=win;CAMP.endShown=false;if(state==='kingdom')showCampaignEnd();}
+let endCard=null;
+function showCampaignEnd(){const win=CAMP.won;CAMP.endShown=true;CAMP.sel=null;CAMP.target=false;updateCampPanel();
+  if(endCard){kingdom.remove(endCard);endCard=null;}endCard=makeLabel(win?'THE REALM IS YOURS':'ALDMERE FALLS',win?'#f0c055':'#ff5a3a');endCard.scale.multiplyScalar(3.2);endCard.position.set(0,7,0);kingdom.add(endCard);
+  clog(win?`Week ${CAMP.week}: every castle flies Aldmere's banner. The realm is yours.`:`Week ${CAMP.week}: Aldmere has fallen.`);
   $('endTitle').textContent=win?'The Realm Is Yours':'Aldmere Falls';
   $('endText').textContent=win?`In week ${CAMP.week} the last castle raised the blue banner of Aldmere. The realm is united under Kaelen. Thank you for playing the Dragon Emperor IV demo. The full war awaits on the Taiyo Vision.`:`In week ${CAMP.week} the last of Aldmere's castles fell. The Eternal War goes on without you.`;
   $('againBtn').textContent='New campaign';$('againBtn').hidden=false;$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
@@ -1684,6 +1689,8 @@ function drawVrHud(){
   x.textBaseline='top';x.textAlign='left';x.font='700 30px Silkscreen, monospace';x.fillStyle='#f0c055';
   const line=(t,y,c='#f1e8d4',f='18px')=>{x.font=f+' Silkscreen, monospace';x.fillStyle=c;x.fillText(t,24,y);};
   if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');}
+  else if(state==='kingdom'&&CAMP.over){x.font='700 34px Silkscreen, monospace';x.fillStyle=CAMP.won?'#f0c055':'#ff5a3a';x.fillText(CAMP.won?'THE REALM IS YOURS':'ALDMERE FALLS',24,22);
+    line(CAMP.won?'Every castle flies the banner of Aldmere.':'The Eternal War goes on without you.',80,'#f1e8d4','18px');line((CAMP.won?'Won':'Lost')+' in week '+CAMP.week,112,'#a99fb8','16px');line('Right trigger: new campaign',170,'#f0c055','20px');}
   else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+(CAMP.paused?' · PAUSED':''),24,16);
     const cnt=n=>CASTLES.filter(c=>c.o===n).length;line(`Aldmere ${cnt('aldmere')} · Ashen ${cnt('ashen')} · Dusk ${cnt('dusk')}`,56,'#a99fb8','16px');
     const hv=vrHover&&(vrHover.userData.castle||vrHover.userData.army),sel=CAMP.sel;
@@ -1738,10 +1745,10 @@ addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName=
     if(chal){if(k==='y')answerChallenge(true);else if(k==='n')answerChallenge(false);}
     if(k>='1'&&k<='4')setOrder(ORDERS[+k-1]);else if(k==='5')requestDuel();else if(k==='6')withdraw();
     else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){aim.mode=false;hudAcc=1;}
-  }else if(state==='kingdom'){if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
+  }else if(state==='kingdom'){if(CAMP.over&&k==='enter'){fightAgain();return;}if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
   else if(k==='enter'&&state==='title')startGame();});
 function xrSelect(hand){audioInit();
-  if(state==='title')startGame();else if(state==='kingdom'){if(hand==='left')togglePause();else campClick(vrHover);drawVrHud();}
+  if(state==='title')startGame();else if(state==='kingdom'){if(CAMP.over){if(hand!=='left')fightAgain();return;}if(hand==='left')togglePause();else campClick(vrHover);drawVrHud();}
   else if(state==='battle'){
     if(phase==='taunt'){endTaunt();return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
@@ -1857,6 +1864,7 @@ function loop(tms){
   const now=tms/1000;const dt=Math.min(0.05,Math.max(0,now-last));last=now;
   for(let i=timers.length-1;i>=0;i--){timers[i].t-=dt;if(timers[i].t<=0){const f=timers[i].fn;timers.splice(i,1);f();}}
   vrMsgT=Math.max(0,vrMsgT-dt);
+  if(state==='kingdom'&&CAMP.over&&!CAMP.endShown)showCampaignEnd();
   if(levelUps.length&&vrMsgT<=0.2){const r=levelUps.shift();if(r.alive){if(state==='battle'||state==='end')showBanner(r.d.short+' reaches Lv '+r.lvl+'!',r.nat!=='aldmere');else if(r.nat==='aldmere')clog(`${r.d.short} reaches level ${r.lvl} (${rankOf(r.lvl)}).`);}}
   // kingdom
   if(kingdom.visible){
