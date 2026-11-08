@@ -25,7 +25,7 @@ Each side fields three generals, each leading 400 troops of one type. Spears bea
   - *Ashen Wastes:* a lava river crossed by two stone bridges, lava pools, embers.
   Woods slow troops (cavalry most) and halve arrow damage to anyone inside.
 - **Morale:** kills and spells raise it, losses lower it. An army below 20% starts to rout.
-- **Generals** fight on the field, take damage, and each has a spell: Starfall, Arrow Storm, Thunder Lance, Ash Rain, Dragon's Breath.
+- **Generals** fight on the field, take damage, and each has a spell: Starfall, Arrow Storm, Thunder Lance, Ash Rain, Dragon's Breath. MP holds up to three spell charges: each round starts with one, a charge refills about every 16 seconds (faster at higher levels), kills add MP, and each cast spends one charge with a 4-second cooldown.
 - **Capture:** a general who falls in a duel or to a spell is taken prisoner. When an army breaks, its general flees for the map edge and your troops chase him (cavalry is best at this); catch him before he escapes and he's yours. Between rounds you can try to persuade prisoners to join you with fresh troops, and the enemy will try the same with yours. Capturing Vorgrath ends the battle.
 - **Duels:** challenge the enemy general, or answer his challenge. Refusing costs morale. The armies form a ring and each exchange is Strike / Guard / Power: Strike beats Power, Guard beats Strike, Power breaks Guard. A golden glow means he is winding up a Power blow.
 
