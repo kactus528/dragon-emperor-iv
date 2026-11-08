@@ -198,6 +198,20 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   clip-path:polygon(50% 0,59% 13%,74% 5%,76% 21%,92% 19%,86% 34%,100% 41%,88% 52%,98% 65%,82% 69%,84% 85%,69% 82%,61% 97%,50% 86%,39% 97%,31% 82%,16% 85%,18% 69%,2% 65%,12% 52%,0 41%,14% 34%,8% 19%,24% 21%,26% 5%,41% 13%)}
 .cta{display:flex;gap:8px;flex-wrap:wrap}
 .cta{flex-direction:column;align-items:flex-start}.diff{display:flex;gap:6px;flex-wrap:wrap}.diff button{padding:8px 12px;font-size:11px}#diffBlurb{font-family:var(--f-term);font-size:16px;color:#a99fb8;margin:0}
+.tutp{padding:20px 22px;width:min(600px,100%);box-sizing:border-box;display:grid;gap:12px;max-height:calc(100vh - 32px);overflow:auto}
+#tut{position:fixed;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(7,6,12,.72)}#tut[hidden]{display:none}
+.tuthead{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.tuthead button{font-size:10px;padding:7px 10px}
+#tutH{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(22px,5.5vw,32px);color:var(--gold);line-height:1.15}
+#tutBody{margin:0;color:var(--ink);font-size:12px;line-height:1.7}#tutBody b{color:var(--gold);font-weight:700}
+#tutArt:empty{display:none}#tutArt svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
+#tutKeys{list-style:none;margin:0;padding:10px 12px;display:grid;gap:6px;background:rgba(11,9,18,.6);border:1px solid var(--line)}
+#tutKeys li{display:flex;gap:10px;align-items:baseline;font-size:11px;color:var(--dim);line-height:1.4}
+#tutKeys kbd{flex:none;min-width:84px;font-family:var(--f-pixel);font-size:10px;color:var(--ink);background:#1c1730;border:1px solid var(--line);border-bottom-width:2px;padding:3px 6px;text-align:center}
+.tutfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.tutno{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--dim);cursor:pointer}.tutno input{accent-color:var(--gold);width:16px;height:16px}
+.tutnav{display:flex;gap:8px}.tutnav .go{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700}
+.tutdots{display:flex;gap:6px;justify-content:center}.tutdots i{width:8px;height:8px;background:#2a2238;display:block}.tutdots i.on{background:var(--gold)}
 .cta .start{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700;padding:12px 20px;font-size:13px}
 .fine{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--f-term);font-size:15px;color:#7d7394;border-top:1px solid #2a2238;padding-top:10px}
 @media (max-width:560px){
@@ -332,6 +346,20 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   </div>
 </div>
 
+<div id="tut" hidden>
+  <div class="panel tutp" role="dialog" aria-modal="true" aria-labelledby="tutH">
+    <div class="tuthead"><span id="tutStep">1 / 8</span><button id="tutSkip">Skip tutorial</button></div>
+    <h2 id="tutH"></h2>
+    <div id="tutArt"></div>
+    <p id="tutBody"></p>
+    <ul id="tutKeys"></ul>
+    <div class="tutfoot">
+      <label class="tutno"><input type="checkbox" id="tutNo" checked> Don't show this at start</label>
+      <div class="tutnav"><button id="tutBack">Back</button><button id="tutNext" class="go">Next</button></div>
+    </div>
+    <div class="tutdots" id="tutDots"></div>
+  </div>
+</div>
 <div id="title">
   <div>
     <div class="termline">IRONMONGER // CREW TERMINAL 04 // DEMO DISC FOUND IN LOCKER 9</div>
@@ -354,7 +382,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
           <div class="diff" role="group" aria-label="Difficulty"><button data-diff="squire">Squire</button><button data-diff="knight">Knight</button><button data-diff="warlord">Warlord</button></div>
           <p id="diffBlurb"></p>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="start" id="startBtn">Press Start</button>
-          <button id="vrBtn2" disabled>Enter VR</button></div>
+          <button id="vrBtn2" disabled>Enter VR</button>
+          <button id="howBtn">How to play</button></div>
         </div>
         <div class="fine"><span>©1997 TAIYO CO., LTD. · PLAYABLE DEMO · <span id="buildTag"></span></span><span>Dragon Emperor I not required.</span></div>
       </div>
@@ -367,7 +396,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 25';
+const BUILD='Build 26';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1647,7 +1676,59 @@ function finishDuel(w){
 }
 
 /* ---------- flow ---------- */
+const TRI=(a,b,c,ca,cb,cc)=>`<svg viewBox="0 0 340 150" role="img" aria-label="${a} beats ${b}, ${b} beats ${c}, ${c} beats ${a}"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f0c055"/></marker></defs>
+  <g font-family="Silkscreen,monospace" font-size="13" text-anchor="middle" fill="#f1e8d4">
+  <rect x="120" y="6" width="100" height="30" fill="#1c1730" stroke="${ca}"/><text x="170" y="26">${a}</text>
+  <rect x="20" y="112" width="100" height="30" fill="#1c1730" stroke="${cb}"/><text x="70" y="132">${b}</text>
+  <rect x="220" y="112" width="100" height="30" fill="#1c1730" stroke="${cc}"/><text x="270" y="132">${c}</text></g>
+  <g stroke="#f0c055" stroke-width="2" fill="none" marker-end="url(#ah)"><path d="M140 40L88 106"/><path d="M124 127H214"/><path d="M262 106L204 40"/></g>
+  <text x="170" y="84" font-family="VT323,monospace" font-size="14" fill="#a99fb8" text-anchor="middle">arrow = beats</text></svg>`;
+const TUT_PAGES=[
+ {h:'Welcome, Commander',b:'You lead <b>Aldmere</b>, the blue banners. The <b>Ashen Legion</b> (red) and <b>Duskmarch</b> (purple) want the realm too. You win the campaign when every castle on the war table flies blue. You lose if Aldmere loses every castle, or if Kaelen is taken for good.',
+  d:[['Enter / →','Next page'],['←','Back'],['Esc','Skip']],v:[['Right trigger','Next page'],['Left trigger','Back'],['A','Skip']]},
+ {h:'The war table',b:'Time passes in weeks. <b>Select one of your castles</b>, tick the generals you want to send, then <b>pick any castle</b> to march on it. Armies that meet on a road fight, and an army that reaches an enemy castle attacks it. Generals left in your castles rest and refill their troops. Stuck? Read the <b>advisor line</b>: it always tells you what to do next.',
+  d:[['Click','Select a castle, then a target'],['Space','Pause or resume'],['Esc','Cancel selection']],v:[['Point + R trigger','Select a castle, then a target'],['Left trigger','Pause or resume'],['A / X','Cancel selection']]},
+ {h:'Choose your general',b:'A battle is a series of rounds. Before each one you pick a general, and he fights with his own troop type. Match-ups matter a lot: the cards show <b>Good</b>, <b>Bad</b> or <b>Even</b> against the enemy general.',art:()=>TRI('Spears','Cavalry','Archers','#9ab8ff','#ffb09a','#8fe39a'),
+  d:[['1–9 / click','Pick a general or a prisoner']],v:[['Left trigger','Next card'],['Right trigger','Deploy']]},
+ {h:'Command the battle',b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
+  d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['Left trigger','Cycle orders'],['Right trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
+ {h:'Magic',b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>, cavalry the fewest. Spells hit hard against packed troops, so aim where the enemy is thickest.',
+  d:[['Space','Aim the spell'],['Click','Fire where you aim'],['Esc','Cancel aim']],v:[['Point right hand','Aim'],['Right trigger','Fire']]},
+ {h:'Duels',b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
+  d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trig · L trig · A','Strike · Guard · Power']]},
+ {h:'Spoils of war',b:'A beaten general flees for the edge of the field. <b>Catch him</b> (cavalry is fastest) and he becomes your prisoner. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
+  d:[['Click a prisoner','Try to persuade him']],v:[['Right trigger','Persuade the selected prisoner']]},
+ {h:'Your view',b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Good luck, Commander.',
+  d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['Sticks','Slide, turn and zoom'],['B','Reset the table']]}];
+const TUT={open:false,i:0,after:null};
+let tutWanted=true;try{tutWanted=localStorage.getItem('de4-tut')!=='off';}catch(e){}
+const tutC=cv(1024,640),tutX=tutC.getContext('2d'),tutT=tex(tutC,true);let tutBoard=null;
+function openTut(after){TUT.open=true;TUT.i=0;TUT.after=after||null;$('tutNo').checked=!tutWanted||!!after;$('tut').hidden=xrActive;tutRender();if(!xrActive)setTimeout(()=>$('tutNext').focus(),0);}
+function closeTut(){if(!TUT.open)return;TUT.open=false;$('tut').hidden=true;if(tutBoard)tutBoard.visible=false;if(xrActive)vrHud.visible=true;
+  tutWanted=!$('tutNo').checked;try{localStorage.setItem('de4-tut',tutWanted?'on':'off');}catch(e){}
+  const f=TUT.after;TUT.after=null;if(f)f();else if(xrActive)drawVrHud();}
+function tutGo(d){if(!TUT.open)return;const n=TUT.i+d;if(n<0)return;if(n>=TUT_PAGES.length){closeTut();return;}TUT.i=n;sfx('blip',300+n*40);tutRender();}
+function tutRender(){const P=TUT_PAGES[TUT.i],N=TUT_PAGES.length;
+  $('tutStep').textContent=(TUT.i+1)+' / '+N;$('tutH').textContent=P.h;$('tutBody').innerHTML=P.b;$('tutArt').innerHTML=P.art?P.art():'';
+  $('tutKeys').innerHTML=P.d.map(([k,l])=>`<li><kbd>${k}</kbd><span>${l}</span></li>`).join('');
+  $('tutBack').disabled=TUT.i===0;$('tutNext').textContent=TUT.i===N-1?(TUT.after?'Start the war':'Done'):'Next';
+  $('tutDots').innerHTML=TUT_PAGES.map((_,i)=>`<i class="${i===TUT.i?'on':''}"></i>`).join('');
+  if(xrActive)drawTutBoard();}
+function drawTutBoard(){const P=TUT_PAGES[TUT.i],N=TUT_PAGES.length,x=tutX,W=1024,H=640;
+  if(!tutBoard){tutBoard=new THREE.Mesh(new THREE.PlaneGeometry(64,40),new THREE.MeshBasicMaterial({map:tutT,transparent:true,depthTest:false}));tutBoard.renderOrder=14;world.add(tutBoard);}
+  tutBoard.position.copy(vrHud.position);tutBoard.position.y-=8;tutBoard.rotation.copy(vrHud.rotation);tutBoard.visible=true;vrHud.visible=false;
+  x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.95)';x.fillRect(0,0,W,H);x.strokeStyle='#4a3d63';x.lineWidth=4;x.strokeRect(2,2,W-4,H-4);
+  x.textBaseline='top';x.textAlign='left';x.font='16px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('HOW TO PLAY  '+(TUT.i+1)+' / '+N,40,30);x.textAlign='right';x.fillText('A: SKIP',W-40,30);x.textAlign='left';
+  x.font='900 46px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText(P.h.toUpperCase(),40,64);
+  const txt=P.b.replace(/<[^>]+>/g,'');x.font='21px Silkscreen, monospace';x.fillStyle='#f1e8d4';let line='',y=136;
+  for(const w of txt.split(' ')){const t=line?line+' '+w:w;if(x.measureText(t).width>W-80&&line){x.fillText(line,40,y);line=w;y+=31;}else line=t;}x.fillText(line,40,y);y+=50;
+  x.fillStyle='rgba(11,9,18,0.7)';x.fillRect(32,y-10,W-64,P.v.length*32+16);
+  P.v.forEach(([k,l],i)=>{x.font='700 18px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText(k.toUpperCase(),48,y+i*32);x.font='18px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(l,330,y+i*32);});
+  x.textAlign='center';x.font='700 18px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText((TUT.i?'L TRIG: BACK   ·   ':'')+'R TRIG: '+(TUT.i===N-1?(TUT.after?'START THE WAR':'DONE'):'NEXT'),W/2,596);
+  for(let i=0;i<N;i++){x.fillStyle=i===TUT.i?'#f0c055':'#2a2238';x.fillRect(W/2-N*12+i*24,570,12,12);}tutT.needsUpdate=true;}
 function startGame(){
+  if(state!=='title'||TUT.open)return;if(tutWanted){audioInit();openTut(beginCampaign);return;}beginCampaign();}
+function beginCampaign(){
   if(state!=='title')return;audioInit();sfx('fanfare');$('title').hidden=true;state='kingdom';initCampaign();
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();
 }
@@ -1907,13 +1988,18 @@ $('wdBtn').addEventListener('click',withdraw);
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
+$('howBtn').addEventListener('click',()=>{audioInit();openTut(null);});
+$('tutNext').addEventListener('click',()=>tutGo(1));$('tutBack').addEventListener('click',()=>tutGo(-1));$('tutSkip').addEventListener('click',closeTut);
+$('tut').addEventListener('click',e=>{if(e.target.id==='tut')closeTut();});
 document.querySelectorAll('[data-diff]').forEach(b=>b.addEventListener('click',()=>setDiff(b.dataset.diff)));setDiff(diffKey);
 $('buildTag').textContent=BUILD.toUpperCase();
 $('pauseBtn').addEventListener('click',togglePause);
 $('spdBtn').addEventListener('click',()=>{CAMP.speed=CAMP.speed===1?2:CAMP.speed===2?4:1;updateModeUI();});
 $('againBtn').addEventListener('click',fightAgain);
 $('mapBtn').addEventListener('click',backToKingdom);
-addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+  if(TUT.open){if(k==='enter'||k==='arrowright'){e.preventDefault();tutGo(1);}else if(k==='arrowleft'){e.preventDefault();tutGo(-1);}else if(k==='escape')closeTut();return;}
+  if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;
   if(state==='battle'){
     if(phase==='taunt'){if(k===' '||k==='enter'||k==='escape'){e.preventDefault();endTaunt();}return;}
     if(phase==='select'){const n=parseInt(k,10),it=selItems();if(n>=1&&n<=it.length)selAct(it[n-1]);return;}
@@ -1924,6 +2010,7 @@ addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName=
   }else if(state==='kingdom'){if(CAMP.over&&k==='enter'){fightAgain();return;}if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
   else if(k==='enter'&&state==='title')startGame();});
 function xrSelect(hand){audioInit();
+  if(TUT.open){tutGo(hand==='left'?-1:1);return;}
   if(state==='title'){if(hand==='left'){const K=Object.keys(DIFFS);setDiff(K[(K.indexOf(diffKey)+1)%K.length]);drawVrHud();}else startGame();}else if(state==='kingdom'){if(CAMP.over){if(hand!=='left')fightAgain();return;}if(hand==='left')togglePause();else campClick(vrHover);drawVrHud();}
   else if(state==='battle'){
     if(phase==='taunt'){endTaunt();return;}
@@ -1933,6 +2020,7 @@ function xrSelect(hand){audioInit();
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
 function xrFace(hand){
+  if(TUT.open){closeTut();return;}
   if(state==='kingdom'){CAMP.sel=null;CAMP.target=false;updateCampPanel();drawVrHud();return;}
   if(state!=='battle')return;
   if(phase==='duel'){duelPick('power');return;}
@@ -2012,8 +2100,8 @@ function vrInput(dt){
     const b=gp.buttons[5]&&gp.buttons[5].pressed;if(b&&!btnPrev.get(gp)){vrReset();grabbing.clear();g1=g2=null;}btnPrev.set(gp,!!b);
     const fa=gp.buttons[4]&&gp.buttons[4].pressed;if(fa&&!btnPrevA.get(gp))xrFace(src.handedness);btnPrevA.set(gp,!!fa);}
 }
-renderer.xr.addEventListener('sessionstart',()=>{xrActive=true;camera.near=0.02;camera.far=300;camera.updateProjectionMatrix();vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp').forEach(el=>el.style.visibility='hidden');drawVrHud();});
-renderer.xr.addEventListener('sessionend',()=>{xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp').forEach(el=>el.style.visibility='');onResize();});
+renderer.xr.addEventListener('sessionstart',()=>{xrActive=true;camera.near=0.02;camera.far=300;camera.updateProjectionMatrix();vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='hidden');drawVrHud();if(TUT.open)drawTutBoard();});
+renderer.xr.addEventListener('sessionend',()=>{xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='');if(tutBoard)tutBoard.visible=false;if(TUT.open)$('tut').hidden=false;onResize();});
 async function setupVR(){
   const btns=[$('vrBtn'),$('vrBtn2')];
   let ok=false;try{ok=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-vr'));}catch(e){ok=false;}

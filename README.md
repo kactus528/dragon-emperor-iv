@@ -4,6 +4,8 @@ Playable demo of Taiyo's fictional 1997 strategy RPG for the Taiyo Vision 32-bit
 
 A miniature war-table kingdom drops into stereoscopic battles of 400 vs 400 sprite soldiers on a 144x80 battlefield, drawn as instanced sprite batches. View it in mono, red/cyan, side-by-side or cross-eye stereo on a desktop, or in WebXR on a Meta Quest (open the GitHub Pages link in the Quest Browser and press Enter VR).
 
+New players get an eight-page **How to play** guide when they press Start, covering the war table, match-ups, orders, magic, duels, spoils and the view controls. It can be skipped, the "Don't show this at start" choice is remembered, and it can be reopened from **How to play** on the title screen. It works on desktop and in VR.
+
 ## Difficulty
 Pick one on the title screen (left trigger in VR):
 - **Squire:** enemy troops hit 22% softer, enemy magic recharges slowly, the rivals mostly fight each other, Duskmarch keeps a 10-week truce, your garrisons recover fast, and Kaelen is always rescued if captured.
