@@ -318,7 +318,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 20';
+const BUILD='Build 21';
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const R=(a,b)=>a+Math.random()*(b-a);
 const ease=t=>1-Math.pow(1-t,3);
@@ -1071,11 +1071,11 @@ function updateCampPanel(){
   if(s.castle){const c=s.castle,own=c.o==='aldmere',G=garrison(c);selRing.visible=true;selRing.position.set(c.x,c.y+0.1,c.z);
     $('cpName').textContent=c.n;$('cpName').style.color=NATIONS[c.o].col;$('cpSub').textContent=`${NATIONS[c.o].name}${c.cap?' capital':''} · ${BIOMES[c.b].name}`;
     html=G.length?G.map(r=>genRow(r,own,CAMP.picked.has(r))).join(''):'<p class="cpnote">No generals stationed here.</p>';
-    if(own&&G.length)btns=CAMP.target?'<button id="cpCancel">Cancel</button><span class="cpnote">Click a castle to march there.</span>':`<button id="cpMarch"${CAMP.picked.size?'':' disabled'}>March with ${CAMP.picked.size||'…'}</button>`;}
+    if(own&&G.length)btns=CAMP.picked.size?`<span class="cpnote">Click any castle on the map to march there with ${CAMP.picked.size} general${CAMP.picked.size>1?'s':''}.</span>`:'<span class="cpnote">Tick at least one general with troops to march.</span>';}
   else if(s.army){const a=s.army,own=a.nat==='aldmere';selRing.visible=false;
     $('cpName').textContent=own?'Your army':NATIONS[a.nat].name+' army';$('cpName').style.color=NATIONS[a.nat].col;$('cpSub').textContent='Marching to '+CASTLES[a.path[a.path.length-1]].n;
     html=a.gens.map(r=>genRow(r,false,false)).join('');
-    if(own)btns=CAMP.target?'<button id="cpCancel">Cancel</button><span class="cpnote">Click a castle to redirect.</span>':'<button id="cpRedirect">Redirect</button><button id="cpBack">Turn back</button>';}
+    if(own)btns='<span class="cpnote">Click any castle to redirect.</span><button id="cpBack">Turn back</button>';}
   $('cpList').innerHTML=html;$('cpBtns').innerHTML=btns+'<button id="cpClose">Close</button>';
   $('cpList').querySelectorAll('input[data-g]').forEach(i=>i.addEventListener('change',e=>{const r=GENS[+e.target.dataset.g];if(e.target.checked){if(CAMP.picked.size>=5){e.target.checked=false;return;}CAMP.picked.add(r);}else CAMP.picked.delete(r);updateCampPanel();}));
   const on=(id,f)=>{const b=$(id);if(b)b.addEventListener('click',f);};
@@ -1089,14 +1089,17 @@ function redirect(a,to){const here=a.t>0.5?a.path[a.seg+1]:a.path[a.seg],p=bfs(h
 function campClick(hit){
   if(!hit){if(!CAMP.target){CAMP.sel=null;updateCampPanel();}return;}
   const c=hit.userData.castle,a=hit.userData.army;
-  if(CAMP.target&&c&&CAMP.sel){
-    if(CAMP.sel.castle){const from=CAMP.sel.castle;if(c===from){CAMP.target=false;updateCampPanel();return;}
+  const S=CAMP.sel,canMarch=S&&((S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size)||(S.army&&S.army.nat==='aldmere'));
+  if(c&&S&&(CAMP.target||canMarch)&&!(S.castle===c)){
+    if(S.castle&&!CAMP.picked.size){clog(`No one at ${S.castle.n} can march. Tick a general first.`);updateCampPanel();return;}
+    if(CAMP.sel.castle){const from=CAMP.sel.castle;
       const gens=[...CAMP.picked].filter(r=>r.alive&&r.loc===from.id);const army=dispatch('aldmere',gens,from.id,c.id);
       if(army){clog(`Your army marches from ${from.n} to ${c.n}.`);sfx('fanfare');CAMP.picked.clear();CAMP.sel={army};CAMP.target=false;}else clog('No road leads there.');}
     else if(CAMP.sel.army)redirect(CAMP.sel.army,c.id);
     updateCampPanel();return;}
   CAMP.target=false;CAMP.picked.clear();
-  if(c){CAMP.sel={castle:c};if(c.o==='aldmere')garrison(c).filter(ready).sort((x,y)=>power(y)-power(x)).slice(0,3).forEach(r=>CAMP.picked.add(r));}
+  if(c){CAMP.sel={castle:c};if(c.o==='aldmere'){const G=garrison(c),able=G.filter(r=>r.troops>0&&r.hp>0).sort((x,y)=>power(y)-power(x));able.slice(0,3).forEach(r=>CAMP.picked.add(r));
+    clog(!G.length?`${c.n} has no generals.`:!able.length?`The generals at ${c.n} have no troops left. They recover each week.`:`${able.slice(0,3).map(r=>r.d.short).join(', ')} ready at ${c.n}. Click a castle to march.`);}}
   else if(a)CAMP.sel={army:a};
   updateCampPanel();
 }
@@ -1696,7 +1699,7 @@ function drawVrHud(){
     const cnt=n=>CASTLES.filter(c=>c.o===n).length;line(`Aldmere ${cnt('aldmere')} · Ashen ${cnt('ashen')} · Dusk ${cnt('dusk')}`,56,'#a99fb8','16px');
     const hv=vrHover&&(vrHover.userData.castle||vrHover.userData.army),sel=CAMP.sel;
     line(hv?(hv.n?hv.n+' ('+NATIONS[hv.o].name+', '+garrison(hv).length+' gen)':NATIONS[hv.nat].name+' army: '+hv.gens.map(r=>r.d.short).join(', ')):'Point at a castle or army',84,'#f1e8d4','16px');
-    line(sel?(CAMP.target?'Pick a destination castle':sel.castle?'Selected '+sel.castle.n+(CAMP.picked.size?' · '+CAMP.picked.size+' ready to march':''):'Selected your army'):'',112,'#f0c055','16px');
+    line(sel?(sel.castle?(sel.castle.o==='aldmere'?(CAMP.picked.size?CAMP.picked.size+' ready: point at a target, R trig':'No one here can march'):sel.castle.n+' selected'):(sel.army.nat==='aldmere'?'Army: point at a castle to redirect':'Enemy army')):'',112,'#f0c055','16px');
     line(CAMP.log.slice(0,60),140,'#a99fb8','14px');line('R trig select/march · L trig pause · A cancel',196,'#857aa0','14px');}
   else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const it=selItems(),si=selIdx%Math.max(1,it.length),e=selEnemyHint,st=Math.max(0,Math.min(si-1,it.length-4));
     it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
