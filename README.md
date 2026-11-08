@@ -41,7 +41,7 @@ Every general but Kaelen has **loyalty** (♥ in the castle panel). Wins raise i
 
 ## New Game+: the Ages
 
-Unite the realm and the end screen offers **Begin Age II**. A story card opens the new Age, and:
+Unite the realm and, after the battle's results, the war table shows the victory screen with **Begin Age II** (in VR a large board appears: **A** begins the next Age, **X** starts over at Age I; the trigger is ignored there so you can't skip it by accident). A story card opens the new Age, and:
 - Every Aldmere general who survived keeps their level, XP, relic and loyalty; wandering generals you recruited return with you; the vault carries over.
 - Enemy generals gain 2 levels per Age (up to 10) and increasingly carry relics; enemy castles start with stronger walls.
 - The enemy hits harder, recharges magic faster and counter-picks more each Age.
