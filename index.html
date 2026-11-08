@@ -407,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 32';
+const BUILD='Build 33';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -961,12 +961,15 @@ function aimAt(o,d){ray.set(o,d);const h=ray.intersectObject(battleTerrain,false
   const p=battle.worldToLocal(h.point.clone());aim.valid=Math.abs(p.x)<FW/2&&Math.abs(p.z)<FD/2;aim.x=p.x;aim.z=p.z;return h;}
 function placeReticle(show,now){reticle.visible=show&&aim.valid;if(reticle.visible){reticle.position.set(aim.x,Hb(aim.x,aim.z)+0.15,aim.z);reticle.rotation.z=now*0.9;reticle.material.color.set(mp[0]>=1?0xffffff:0x5e5476);}}
 function mouseAim(e){const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);aimAt(ray.ray.origin.clone(),ray.ray.direction.clone());}
-const storm={on:false,left:0,t:0,gap:0,tot:0};
-function stormStrike(x,z){if(!storm.on||storm.left<=0||storm.gap>0)return false;storm.left--;storm.gap=0.14;
-  const[cx,cz]=[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];lightning(cx,cz,1,true);buzz(0.6,90);hudAcc=1;
+const storm={on:false,left:0,t:0,gap:0,tot:0,kind:'thunder'};
+function barrage(x,z,V,side){const dir=side?-1:1,n=20;sfx('whoosh');spawn({x,y:Hb(x,z)+0.15,z,tex:T_RUNE,w:4.6,h:4.6,life:0.9,grow:0.2,blink:true});
+  for(let i=0;i<n;i++)schedule(i*0.012,()=>{const a=R(0,6.283),r=2.3*Math.sqrt(Math.random());rainArrow(x+Math.cos(a)*r,z+Math.sin(a)*r,V,dir);});
+  schedule(0.75,()=>{const eg=fg[V];if(eg.rec&&!eg.captured&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,4,null);});}
+function stormStrike(x,z){if(!storm.on||storm.left<=0||storm.gap>0)return false;storm.left--;storm.gap=storm.kind==='volley'?0.2:0.14;
+  const[cx,cz]=[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];if(storm.kind==='volley')barrage(cx,cz,1,0);else lightning(cx,cz,1,true);buzz(storm.kind==='volley'?0.35:0.6,90);hudAcc=1;
   if(storm.left<=0){storm.on=false;aim.mode=false;spellCD[0]=2.5;}return true;}
 function stormEnd(release){if(!storm.on)return;storm.on=false;aim.mode=false;spellCD[0]=2.5;
-  if(release&&storm.left>0&&phase==='fight'){const n=storm.left;showBanner('The storm breaks!');for(let i=0;i<n;i++)schedule(0.1+i*0.16,()=>{const c=densest(alive[1])||fg[1];if(c)lightning(c.x+R(-3,3),c.z+R(-3,3),1,true);});}
+  if(release&&storm.left>0&&phase==='fight'){const n=storm.left,vol=storm.kind==='volley';showBanner(vol?'Loose at will!':'The storm breaks!');for(let i=0;i<n;i++)schedule(0.1+i*(vol?0.25:0.16),()=>{const c=densest(alive[1])||fg[1];if(!c)return;const x=clamp(c.x+R(-3,3),-FW/2+1,FW/2-1),z=clamp(c.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(vol)barrage(x,z,1,0);else lightning(x,z,1,true);});}
   storm.left=0;hudAcc=1;}
 function spellPress(){if(state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0){sprint(fg[0]);return;}if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);return;}if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
 
@@ -1566,8 +1569,8 @@ function castSpell(side,tgt){
   const pw=1+0.06*((g.rec.lvl||1)-1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
   if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
-  else if(sp==='thunder'&&side===0){const n=Math.round(8*pw);storm.on=true;storm.left=storm.tot=n;storm.t=10;storm.gap=0.35;aim.mode=true;
-    schedule(0.4,()=>showBanner(n+' bolts · aim and strike!'));if(tgt)schedule(0.35,()=>{storm.gap=0;stormStrike(cx,cz);});}
+  else if((sp==='thunder'||sp==='volley')&&side===0){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);storm.kind=sp;storm.on=true;storm.left=storm.tot=n;storm.t=10;storm.gap=0.35;aim.mode=true;
+    schedule(0.4,()=>showBanner(n+(vol?' volleys':' bolts')+' · aim and '+(vol?'loose!':'strike!')));if(tgt)schedule(0.35,()=>{storm.gap=0;stormStrike(cx,cz);});}
   else if(sp==='thunder'){for(let i=0;i<Math.round(8*pw);i++)schedule(0.5+i*0.22,()=>{const[x,z]=cl(cx+R(-4,4),cz+R(-4,4));lightning(x,z,V,true);});}
   else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<Math.round(170*pw);i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
@@ -1738,8 +1741,8 @@ const TUT_PAGES=[
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
- {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) is different: one charge calls a storm of bolts, and every click or trigger pull drops one bolt exactly where you aim. Snipe the enemy general or pick apart his clumps. Unused bolts strike on their own after 10 seconds.',
-  d:[['Space','Aim the spell'],['Click','Fire (Thunder: one bolt per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder: one bolt per pull)'],['R stick','Turn and zoom to find a target']]},
+ {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) and <b>Arrow Storm</b> (archers) are aimed by hand: one charge gives you a run of bolts or tight arrow volleys, and every click or trigger pull lands one exactly where you aim. Snipe the enemy general or pick apart his clumps. Anything unused fires on its own after 10 seconds.',
+  d:[['Space','Aim the spell'],['Click','Fire (Thunder/Arrows: one per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder/Arrows: one per pull)'],['R stick','Turn and zoom to find a target']]},
  {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
   d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
  {h:'Spoils of war',q:['rt','lt','ls'],b:'A beaten or withdrawing general must run all the way to <b>his own edge of the field</b> to escape. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: steer him with <b>WASD</b> (or the left stick) and press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
@@ -1992,7 +1995,7 @@ function updateHud(dt){
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';$('sta'+k).style.width=((fg[s].sta??1)*100)+'%';$('sta'+k).parentNode.classList.toggle('burst',fg[s].burst>0);}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
-    sp.textContent=phase==='pursuit'&&pursuit&&pursuit.L===0?'Space Sprint · '+Math.round(fg[0].sta*100)+'%':storm.on?'Click to strike · '+storm.left+' bolts · '+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
+    sp.textContent=phase==='pursuit'&&pursuit&&pursuit.L===0?'Space Sprint · '+Math.round(fg[0].sta*100)+'%':storm.on?'Click to '+(storm.kind==='volley'?'loose · '+storm.left+' volleys · ':'strike · '+storm.left+' bolts · ')+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
     if(chal)$('chalTime').style.width=(100*chal.t/chal.max)+'%';
     const db=$('duelBtn');db.disabled=phase!=='fight';db.textContent=seekDuel[0]?'5 Stop seeking':'5 Seek duel';db.classList.toggle('on',seekDuel[0]);
     $('wdBtn').disabled=phase!=='fight'||!avail(0).some(r=>r!==active[0]);
@@ -2046,7 +2049,7 @@ function drawVrHud(){
     else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
     else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · R TRIG SPRINT':'RUN HIM DOWN!',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
     else{line('ORDER: '+orders[0].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);
-      line(storm.on?'STORM: R TRIG = BOLT · '+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
+      line(storm.on?(storm.kind==='volley'?'VOLLEYS: R TRIG = FIRE · ':'STORM: R TRIG = BOLT · ')+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
       line(withdrawArm>0?'Press X again to withdraw':(seekDuel[0]?'A stop seeking':'A seek duel')+' · X withdraw · B reset',160,withdrawArm>0?'#ffb09a':'#857aa0');}
   }
   if(vrMsgT>0){x.font='700 32px Silkscreen, monospace';x.fillStyle='#ffe39a';x.textAlign='right';x.fillText(vrMsg.toUpperCase().slice(0,22),W-24,H-44);x.textAlign='left';}
