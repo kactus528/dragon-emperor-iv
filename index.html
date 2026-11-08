@@ -245,6 +245,10 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 #story{position:fixed;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(7,6,12,.85)}#story[hidden]{display:none}
 .storyp{padding:26px;width:min(560px,100%);box-sizing:border-box;display:grid;gap:14px;text-align:center}.storyp h2{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(24px,6vw,36px);color:var(--gold)}
 .storyp p{margin:0;color:var(--ink);font-size:12px;line-height:1.8}.storyp .go{justify-self:center;background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700;padding:12px 20px}
+#dbg{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:rgba(7,6,12,.85)}#dbg[hidden]{display:none}
+.dbgp{padding:20px;width:min(860px,100%);box-sizing:border-box;display:grid;gap:12px}.dbgp h2{margin:0;font-family:var(--f-display);color:var(--gold);font-size:24px}
+#dbgT{width:100%;box-sizing:border-box;height:min(60vh,520px);background:#07060c;color:#c8f0c8;border:1px solid var(--line);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:10px;white-space:pre;resize:vertical}
+#errToast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:11;background:#5a1414;color:#fff;border:1px solid #ff7a5a;padding:10px 14px;font-size:11px;max-width:calc(100vw - 32px);box-sizing:border-box}#errToast[hidden]{display:none}
 .cta .start{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700;padding:12px 20px;font-size:13px}
 .fine{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--f-term);font-size:15px;color:#7d7394;border-top:1px solid #2a2238;padding-top:10px}
 @media (max-width:560px){
@@ -305,6 +309,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <input id="depth" type="range" min="0.2" max="2.6" step="0.05" value="1.1">
     <button id="resetView">Reset view</button>
     <button id="vrBtn" disabled>Checking VR…</button>
+    <button id="dbgBtn2" title="Open the debug log">Log</button>
     <div class="hint">drag to orbit · right-drag or WASD to pan · Q/E turn · scroll to zoom</div>
   </div>
   <div class="dock panel" id="dockBattle" hidden>
@@ -400,6 +405,14 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 <div id="story" hidden>
   <div class="panel storyp"><div class="termline" id="storyTag">THE ETERNAL WAR</div><h2 id="storyH"></h2><p id="storyT"></p><button id="storyGo" class="go">Raise the banners</button></div>
 </div>
+<div id="dbg" hidden>
+  <div class="panel dbgp" role="dialog" aria-labelledby="dbgH">
+    <div class="selhead"><h2 id="dbgH">Debug log</h2><span class="sknote" id="dbgN"></span></div>
+    <textarea id="dbgT" readonly spellcheck="false"></textarea>
+    <div class="row skbtns"><button id="dbgClear">Clear</button><button id="dbgDl">Download .txt</button><button id="dbgCopy" class="go">Copy</button><button id="dbgClose">Close</button></div>
+  </div>
+</div>
+<div id="errToast" hidden>Something went wrong. It was saved to the debug log (title screen → Debug log).</div>
 <div id="tut" hidden>
   <div class="panel tutp" role="dialog" aria-modal="true" aria-labelledby="tutH">
     <div class="tuthead"><span id="tutStep">1 / 8</span><button id="tutSkip">Skip tutorial</button></div>
@@ -439,9 +452,10 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
           <div class="diff" role="group" aria-label="Difficulty"><button data-diff="squire">Squire</button><button data-diff="knight">Knight</button><button data-diff="warlord">Warlord</button></div>
           <p id="diffBlurb"></p>
           <label class="bloodset" for="bloodR"><span>Blood</span><input type="range" id="bloodR" min="0" max="100" step="5" value="50"><b id="bloodV">50%</b></label>
+          <label class="bloodset"><input type="checkbox" id="goreX"> <span>Ludicrous gore</span></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="start" id="startBtn">Press Start</button><button class="start" id="ageBtn" hidden>Continue</button>
           <button id="vrBtn2" disabled>Enter VR</button>
-          <button id="howBtn">How to play</button><button id="skBtn">Skirmish</button></div>
+          <button id="howBtn">How to play</button><button id="skBtn">Skirmish</button><button id="dbgBtn">Debug log</button></div>
         </div>
         <div class="fine"><span>©1997 TAIYO CO., LTD. · PLAYABLE DEMO · <span id="buildTag"></span></span><span>Dragon Emperor I not required.</span></div>
       </div>
@@ -449,12 +463,29 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* Debug log: errors, warnings and breadcrumbs kept in localStorage so they survive a crash or a VR session. */
+(function(){const KEY='de4-log',MAX=400;let buf=[];try{buf=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(buf))buf=[];}catch(e){buf=[];}
+  let dirty=false,timer=null;const save=now=>{dirty=true;if(now){flush();return;}if(!timer)timer=setTimeout(flush,2000);};
+  function flush(){timer=null;if(!dirty)return;dirty=false;try{localStorage.setItem(KEY,JSON.stringify(buf));}catch(e){buf.splice(0,buf.length-150);try{localStorage.setItem(KEY,JSON.stringify(buf));}catch(e2){}}}
+  const L={ctx:()=>'',add(k,m){const e={t:new Date().toISOString().slice(5,19).replace('T',' '),k,c:L.ctx(),m:String(m).slice(0,2000)};const last=buf[buf.length-1];
+      if(last&&last.k===k&&last.m===e.m){last.n=(last.n||1)+1;last.t=e.t;}else buf.push(e);if(buf.length>MAX)buf.splice(0,buf.length-MAX);save(k==='ERROR');if(k==='ERROR'&&L.onError)L.onError(e);},
+    err(e,where){L.add('ERROR',(where?'['+where+'] ':'')+(e&&e.stack?e.stack:e&&e.message?e.message:String(e)));},
+    info(m){L.add('info',m);},text(){return 'Dragon Emperor IV debug log\n'+navigator.userAgent+'\n'+buf.map(e=>`${e.t} ${e.k}${e.n?' x'+e.n:''} [${e.c}] ${e.m}`).join('\n');},
+    clear(){buf.length=0;save(true);},count:()=>buf.filter(e=>e.k==='ERROR').length,flush};
+  window.DE4LOG=L;
+  window.addEventListener('error',ev=>{L.add('ERROR',(ev.error&&ev.error.stack)||(ev.message+' @'+(ev.filename||'').split('/').pop()+':'+ev.lineno+':'+ev.colno));});
+  window.addEventListener('unhandledrejection',ev=>{L.add('ERROR','unhandled promise: '+((ev.reason&&ev.reason.stack)||ev.reason));});
+  const ow=console.warn,oe=console.error;console.warn=function(...a){try{L.add('warn',a.map(String).join(' '));}catch(e){}ow.apply(console,a);};console.error=function(...a){try{L.add('ERROR',a.map(x=>x&&x.stack||String(x)).join(' '));}catch(e){}oe.apply(console,a);};
+  window.addEventListener('pagehide',flush);document.addEventListener('visibilitychange',()=>{L.add('info','page '+document.visibilityState);flush();});
+  L.add('info','page load');})();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="DE4LOG.add('ERROR','three.js failed to load from cdnjs')"></script>
 <script>
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 49';
+const BUILD='Build 50';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1328,7 +1359,7 @@ function aiCampaign(n){
     if(!opts.length&&G.length>keep&&Math.random()<0.15){const front=own.find(o=>o.adj.some(i=>CASTLES[i].o!==n));if(front&&front!==c)dispatch(n,[G[0]],c.id,front.id);refreshCastle(c);}}
 }
 let pendingBattle=null,advT=0;
-function startCampaignBattle(ctx){
+function startCampaignBattle(ctx){DE4LOG.info('campaign battle: '+(ctx.kind==='castle'?ctx.castle.n:'road')+' week '+CAMP.week);
   const pAtt=ctx.attN==='aldmere',P=pAtt?ctx.A:ctx.D,E=pAtt?ctx.D:ctx.A,eNat=pAtt?ctx.defN:ctx.attN;
   const canP=P.some(r=>r.troops>0&&r.hp>0),canE=E.some(r=>r.troops>0&&r.hp>0);
   if(!canP||!canE){const pw=canP;if(!pw)P.forEach(r=>{r.troops=0;});resolveOutcome(ctx,pAtt?pw:!pw);clog(pw?'The enemy has no strength to fight.':'Your generals have no troops to fight with.');return;}
@@ -1540,7 +1571,7 @@ function placeShrine(){let best=null;for(let t=0;t<120&&!best;t++){const x=R(-14
   shrine.on=!!best;if(best){shrine.x=best[0];shrine.z=best[1];}if(!shrRing.parent){battle.add(shrRing);battle.add(shrRune);}
   shrRing.position.set(shrine.x,Hb(shrine.x,shrine.z)+0.25,shrine.z);shrRing.visible=shrRune.visible=shrine.on;}
 const PU={mana:{n:'Mana Crystal',col:'#7fb0ff',g:'✦'},heal:{n:'Healing Spring',col:'#7fe39a',g:'✚'},reinf:{n:'Reinforcements',col:'#f1e8d4',g:'⚑'},
-  fury:{n:'War Banner',col:'#ffb347',g:'⚔'},dread:{n:'Dread Horn',col:'#ff6a4a',g:'☠'},swift:{n:'Swift Boots',col:'#ffe39a',g:'»'},cloud:{n:'Thundercloud',col:'#b48cff',g:'⚡'}};
+  fury:{n:'War Banner',col:'#ffb347',g:'⚔'},dread:{n:'Dread Horn',col:'#ff6a4a',g:'☠'},swift:{n:'Swift Boots',col:'#ffe39a',g:'»'},cloud:{n:'Thundercloud',col:'#b48cff',g:'⚡'},raise:{n:'Resurrection',col:'#ff2a2a',g:'☥'}};
 const PUK=Object.keys(PU),PUT={};
 for(const k of PUK){const c=cv(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,4,32,32,30);g.addColorStop(0,'#ffffff');g.addColorStop(0.35,PU[k].col);g.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=g;x.beginPath();x.arc(32,32,30,0,7);x.fill();x.fillStyle='#120e1c';x.beginPath();x.arc(32,32,15,0,7);x.fill();x.strokeStyle=PU[k].col;x.lineWidth=3;x.stroke();
@@ -1552,10 +1583,20 @@ const BLOODT=[0,1,2,3].map(i=>{const c=cv(128,128),x=c.getContext('2d');const rn
     const g=x.createRadialGradient(cx,cy,rr*0.2,cx,cy,rr);g.addColorStop(0,'rgba(120,6,8,0.95)');g.addColorStop(0.7,'rgba(95,4,6,0.85)');g.addColorStop(1,'rgba(70,2,4,0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,rr,0,7);x.fill();}
   return tex(c,true);});
 const T_DROP=(()=>{const c=cv(8,8),x=c.getContext('2d');x.fillStyle='#8a0a0c';x.beginPath();x.arc(4,4,3.5,0,7);x.fill();return tex(c);})();
-const DEC_N=170,decals=BLOODT.map(t=>{const m=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,opacity:0.88,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),DEC_N);
+let goreX=false;try{goreX=localStorage.getItem('de4-gore')==='1';}catch(e){}
+const T_BPUFF=(()=>{const c=cv(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,2,32,32,30);g.addColorStop(0,'rgba(200,10,14,1)');g.addColorStop(0.6,'rgba(140,4,8,0.9)');g.addColorStop(1,'rgba(90,0,4,0)');x.fillStyle=g;x.beginPath();x.arc(32,32,30,0,7);x.fill();return tex(c,true);})();
+const DEC_N=420,decals=BLOODT.map(t=>{const m=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,opacity:0.88,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),DEC_N);
   m.count=0;m.frustumCulled=false;m.renderOrder=1;battle.add(m);return{m,i:0,n:0};});
 const _dm=new THREE.Matrix4(),_dq=new THREE.Quaternion(),_dp=new THREE.Vector3(),_ds=new THREE.Vector3(),_de=new THREE.Euler();
-function addBlood(x,z){if(blood<=0||Math.random()>0.35+blood*0.65)return;const D=decals[(Math.random()*decals.length)|0],sc=(0.9+Math.random()*0.8)*(0.6+blood*1.0);
+function bloodBurst(x,z){const y=Hb(x,z);sfx('boom');shake=Math.max(shake,0.7);for(let i=0;i<5;i++)spawn({x:x+R(-1,1),y:y+R(0.5,2.5),z:z+R(-1,1),tex:T_BPUFF,w:R(2.5,4.5),h:R(2.5,4.5),life:R(0.4,0.8),grow:1.6,vy:R(1,3)});
+  for(let i=0;i<45;i++){const a=R(0,6.28),v=R(5,16);spawn({x,y:y+0.8,z,vx:Math.cos(a)*v,vy:R(5,14),vz:Math.sin(a)*v,g:-22,life:R(0.7,1.4),tex:T_DROP,w:R(0.2,0.45),h:R(0.2,0.45),ground:true});}
+  for(let i=0;i<9;i++){const a=R(0,6.28),r=R(0,7);addSplat(x+Math.cos(a)*r,z+Math.sin(a)*r,R(1.5,4.5));}}
+function addSplat(x,z,sc){const D=decals[(Math.random()*decals.length)|0];_de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x,Hb(x,z)+0.07,z);_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
+  D.m.setMatrixAt(D.i,_dm);D.i=(D.i+1)%DEC_N;D.n=Math.min(DEC_N,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;}
+function addBlood(x,z){if(goreX){addSplat(x+R(-0.4,0.4),z+R(-0.4,0.4),R(1.6,3.2));if(Math.random()<0.5)addSplat(x+R(-1.5,1.5),z+R(-1.5,1.5),R(0.8,1.8));
+    for(let k=0;k<12;k++)spawn({x,y:Hb(x,z)+0.8,z,vx:R(-6,6),vy:R(4,10),vz:R(-6,6),g:-22,life:R(0.5,1),tex:T_DROP,w:0.28,h:0.28,ground:true});
+    if(Math.random()<0.06)bloodBurst(x,z);return;}
+  if(blood<=0||Math.random()>0.35+blood*0.65)return;const D=decals[(Math.random()*decals.length)|0],sc=(0.9+Math.random()*0.8)*(0.6+blood*1.0);
   _de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x+R(-0.25,0.25),Hb(x,z)+0.07,z+R(-0.25,0.25));_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
   D.m.setMatrixAt(D.i,_dm);D.i=(D.i+1)%DEC_N;D.n=Math.min(DEC_N,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;
   if(blood>0.3)for(let k=0,n=Math.round(blood*4);k<n;k++)spawn({x,y:Hb(x,z)+0.7,z,vx:R(-2.5,2.5),vy:R(2,5),vz:R(-2.5,2.5),g:-22,life:R(0.4,0.8),tex:T_DROP,w:0.18,h:0.18,ground:true});}
@@ -1597,6 +1638,11 @@ function claimPU(p,s){battle.remove(p.sp);battle.remove(p.pad);if(p.L)p.L.intens
   else if(p.k==='fury'){fury[s]=8;morale[s]=clamp(morale[s]+0.15,0,1);}
   else if(p.k==='dread'){morale[o]=clamp(morale[o]-0.18,0,1);sfx('horn');}
   else if(p.k==='swift'){g.sta=1;abil[s].cd=0;}
+  else if(p.k==='raise'){let n=0;const cap=Math.max(20,Math.round(startN[s]*0.3)),st=STATS[r.d.troop];for(const u of units){if(n>=cap)break;if(u.side!==s||u.state!=='gone'||u.i>=Math.max(startN[s],r.troops))continue;
+      if(Math.abs(u.x)>FW/2-1||Math.abs(u.z)>FD/2-1||(!FLY[r.d.troop]&&navAt(u.x,u.z)===1))continue;u.type=r.d.troop;
+      Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0.5,1.2),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});n++;
+      if(n%2===0)spawn({x:u.x,y:Hb(u.x,u.z)+0.2,z:u.z,vy:R(3,6),tex:PUT.raise,w:0.6,h:0.6,life:R(0.6,1),blink:true});}
+    morale[s]=clamp(morale[s]+0.12,0,1);flash(0.25);DE4LOG.info('resurrection side '+s+' raised '+n);if(!n)showBanner('No fallen to raise...',s===1);}
   else if(p.k==='cloud'){tcloud[s].t=8;tcloud[s].n=0.6;const c=centroid(alive[o],fg[o]);cloudSp[s].position.set(c.x,Hb(c.x,c.z)+13,c.z);sfx('boom');}
   showBanner(who+' the '+PU[p.k].n+'!',s===1);sfx(s?'defeat':'lvlup');if(s===0)buzz(0.5,140);hudAcc=1;}
 function tickPU(dt){puT-=dt;if(puT<=0){puT=R(10,16);spawnPU();}fury[0]=Math.max(0,fury[0]-dt);fury[1]=Math.max(0,fury[1]-dt);
@@ -1658,7 +1704,7 @@ function clearField(){
   for(const p of pool){p.active=false;p.s.visible=false;}for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
   if(dragon.mode!=='gone'){dragon.mode='idle';}dragon.t=0;dragon.sp.rotation.z=0;timers=[];
 }
-function deploy(){
+function deploy(){try{DE4LOG.info('deploy round '+(round+1)+': '+active[0].d.key+'('+active[0].d.troop+') vs '+active[1].d.key+'('+active[1].d.troop+') map '+lastType+(SIEGE?' siege':'')+(BOSS.on?' boss':''));}catch(e){}
   form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-28;anchor[1]=28;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf,pe=r.relic==='pearl';mpMax[s]=pf.max+(pe||r.relic==='wyrm'?1:0);mp[s]=pe?mpMax[s]:pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp)+(r.relic==='lion'?0.15:0);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
@@ -2084,7 +2130,7 @@ const TUT_PAGES=[
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
- {h:'Battle tactics',q:['y','ls'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). Fight Vorgrath and his <b>Ashen Wyrm</b> joins the battle as a boss: it swoops with fire and lands to stomp, and while it is down your troops and spells can wound it. Queen Ysolde can cast <b>Eclipse</b>, darkening the sun and weakening your troops. Castle battles are <b>sieges</b>: the defender sits behind a wall, and attackers must batter down the gate first (knights and dragonriders hit it hardest; flyers just fly over). <b>Power-ups</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (mana, healing, reinforcements, a war banner, a dread horn, swift boots, or a thundercloud that rains lightning on the enemy). Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
+ {h:'Battle tactics',q:['y','ls'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). Fight Vorgrath and his <b>Ashen Wyrm</b> joins the battle as a boss: it swoops with fire and lands to stomp, and while it is down your troops and spells can wound it. Queen Ysolde can cast <b>Eclipse</b>, darkening the sun and weakening your troops. Castle battles are <b>sieges</b>: the defender sits behind a wall, and attackers must batter down the gate first (knights and dragonriders hit it hardest; flyers just fly over). <b>Power-ups</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (mana, healing, reinforcements, a war banner, a dread horn, swift boots, a thundercloud that rains lightning on the enemy, or a red resurrection orb that raises your fallen). Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
   d:[['F / buttons','Change formation'],['R','General ability']],v:[['Y','Cycle formation'],['L stick click','General ability']]},
  {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) and <b>Arrow Storm</b> (archers) are aimed by hand: one charge gives you a run of bolts or tight arrow volleys, and every click or trigger pull lands one exactly where you aim. Snipe the enemy general or pick apart his clumps. Anything unused fires on its own after 10 seconds.',
   d:[['Space','Aim the spell'],['Click','Fire (Thunder/Arrows: one per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder/Arrows: one per pull)'],['R stick','Turn and zoom to find a target']]},
@@ -2265,7 +2311,7 @@ function chooseGeneral(r){
 function captureGen(L,w){const r=active[L];gainXP(active[w],50);r.out=true;r.troops=0;r.captor=w;fg[L].captured=true;fg[L].flee=false;
   morale[w]=clamp(morale[w]+0.2,0,1);if(r.d.key==='vorgrath'&&w===0)tyrantTaken=true;cheer(w,1.2);}
 function nextRound(){if(state!=='battle')return;if(tyrantTaken)endBattle(true,'tyrant');else if(!avail(1).length)endBattle(true);else if(!avail(0).length)endBattle(false);else startSelect();}
-function endEngagement(w,reason){
+function endEngagement(w,reason){DE4LOG.info('engagement end: winner side '+w+' '+reason);
   if(state!=='battle'||phase==='between'||phase==='over'||phase==='select'||phase==='pursuit')return;
   slowMo(1.1);$('combo').hidden=true;stormEnd(false);phase='between';duel.on=false;chal=null;$('chal').hidden=true;aim.mode=false;
   const L=1-w,lr=active[L],wr=active[w];
@@ -2287,7 +2333,7 @@ function updatePursuit(dt){
   else if(P.L===0&&!xrActive)setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(g.x,-50,50),tz:clamp(g.z,-34,34)},0.2);
 }
 function pursuitEnd(d){phase='between';pursuit=null;setOrbitGoal(BV,0.9);schedule(d,nextRound);updateModeUI();}
-function endBattle(win,why){
+function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' '+why:''));
   if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;pursuit=null;
   showBanner(why==='tyrant'?'The Tyrant is taken!':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();if(win){cheer(0,1.6);warDrums(0,3,120);}else cheer(1,1.4);
   const caps=roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
@@ -2463,8 +2509,14 @@ $('wdBtn').addEventListener('click',withdraw);
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
-setBlood(blood);$('bloodR').addEventListener('input',e=>setBlood(+e.target.value/100));
-$('skBtn').addEventListener('click',openSkirm);$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',startSkirm);
+setBlood(blood);$('bloodR').addEventListener('input',e=>setBlood(+e.target.value/100));$('goreX').checked=goreX;$('goreX').addEventListener('change',e=>{goreX=e.target.checked;try{localStorage.setItem('de4-gore',goreX?'1':'0');}catch(err){}if(goreX)sfx('boom');});
+$('skBtn').addEventListener('click',openSkirm);
+function openDbg(){DE4LOG.flush();const t=DE4LOG.text();$('dbgT').value=t;$('dbgN').textContent=DE4LOG.count()+' errors · '+BUILD;$('dbg').hidden=false;}
+$('dbgBtn').addEventListener('click',openDbg);$('dbgBtn2').addEventListener('click',openDbg);$('dbgClose').addEventListener('click',()=>{$('dbg').hidden=true;});
+$('dbgClear').addEventListener('click',()=>{DE4LOG.clear();openDbg();});
+$('dbgCopy').addEventListener('click',()=>{const t=$('dbgT');t.focus();t.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(()=>{$('dbgCopy').textContent='Copied!';},()=>{});else if(ok)$('dbgCopy').textContent='Copied!';setTimeout(()=>{$('dbgCopy').textContent='Copy';},1500);});
+$('dbgDl').addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([DE4LOG.text()],{type:'text/plain'}));a.download='dragon-emperor-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
+let toastT=null;DE4LOG.onError=()=>{if(xrActive)return;const t=$('errToast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);};$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',startSkirm);
 $('howBtn').addEventListener('click',()=>{audioInit();openTut(null);});
 $('tutNext').addEventListener('click',()=>tutGo(1));$('tutBack').addEventListener('click',()=>tutGo(-1));$('tutSkip').addEventListener('click',closeTut);
 $('tut').addEventListener('click',e=>{if(e.target.id==='tut')closeTut();});
@@ -2585,8 +2637,8 @@ function vrInput(dt){
     const sc=gp.buttons[3]&&gp.buttons[3].pressed;if(sc&&!btnPrevS.get(gp)&&src.handedness==='left'&&state==='battle'&&phase==='fight')useAbility(0);btnPrevS.set(gp,!!sc);
     const fa=gp.buttons[4]&&gp.buttons[4].pressed;if(fa&&!btnPrevA.get(gp))xrFace(src.handedness);btnPrevA.set(gp,!!fa);}
 }
-renderer.xr.addEventListener('sessionstart',()=>{xrActive=true;camera.near=0.02;camera.far=300;camera.updateProjectionMatrix();vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='hidden');drawVrHud();if(TUT.open)drawTutBoard();});
-renderer.xr.addEventListener('sessionend',()=>{xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='');if(tutBoard)tutBoard.visible=false;if(TUT.open)$('tut').hidden=false;onResize();});
+renderer.xr.addEventListener('sessionstart',()=>{DE4LOG.info('XR session start');xrActive=true;camera.near=0.02;camera.far=300;camera.updateProjectionMatrix();vrReset();applyWorldXform();vrHud.visible=true;floor.visible=true;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='hidden');drawVrHud();if(TUT.open)drawTutBoard();});
+renderer.xr.addEventListener('sessionend',()=>{DE4LOG.info('XR session end');DE4LOG.flush();xrActive=false;applyWorldXform();vrHud.visible=false;floor.visible=false;document.querySelectorAll('.layer,#banner,#endp,#selp,#tut').forEach(el=>el.style.visibility='');if(tutBoard)tutBoard.visible=false;if(TUT.open)$('tut').hidden=false;onResize();});
 async function setupVR(){
   const btns=[$('vrBtn'),$('vrBtn2')];
   let ok=false;try{ok=!!(navigator.xr&&await navigator.xr.isSessionSupported('immersive-vr'));}catch(e){ok=false;}
@@ -2610,8 +2662,11 @@ function vrAim(now){
 }
 /* ================= LOOP ================= */
 let last=performance.now()/1000;
-function loop(tms){
+let fpsN=0,fpsT=0,hbT=0;
+function loop(tms){try{loopInner(tms);}catch(e){DE4LOG.err(e,'frame');}}
+function loopInner(tms){
   const now=tms/1000;const dt=Math.min(0.05,Math.max(0,now-last));last=now;
+  fpsN++;fpsT+=dt;hbT+=dt;if(hbT>30){hbT=0;const mem=performance.memory?' heap '+Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'';DE4LOG.info(`heartbeat fps ${Math.round(fpsN/Math.max(0.001,fpsT))} units ${alive[0].length}/${alive[1].length} particles ${pool.filter(p=>p.active).length} xr ${xrActive}${mem}`);fpsN=0;fpsT=0;}
   let bdt=dt;if(battle.visible&&state==='battle'){if(hitStop>0){hitStop-=dt;bdt=0;}else if(slowT>0){slowT-=dt;bdt=dt*0.35;}}
   for(let i=timers.length-1;i>=0;i--){timers[i].t-=bdt;if(timers[i].t<=0){const f=timers[i].fn;timers.splice(i,1);f();}}
   vrMsgT=Math.max(0,vrMsgT-dt);
@@ -2686,6 +2741,8 @@ function render(){
 const fontWait=document.fonts&&document.fonts.load?Promise.race([document.fonts.load('700 16px Silkscreen'),new Promise(r=>setTimeout(r,1500))]):Promise.resolve();
 fontWait.then(buildLabels,buildLabels);
 updateModeUI();
+renderer.domElement.addEventListener('webglcontextlost',e=>{DE4LOG.add('ERROR','WebGL context lost (GPU reset or out of memory)');DE4LOG.flush();});
+renderer.domElement.addEventListener('webglcontextrestored',()=>DE4LOG.info('WebGL context restored'));
 renderer.setAnimationLoop(loop);
 })();
 </script>
