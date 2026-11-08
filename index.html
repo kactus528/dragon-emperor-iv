@@ -498,7 +498,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 65';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 66';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1666,7 +1666,7 @@ function pickPU(){let r=Math.random()*PUW;for(const k of PUK){r-=PU[k].w;if(r<=0
 for(const k of PUK){const c=cv(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,4,32,32,30);g.addColorStop(0,'#ffffff');g.addColorStop(0.35,PU[k].col);g.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=g;x.beginPath();x.arc(32,32,30,0,7);x.fill();x.fillStyle='#120e1c';x.beginPath();x.arc(32,32,15,0,7);x.fill();x.strokeStyle=PU[k].col;x.lineWidth=3;x.stroke();
   x.fillStyle=PU[k].col;x.font='bold 20px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(PU[k].g,32,33);PUT[k]=tex(c,true);}
-const pups=[],fury=[0,0];let puT=6;
+const pups=[],fury=[0,0];let puT=4,puN=0;
 let blood=0.5;try{const v=localStorage.getItem('de4-blood');if(v!==null&&v!=='')blood=clamp(+v/100,0,1);}catch(e){}
 const BLOODT=[0,1,2,3].map(i=>{const c=cv(128,128),x=c.getContext('2d');const rnd=(a,b)=>a+Math.random()*(b-a);
   for(let k=0;k<7+i*2;k++){const a=rnd(0,6.28),r=k<4?rnd(0,14):rnd(14,40),cx=64+Math.cos(a)*r,cy=64+Math.sin(a)*r,rr=k<4?rnd(16,26):rnd(3,9);
@@ -1790,7 +1790,7 @@ function tickSpectacles(dt){
           if(col.length){const u=col[(Math.random()*col.length)|0];impact(u.x,u.z,o,true);spawn({x:u.x,y:Hb(u.x,u.z)+3,z:u.z,frames:FLAME,w:2.4,h:6,life:0.4,grow:0.6});}else if(Math.random()<0.4)impact(W.x+W.dir*1.5,clamp(W.z+R(-6,6),-FD/2+1.5,FD/2-1.5),o,true);}}
       if(W.t<=0)W.sp.visible=false;}}}
 function clearSpectacles(){for(let s=0;s<2;s++){cyc[s].t=0;met[s].t=0;wr[s].t=0;if(wr[s].sp)wr[s].sp.visible=false;}}
-function tickPU(dt){puT-=dt;if(puT<=0){puT=R(10,16);spawnPU();}fury[0]=Math.max(0,fury[0]-dt);fury[1]=Math.max(0,fury[1]-dt);
+function tickPU(dt){puT-=dt;if(puT<=0&&puN<5){const n0=pups.length;spawnPU();if(pups.length>n0){puN++;puT=puN<2?R(4,6):R(7,10);}else puT=1;}fury[0]=Math.max(0,fury[0]-dt);fury[1]=Math.max(0,fury[1]-dt);
   for(const p of pups.slice()){p.t+=dt;let best=null,bd=0.95;for(let s=0;s<2;s++)for(const u of alive[s]){if(u.state!=='alive'||Math.abs(u.x-p.x)>1||Math.abs(u.z-p.z)>1)continue;const d=Math.hypot(u.x-p.x,u.z-p.z);if(d<bd){bd=d;best=u;}}
     for(let s=0;s<2&&!best;s++){const g=fg[s];if(okGen(g)&&Math.hypot(g.x-p.x,g.z-p.z)<1.2)best={side:s};}
     if(best)claimPU(p,best.side);}}
@@ -1858,7 +1858,7 @@ function clearField(){
   if(dragon.mode!=='gone'){dragon.mode='idle';}dragon.t=0;dragon.sp.rotation.z=0;timers=[];
 }
 function deploy(){DE4LOG.beat('deploy');try{DE4LOG.info('deploy round '+(round+1)+': '+active[0].d.key+'('+active[0].d.troop+') vs '+active[1].d.key+'('+active[1].d.troop+') map '+lastType+(SIEGE?' siege':'')+(BOSS.on?' boss':''));}catch(e){}
-  squadAim=false;squadCD=0;esc[0]=esc[1]=0;for(const u of units)u.sq=null;form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
+  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;for(const u of units)u.sq=null;form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-28;anchor[1]=28;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf,pe=r.relic==='pearl';mpMax[s]=pf.max+(pe||r.relic==='wyrm'?1:0);mp[s]=pe?mpMax[s]:pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp)+(r.relic==='lion'?0.15:0);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
@@ -2002,7 +2002,7 @@ function updateUnits(dt){
       const T=u.target,ord=orders[u.side],eg=fg[1-u.side];
       if(u.side===0&&bossActive()&&dragon.mode==='ground'&&Math.hypot(u.x-dragon.x,u.z-dragon.z)<(RANGED[u.type]?rg+4:5.5)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;bossHit(st.dmg*(RANGED[u.type]?1.2:1)*(abil[0].t>0?1.3:1));if(RANGED[u.type])spawn({x:u.x,y:Hb(u.x,u.z)+1,z:u.z,vx:(dragon.x-u.x)*2,vy:6,vz:(dragon.z-u.z)*2,tex:T_SPARK,w:0.3,h:0.3,life:0.4});}u.vx*=0.5;u.vz*=0.5;continue;}
       if(SIEGE&&SIEGE.hp>0&&u.side===SIEGE.att&&!FLY[u.type]&&Math.abs(u.x-SIEGE.gx)<3.6&&Math.abs(u.z-SIEGE.gz)<5&&!(T&&Math.hypot(T.x-u.x,T.z-u.z)<=st.rng)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;gateHit(u,st.dmg*(GATEM[u.type]||1)*(abil[u.side].t>0?1.3:1));}u.vx*=0.5;u.vz*=0.5;continue;}
-      let pu=null;if(pups.length&&(u.i%3===0||u.type==='cav')){let pd=ord==='hold'?4:9;for(const p of pups){const dd=Math.hypot(p.x-u.x,p.z-u.z);if(dd<pd){pd=dd;pu=p;}}}
+      let pu=null;if(pups.length&&(u.i%3===0||u.type==='cav')){let pd=1e9;for(const p of pups){const dd=Math.hypot(p.x-u.x,p.z-u.z),rr=(ord==='hold'?4:9)+Math.min(ord==='hold'?6:18,p.t*1.8);if(dd<rr&&dd<pd){pd=dd;pu=p;}}}
       const tdist=T?Math.hypot(T.x-u.x,T.z-u.z):1e9;
       const engage=ord==='charge'?1e9:ord==='hold'?3.2:ord==='retreat'?1.5:3.5;
       const d=T?Math.hypot(T.x-u.x,T.z-u.z):1e9;
@@ -2621,7 +2621,7 @@ function updateHud(dt){
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';$('sta'+k).style.width=((fg[s].sta??1)*100)+'%';$('sta'+k).parentNode.classList.toggle('burst',fg[s].burst>0);}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     {const bb=$('bossbar'),on=bossActive();bb.hidden=!on||xrActive;if(on)$('bossHp').style.width=(100*BOSS.hp/BOSS.max)+'%';}
-    $('objLbl').textContent=(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BANNER '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
+    $('objLbl').textContent=(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BERSERK '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
     {const qb=$('squadBtn');qb.disabled=phase!=='fight'||squadCD>0;qb.textContent=squadAim?'Click a spot':'G Send squad'+(squadCD>0?' '+Math.ceil(squadCD):'');}
     {const ab=$('abilBtn'),A=abil[0],AB=ABIL[active[0].d.troop];ab.textContent='R '+AB.n+(A.t>0?' ON':A.cd>0?' '+Math.ceil(A.cd):'');ab.disabled=phase!=='fight'||A.cd>0;ab.classList.toggle('ready',phase==='fight'&&A.cd<=0);}
     const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&castPhase(0)&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
