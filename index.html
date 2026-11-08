@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 54';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 55';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1965,9 +1965,15 @@ function castSpell(side,tgt){
   else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<Math.round(170*pw);i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
   else if(sp==='eclipse'){ecl[side]=7;flash(0.2);sfx('roar');morale[V]=clamp(morale[V]-0.15,0,1);morale[side]=clamp(morale[side]+0.1,0,1);showBanner('The sun goes dark!',side===1);for(let i=0;i<3;i++)schedule(0.4+i*0.6,()=>{const c=densest(alive[V]);if(c)lightning(c.x+R(-4,4),c.z+R(-4,4),V,false);});}
-  else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone')continue;const st=STATS[r.d.troop];u.type=r.d.troop;
+  else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
       Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});u.x=clamp(g.x+R(-3,3),-FW/2+1,FW/2-1);u.z=clamp(g.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(navAt(u.x,u.z)===1){u.x=g.x;u.z=g.z;}n++;}
-    morale[side]=clamp(morale[side]+0.12,0,1);for(let i=0;i<30;i++)spawn({x:g.x+R(-5,5),y:Hb(g.x,g.z)+R(0,1),z:g.z+R(-5,5),vy:R(2,5),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.3),blink:true});}
+    morale[side]=clamp(morale[side]+0.12,0,1);for(let i=0;i<30;i++)spawn({x:g.x+R(-5,5),y:Hb(g.x,g.z)+R(0,1),z:g.z+R(-5,5),vy:R(2,5),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.3),blink:true});
+    spawn({x:g.x,y:Hb(g.x,g.z)+10,z:g.z,tex:T_BOLT,w:4,h:22,life:0.9,blink:true});spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:9,h:9,life:1.2,grow:1.5,blink:true});
+    const L=alive[side];for(let i=0;i<40&&L.length;i++){const u=L[(Math.random()*L.length)|0];schedule(R(0,0.6),()=>spawn({x:u.x,y:Hb(u.x,u.z)+0.6,z:u.z,vy:R(1.5,3),tex:T_SPARK,w:0.45,h:0.45,life:0.7,blink:true}));}
+    schedule(0.5,()=>{sfx('lvlup');flash(0.35);spawn({x:cx,y:Hb(cx,cz)+12,z:cz,tex:T_BOLT,w:6,h:24,life:0.7,blink:true});spawn({x:cx,y:Hb(cx,cz)+0.3,z:cz,tex:T_RUNE,w:10,h:10,life:1,grow:1.2,blink:true});
+      let k=0;for(const u of alive[V]){if(u.state!=='alive')continue;const d=Math.hypot(u.x-cx,u.z-cz);if(d<5){u.hp-=d<2.5?5*pw:3*pw;if(u.hp<=0){kill(u,cx,cz,R(3,6),R(5,9));k++;}}}
+      const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-cx,eg.z-cz)<4)generalHit(eg,5*pw,null);morale[V]=clamp(morale[V]-0.06,0,1);});
+    showBanner('Mending Light · '+n+' raised',side===1);}
   schedule(2.4,()=>cheer(side,0.8));
   return true;
 }

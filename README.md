@@ -22,7 +22,7 @@ Pick one on the title screen (left trigger in VR):
 | Cavalry | Archers, Mages, Monks | Infantry, Knights | Fastest on the ground |
 | Archers | Infantry, Harpies, Dragonriders | Cavalry, Knights | Keep shooting flyers even up close |
 | Knights | Infantry, Cavalry, Archers | Mages, flyers | 11 HP, slow, 80% troop limit, shrug off spells better |
-| Monks | (none) | Most things | Heal nearby soldiers; Elowen's **Mending Light** heals the army and raises up to 25 fallen |
+| Monks | (none) | Most things | Heal nearby soldiers; Elowen's **Mending Light** (one press, no aiming needed) heals the army, raises up to 25 of the fallen beside her with a pillar of light, then calls a holy burst down on the thickest enemy ranks (or where you point in VR) |
 | Mages | Knights, Dragonriders | Cavalry, Harpies | Ranged magic bolts |
 | Harpies | Mages, Monks, Archers in melee | Archers at range, Knights | Fly over rivers, walls and woods |
 | Dragonriders | Infantry, Cavalry, Knights | Archers | 14 HP flyers, only 40% troop limit |
