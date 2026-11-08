@@ -198,16 +198,24 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   clip-path:polygon(50% 0,59% 13%,74% 5%,76% 21%,92% 19%,86% 34%,100% 41%,88% 52%,98% 65%,82% 69%,84% 85%,69% 82%,61% 97%,50% 86%,39% 97%,31% 82%,16% 85%,18% 69%,2% 65%,12% 52%,0 41%,14% 34%,8% 19%,24% 21%,26% 5%,41% 13%)}
 .cta{display:flex;gap:8px;flex-wrap:wrap}
 .cta{flex-direction:column;align-items:flex-start}.diff{display:flex;gap:6px;flex-wrap:wrap}.diff button{padding:8px 12px;font-size:11px}#diffBlurb{font-family:var(--f-term);font-size:16px;color:#a99fb8;margin:0}
-.tutp{padding:20px 22px;width:min(600px,100%);box-sizing:border-box;display:grid;gap:12px;max-height:calc(100vh - 32px);overflow:auto}
+.tutp{padding:20px 22px;width:min(760px,100%);box-sizing:border-box;display:grid;gap:12px;max-height:calc(100vh - 32px);overflow:auto}
 #tut{position:fixed;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(7,6,12,.72)}#tut[hidden]{display:none}
 .tuthead{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 .tuthead button{font-size:10px;padding:7px 10px}
 #tutH{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(22px,5.5vw,32px);color:var(--gold);line-height:1.15}
 #tutBody{margin:0;color:var(--ink);font-size:12px;line-height:1.7}#tutBody b{color:var(--gold);font-weight:700}
 #tutArt:empty{display:none}#tutArt svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
-#tutKeys{list-style:none;margin:0;padding:10px 12px;display:grid;gap:6px;background:rgba(11,9,18,.6);border:1px solid var(--line)}
-#tutKeys li{display:flex;gap:10px;align-items:baseline;font-size:11px;color:var(--dim);line-height:1.4}
-#tutKeys kbd{flex:none;min-width:84px;font-family:var(--f-pixel);font-size:10px;color:var(--ink);background:#1c1730;border:1px solid var(--line);border-bottom-width:2px;padding:3px 6px;text-align:center}
+.tutctl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:10px;align-items:start}
+.tutctl.vrfirst .tutvr{order:-1}
+@media (max-width:640px){.tutctl{grid-template-columns:1fr}}
+.tutctl section{background:rgba(11,9,18,.6);border:1px solid var(--line);padding:10px 12px;display:grid;gap:8px;align-content:start}
+.tutctl h3{margin:0;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700}
+#tutPad svg{display:block;width:100%;height:auto}
+#tutKeys,#tutKeysV{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+
+#tutKeys li,#tutKeysV li{display:flex;gap:10px;align-items:baseline;font-size:11px;color:var(--dim);line-height:1.4}
+#tutKeys kbd,#tutKeysV kbd{flex:none;min-width:84px;font-family:var(--f-pixel);font-size:10px;color:var(--ink);background:#1c1730;border:1px solid var(--line);border-bottom-width:2px;padding:3px 6px;text-align:center}
+.tutvr #tutKeysV kbd{border-color:#9c6519;color:var(--gold)}
 .tutfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .tutno{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--dim);cursor:pointer}.tutno input{accent-color:var(--gold);width:16px;height:16px}
 .tutnav{display:flex;gap:8px}.tutnav .go{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700}
@@ -352,7 +360,10 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <h2 id="tutH"></h2>
     <div id="tutArt"></div>
     <p id="tutBody"></p>
-    <ul id="tutKeys"></ul>
+    <div class="tutctl" id="tutCtl">
+      <section class="tutkb"><h3>Keyboard &amp; mouse</h3><ul id="tutKeys"></ul></section>
+      <section class="tutvr"><h3>Quest 2 controllers</h3><div id="tutPad"></div><ul id="tutKeysV"></ul></section>
+    </div>
     <div class="tutfoot">
       <label class="tutno"><input type="checkbox" id="tutNo" checked> Don't show this at start</label>
       <div class="tutnav"><button id="tutBack">Back</button><button id="tutNext" class="go">Next</button></div>
@@ -396,7 +407,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 26';
+const BUILD='Build 27';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1684,22 +1695,42 @@ const TRI=(a,b,c,ca,cb,cc)=>`<svg viewBox="0 0 340 150" role="img" aria-label="$
   <g stroke="#f0c055" stroke-width="2" fill="none" marker-end="url(#ah)"><path d="M140 40L88 106"/><path d="M124 127H214"/><path d="M262 106L204 40"/></g>
   <text x="170" y="84" font-family="VT323,monospace" font-size="14" fill="#a99fb8" text-anchor="middle">arrow = beats</text></svg>`;
 const TUT_PAGES=[
- {h:'Welcome, Commander',b:'You lead <b>Aldmere</b>, the blue banners. The <b>Ashen Legion</b> (red) and <b>Duskmarch</b> (purple) want the realm too. You win the campaign when every castle on the war table flies blue. You lose if Aldmere loses every castle, or if Kaelen is taken for good.',
-  d:[['Enter / →','Next page'],['←','Back'],['Esc','Skip']],v:[['Right trigger','Next page'],['Left trigger','Back'],['A','Skip']]},
- {h:'The war table',b:'Time passes in weeks. <b>Select one of your castles</b>, tick the generals you want to send, then <b>pick any castle</b> to march on it. Armies that meet on a road fight, and an army that reaches an enemy castle attacks it. Generals left in your castles rest and refill their troops. Stuck? Read the <b>advisor line</b>: it always tells you what to do next.',
-  d:[['Click','Select a castle, then a target'],['Space','Pause or resume'],['Esc','Cancel selection']],v:[['Point + R trigger','Select a castle, then a target'],['Left trigger','Pause or resume'],['A / X','Cancel selection']]},
- {h:'Choose your general',b:'A battle is a series of rounds. Before each one you pick a general, and he fights with his own troop type. Match-ups matter a lot: the cards show <b>Good</b>, <b>Bad</b> or <b>Even</b> against the enemy general.',art:()=>TRI('Spears','Cavalry','Archers','#9ab8ff','#ffb09a','#8fe39a'),
-  d:[['1–9 / click','Pick a general or a prisoner']],v:[['Left trigger','Next card'],['Right trigger','Deploy']]},
- {h:'Command the battle',b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
-  d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['Left trigger','Cycle orders'],['Right trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
- {h:'Magic',b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>, cavalry the fewest. Spells hit hard against packed troops, so aim where the enemy is thickest.',
-  d:[['Space','Aim the spell'],['Click','Fire where you aim'],['Esc','Cancel aim']],v:[['Point right hand','Aim'],['Right trigger','Fire']]},
- {h:'Duels',b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
-  d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trig · L trig · A','Strike · Guard · Power']]},
- {h:'Spoils of war',b:'A beaten general flees for the edge of the field. <b>Catch him</b> (cavalry is fastest) and he becomes your prisoner. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
-  d:[['Click a prisoner','Try to persuade him']],v:[['Right trigger','Persuade the selected prisoner']]},
- {h:'Your view',b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Good luck, Commander.',
-  d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['Sticks','Slide, turn and zoom'],['B','Reset the table']]}];
+ {h:'Welcome, Commander',q:['rt','lt','a'],b:'You lead <b>Aldmere</b>, the blue banners. The <b>Ashen Legion</b> (red) and <b>Duskmarch</b> (purple) want the realm too. You win the campaign when every castle on the war table flies blue. You lose if Aldmere loses every castle, or if Kaelen is taken for good.',
+  d:[['Enter / →','Next page'],['←','Back'],['Esc','Skip']],v:[['R trigger','Next page'],['L trigger','Back'],['A','Skip']]},
+ {h:'The war table',q:['rt','lt','a','x'],b:'Time passes in weeks. <b>Select one of your castles</b>, tick the generals you want to send, then <b>pick any castle</b> to march on it. Armies that meet on a road fight, and an army that reaches an enemy castle attacks it. Generals left in your castles rest and refill their troops. Stuck? Read the <b>advisor line</b>: it always tells you what to do next.',
+  d:[['Click','Select a castle, then a target'],['Space','Pause or resume'],['Esc','Cancel selection']],v:[['Point + R trig','Select a castle, then a target'],['L trigger','Pause or resume'],['A or X','Cancel selection']]},
+ {h:'Choose your general',q:['lt','rt'],b:'A battle is a series of rounds. Before each one you pick a general, and he fights with his own troop type. Match-ups matter a lot: the cards show <b>Good</b>, <b>Bad</b> or <b>Even</b> against the enemy general.',art:()=>TRI('Spears','Cavalry','Archers','#9ab8ff','#ffb09a','#8fe39a'),
+  d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
+ {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
+  d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
+ {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>, cavalry the fewest. Spells hit hard against packed troops, so aim where the enemy is thickest.',
+  d:[['Space','Aim the spell'],['Click','Fire where you aim'],['Esc','Cancel aim']],v:[['Point R hand','Aim at the field'],['R trigger','Fire the spell'],['R stick','Turn and zoom to find a target']]},
+ {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
+  d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
+ {h:'Spoils of war',q:['rt','lt'],b:'A beaten general flees for the edge of the field. <b>Catch him</b> (cavalry is fastest) and he becomes your prisoner. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
+  d:[['Click a prisoner','Try to persuade him']],v:[['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
+ {h:'Your view',q:['lg','rg','ls','rs','b'],b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Good luck, Commander.',
+  d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['L stick','Slide the battlefield'],['R stick','Turn and zoom'],['B','Reset the table']]}];
+function padSVG(on,fontless){const O=new Set(on||[]),G='#f0c055',D='#4a3d63',F='#1c1730',T='#857aa0',ff=fontless?'monospace':'Silkscreen,monospace';
+  const col=id=>O.has(id)?G:D,fill=id=>O.has(id)?'rgba(240,192,85,.28)':F,tc=id=>O.has(id)?G:T;
+  const one=(cx,m,L)=>{const X=dx=>cx+dx*m,an=m<0?'start':'end',ian=m<0?'start':'end',k=L?['lt','lg','ls','x','y']:['rt','rg','rs','a','b'];
+    return `<circle cx="${cx}" cy="78" r="54" fill="none" stroke="${D}" stroke-width="9"/>
+    <rect x="${cx-21}" y="128" width="42" height="104" rx="19" fill="${F}" stroke="${D}" stroke-width="2"/>
+    <rect x="${m>0?cx+12:cx-24}" y="168" width="12" height="50" rx="6" fill="${fill(k[1])}" stroke="${col(k[1])}" stroke-width="2"/>
+    <path d="M${X(-30)} 140 L${X(-42)} 150 L${X(-40)} 160 L${X(-24)} 152 Z" fill="${fill(k[0])}" stroke="${col(k[0])}" stroke-width="2" stroke-linejoin="round"/>
+    <ellipse cx="${cx}" cy="116" rx="44" ry="32" fill="${F}" stroke="${D}" stroke-width="2"/>
+    <circle cx="${X(-15)}" cy="110" r="13" fill="${fill(k[2])}" stroke="${col(k[2])}" stroke-width="2.5"/><circle cx="${X(-15)}" cy="110" r="5" fill="${col(k[2])}"/>
+    <circle cx="${X(17)}" cy="122" r="9" fill="${fill(k[3])}" stroke="${col(k[3])}" stroke-width="2"/><text x="${X(17)}" y="126" text-anchor="middle" font-size="11" fill="${tc(k[3])}" font-family="${ff}">${L?'X':'A'}</text>
+    <circle cx="${X(21)}" cy="100" r="9" fill="${fill(k[4])}" stroke="${col(k[4])}" stroke-width="2"/><text x="${X(21)}" y="104" text-anchor="middle" font-size="11" fill="${tc(k[4])}" font-family="${ff}">${L?'Y':'B'}</text>
+    <g font-family="${ff}" font-size="11">
+    <text x="${X(-64)}" y="114" text-anchor="${an}" fill="${tc(k[2])}">STICK</text><line x1="${X(-60)}" y1="110" x2="${X(-29)}" y2="110" stroke="${tc(k[2])}" stroke-width="1"/>
+    <text x="${X(-48)}" y="162" text-anchor="${an}" fill="${tc(k[0])}">TRIGGER</text>
+    <text x="${X(34)}" y="198" text-anchor="${ian==='end'?'start':'end'}" fill="${tc(k[1])}">GRIP</text>
+    <text x="${cx}" y="252" text-anchor="middle" fill="${T}">${L?'LEFT':'RIGHT'}</text></g>`;};
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 260" role="img" aria-label="Quest 2 controllers; highlighted: ${[...O].join(', ')||'none'}">${one(150,1,true)}${one(370,-1,false)}</svg>`;}
+const isQuest=/OculusBrowser|Quest/i.test(navigator.userAgent);
+const padImgs={};function padImg(i){if(padImgs[i])return padImgs[i];const im=new Image();im.onload=()=>{if(TUT.open&&TUT.i===i&&xrActive)drawTutBoard();};
+  im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(padSVG(TUT_PAGES[i].q,true));return padImgs[i]=im;}
 const TUT={open:false,i:0,after:null};
 let tutWanted=true;try{tutWanted=localStorage.getItem('de4-tut')!=='off';}catch(e){}
 const tutC=cv(1024,640),tutX=tutC.getContext('2d'),tutT=tex(tutC,true);let tutBoard=null;
@@ -1711,6 +1742,7 @@ function tutGo(d){if(!TUT.open)return;const n=TUT.i+d;if(n<0)return;if(n>=TUT_PA
 function tutRender(){const P=TUT_PAGES[TUT.i],N=TUT_PAGES.length;
   $('tutStep').textContent=(TUT.i+1)+' / '+N;$('tutH').textContent=P.h;$('tutBody').innerHTML=P.b;$('tutArt').innerHTML=P.art?P.art():'';
   $('tutKeys').innerHTML=P.d.map(([k,l])=>`<li><kbd>${k}</kbd><span>${l}</span></li>`).join('');
+  $('tutKeysV').innerHTML=P.v.map(([k,l])=>`<li><kbd>${k}</kbd><span>${l}</span></li>`).join('');$('tutPad').innerHTML=padSVG(P.q);$('tutCtl').classList.toggle('vrfirst',isQuest);
   $('tutBack').disabled=TUT.i===0;$('tutNext').textContent=TUT.i===N-1?(TUT.after?'Start the war':'Done'):'Next';
   $('tutDots').innerHTML=TUT_PAGES.map((_,i)=>`<i class="${i===TUT.i?'on':''}"></i>`).join('');
   if(xrActive)drawTutBoard();}
@@ -1720,10 +1752,11 @@ function drawTutBoard(){const P=TUT_PAGES[TUT.i],N=TUT_PAGES.length,x=tutX,W=102
   x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.95)';x.fillRect(0,0,W,H);x.strokeStyle='#4a3d63';x.lineWidth=4;x.strokeRect(2,2,W-4,H-4);
   x.textBaseline='top';x.textAlign='left';x.font='16px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('HOW TO PLAY  '+(TUT.i+1)+' / '+N,40,30);x.textAlign='right';x.fillText('A: SKIP',W-40,30);x.textAlign='left';
   x.font='900 46px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText(P.h.toUpperCase(),40,64);
-  const txt=P.b.replace(/<[^>]+>/g,'');x.font='21px Silkscreen, monospace';x.fillStyle='#f1e8d4';let line='',y=136;
-  for(const w of txt.split(' ')){const t=line?line+' '+w:w;if(x.measureText(t).width>W-80&&line){x.fillText(line,40,y);line=w;y+=31;}else line=t;}x.fillText(line,40,y);y+=50;
-  x.fillStyle='rgba(11,9,18,0.7)';x.fillRect(32,y-10,W-64,P.v.length*32+16);
-  P.v.forEach(([k,l],i)=>{x.font='700 18px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText(k.toUpperCase(),48,y+i*32);x.font='18px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(l,330,y+i*32);});
+  const txt=P.b.replace(/<[^>]+>/g,'');x.font='18px Silkscreen, monospace';x.fillStyle='#f1e8d4';let line='',y=128;
+  for(const w of txt.split(' ')){const t=line?line+' '+w:w;if(x.measureText(t).width>W-80&&line){x.fillText(line,40,y);line=w;y+=25;}else line=t;}x.fillText(line,40,y);
+  y=Math.max(y+40,330);x.fillStyle='rgba(11,9,18,0.7)';x.fillRect(32,y-12,W-64,Math.min(552,y+226)-y+12);
+  P.v.forEach(([k,l],i)=>{const yy=y+i*44;x.font='700 17px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText(k.toUpperCase(),48,yy);x.font='15px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(l.slice(0,30),48,yy+20);});
+  const im=padImg(TUT.i);if(im.complete&&im.naturalWidth){const pw=420,ph=210;x.drawImage(im,W-40-pw,Math.min(y-6,560-ph),pw,ph);}
   x.textAlign='center';x.font='700 18px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText((TUT.i?'L TRIG: BACK   ·   ':'')+'R TRIG: '+(TUT.i===N-1?(TUT.after?'START THE WAR':'DONE'):'NEXT'),W/2,596);
   for(let i=0;i<N;i++){x.fillStyle=i===TUT.i?'#f0c055':'#2a2238';x.fillRect(W/2-N*12+i*24,570,12,12);}tutT.needsUpdate=true;}
 function startGame(){
