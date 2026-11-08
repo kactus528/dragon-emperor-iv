@@ -485,7 +485,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 55';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 56';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1105,7 +1105,8 @@ function stormStrike(x,z){if(!storm.on||storm.left<=0||storm.gap>0)return false;
 function stormEnd(release){if(!storm.on)return;storm.on=false;aim.mode=false;spellCD[0]=2.5;
   if(release&&storm.left>0&&phase==='fight'){const n=storm.left,vol=storm.kind==='volley';showBanner(vol?'Loose at will!':'The storm breaks!');for(let i=0;i<n;i++)schedule(0.1+i*(vol?0.25:0.16),()=>{const c=densest(alive[1])||fg[1];if(!c)return;const x=clamp(c.x+R(-3,3),-FW/2+1,FW/2-1),z=clamp(c.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(vol)barrage(x,z,1,0);else lightning(x,z,1,true);});}
   storm.left=0;hudAcc=1;}
-function spellPress(){if(state==='battle'&&phase==='fight'&&active[0]&&active[0].d.spell==='mend'&&!storm.on){if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,null);return;}if(state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0){sprint(fg[0]);return;}if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);return;}if(state!=='battle'||phase!=='fight'||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
+const castPhase=s=>phase==='fight'||(phase==='pursuit'&&pursuit&&pursuit.L===1-s&&!fg[1-s].captured);
+function spellPress(){if(state==='battle'&&castPhase(0)&&active[0]&&active[0].d.spell==='mend'&&!storm.on){if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,null);return;}if(state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0){sprint(fg[0]);return;}if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);return;}if(state!=='battle'||!castPhase(0)||mp[0]<spellCost(0)||spellCD[0]>0)return;if(aim.mode&&aim.valid)castSpell(0,{x:aim.x,z:aim.z});else aim.mode=!aim.mode;hudAcc=1;}
 
 /* ================= KINGDOM WAR TABLE ================= */
 const kingdom=new THREE.Group();kingdom.scale.setScalar(KS);world.add(kingdom);
@@ -1817,11 +1818,11 @@ function hit(T,dmg,att,raw){
   sfx('clang');
 }
 function generalHit(g,dmg,att){
-  if(!g.rec||g.dead||phase==='between'||phase==='over'||phase==='pursuit')return;
+  if(!g.rec||g.dead||g.captured||phase==='between'||phase==='over')return;if(phase==='pursuit'&&(!pursuit||g.side!==pursuit.L))return;
   g.rec.hp-=dmg*(0.9-g.rec.d.def*0.03)*(g.side===0?DIFF.eDmg:1)*(ls[g.side]?0.7:1);g.cast=Math.max(g.cast,0.12);if(dmg>=4)stopHit(0.05);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.6,z:g.z+0.2,tex:T_SPARK,w:0.6,h:0.6,life:0.15});
   morale[g.side]=clamp(morale[g.side]-0.002,0,1);
-  if(g.rec.hp<=0){g.rec.hp=0;g.dead=true;sfx('boom');endEngagement(1-g.side,'fallen');}
+  if(g.rec.hp<=0){if(phase==='pursuit'){g.rec.hp=1;const P=pursuit;captureGen(P.L,P.w);showBanner(g.rec.d.short+' is struck down and captured!',P.L===0);sfx('boom');sfx(P.w===0?'fanfare':'defeat');slowMo(0.9);pursuitEnd(2.6);return;}g.rec.hp=0;g.dead=true;sfx('boom');endEngagement(1-g.side,'fallen');}
 }
 function mageBolt(u,T){const sx=u.x,sz=u.z,sy=Hb(u.x,u.z)+1.1,tx=T.x,tz=T.z,ty=Hb(tx,tz)+0.7,dur=0.25+Math.hypot(tx-sx,tz-sz)*0.035;
   spawn({x:sx,y:sy,z:sz,tex:T_SPARK,w:0.7,h:0.7,life:dur,update:p=>{const k=p.age/p.life;p.x=sx+(tx-sx)*k;p.z=sz+(tz-sz)*k;p.y=sy+(ty-sy)*k+Math.sin(k*3.14)*1.2;},
@@ -1949,16 +1950,16 @@ function updateGenerals(dt){
 /* ---------- spells ---------- */
 function densest(list){if(!list.length)return null;let best=list[0],bc=-1;const smp=list.length>18?Array.from({length:18},()=>list[(Math.random()*list.length)|0]):list;for(const u of smp){let c=0;for(const v of list)if(Math.abs(v.x-u.x)<3&&Math.abs(v.z-u.z)<3)c++;if(c>bc){bc=c;best=u;}}return best;}
 function castSpell(side,tgt){
-  if(state!=='battle'||phase!=='fight'||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec||(side===0&&storm.on))return false;
+  if(state!=='battle'||!castPhase(side)||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec||(side===0&&storm.on))return false;
   const g=fg[side],sp=g.rec.d.spell;if(sp==='breath'&&dragon.mode!=='idle')return false;
   mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;
   showBanner(SPELL[sp],side===1);sfx(sp==='breath'?'roar':'chant');
   morale[side]=clamp(morale[side]+0.08,0,1);morale[1-side]=clamp(morale[1-side]-0.05,0,1);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.4,z:g.z+0.3,tex:T_RUNE,w:3.4,h:3.4,life:1.5,grow:0.6,vy:0.8,blink:true});
   for(let i=0;i<14;i++)spawn({x:g.x+R(-1,1),y:Hb(g.x,g.z)+R(0,2),z:g.z+R(-0.5,0.5),vy:R(3,7),vz:R(0,2),tex:T_SPARK,w:0.4,h:0.4,life:R(0.6,1.2),blink:true});
-  const pw=(1+0.06*((g.rec.lvl||1)-1))*(g.rec.relic==='storm'?1.25:g.rec.relic==='wyrm'?1.2:1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
+  const pw=(1+0.06*((g.rec.lvl||1)-1))*(g.rec.relic==='storm'?1.25:g.rec.relic==='wyrm'?1.2:1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=phase==='pursuit'?fg[V]:densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
-  if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
+  if(sp==='starfall'||sp==='ashrain'){const chase=phase==='pursuit'&&!tgt;for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const eg=fg[V],bx=chase&&eg.rec&&!eg.captured?eg.x+eg.x*0.04:cx,bz=chase&&eg.rec&&!eg.captured?eg.z:cz,sp2=chase?3:7;const[x,z]=cl(bx+R(-sp2,sp2),bz+R(-sp2,sp2));dropMeteor(x,z,V);});}
   else if((sp==='thunder'||sp==='volley')&&side===0){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);storm.kind=sp;storm.on=true;storm.left=storm.tot=n;storm.t=10;storm.gap=0.35;aim.mode=true;
     schedule(0.4,()=>showBanner(n+(vol?' volleys':' bolts')+' · aim and '+(vol?'loose!':'strike!')));if(tgt)schedule(0.35,()=>{storm.gap=0;stormStrike(cx,cz);});}
   else if(sp==='thunder'){for(let i=0;i<Math.round(8*pw);i++)schedule(0.5+i*0.22,()=>{const[x,z]=cl(cx+R(-4,4),cz+R(-4,4));lightning(x,z,V,true);});}
@@ -2174,7 +2175,7 @@ const TUT_PAGES=[
   d:[['Space','Aim the spell'],['Click','Fire (Thunder/Arrows: one per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder/Arrows: one per pull)'],['R stick','Turn and zoom to find a target']]},
  {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
   d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
- {h:'Spoils of war',q:['rt','lt','ls'],b:'A beaten or withdrawing general must run to <b>any edge of the field</b> to escape. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: steer him with <b>WASD</b> (or the left stick) and press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
+ {h:'Spoils of war',q:['rt','lt','ls'],b:'A beaten or withdrawing general must run to <b>any edge of the field</b> to escape. You can also hit a fleeing enemy general with your magic: wear him down and he is struck down and captured. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: steer him with <b>WASD</b> (or the left stick) and press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
   d:[['WASD / arrows','Steer while fleeing'],['Space','Sprint while fleeing'],['Click a prisoner','Try to persuade him']],v:[['L stick','Steer while fleeing'],['R trigger','Sprint while fleeing'],['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
  {h:'Your view',q:['lg','rg','ls','rs','b'],b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Win the war and a new <b>Age</b> begins: your generals keep their levels and relics, and the enemy comes back stronger. Good luck, Commander.',
   d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['L stick','Slide the battlefield'],['R stick','Turn and zoom'],['B','Reset the table']]}];
@@ -2360,17 +2361,19 @@ function endEngagement(w,reason){DE4LOG.info('engagement end: winner side '+w+' 
   else lr.out=true,lr.troops=0;
   if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
   phase='pursuit';pursuit={t:0,L,w,withdraw:wd};fg[L].flee=false;battleCry(w,16,0.9);
-  schedule(0.3,()=>showBanner(L===1?'Run him down before he reaches an edge!':lr.d.short+(wd?' withdraws':' flees')+'! Reach any edge!',L===0));
+  schedule(0.3,()=>showBanner(L===1?'Run him down, or blast him with magic!':lr.d.short+(wd?' withdraws':' flees')+'! Reach any edge!',L===0));
   if(L===0)schedule(1.9,()=>showBanner(xrActive?'Left stick steers · R trigger sprints':'WASD steers · Space sprints',true));
   setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(fg[L].x,-50,50),tz:clamp(fg[L].z,-34,34)},0.9);
 }
 function updatePursuit(dt){
+  if(storm.on){storm.gap=Math.max(0,storm.gap-dt);storm.t-=dt;aim.mode=true;if(storm.t<=0)stormEnd(false);}
+  for(let s=0;s<2;s++)spellCD[s]=Math.max(0,spellCD[s]-dt);
   const P=pursuit;P.t+=dt;const g=fg[P.L];if(g.captured)return;
   for(const u of alive[P.w]){if(Math.abs(u.x-g.x)<1.3&&Math.abs(u.z-g.z)<1.3){captureGen(P.L,P.w);showBanner(active[P.L].d.short+' is captured!',P.L===0);sfx(P.w===0?'fanfare':'defeat');pursuitEnd(2.6);return;}}
   if(offField(g)){showBanner(active[P.L].d.short+(P.withdraw?' withdraws safely':' escapes'),P.L===1);g.sp.visible=false;g.rec=null;pursuitEnd(2.2);}
   else if(P.L===0&&!xrActive)setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(g.x,-50,50),tz:clamp(g.z,-34,34)},0.2);
 }
-function pursuitEnd(d){phase='between';pursuit=null;setOrbitGoal(BV,0.9);schedule(d,nextRound);updateModeUI();}
+function pursuitEnd(d){stormEnd(false);aim.mode=false;phase='between';pursuit=null;setOrbitGoal(BV,0.9);schedule(d,nextRound);updateModeUI();}
 function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' '+why:''));
   if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;pursuit=null;
   showBanner(why==='tyrant'?'The Tyrant is taken!':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();if(win){cheer(0,1.6);warDrums(0,3,120);}else cheer(1,1.4);
@@ -2456,7 +2459,7 @@ const _fv=new THREE.Vector3();let flashV=0;function flash(v){if(reduceMotion||xr
 function updateModeUI(){
   const inBattle=state==='battle'||state==='end';
   $('bars').hidden=!inBattle||phase==='select'||phase==='duel'||!active[0];$('viewbar').hidden=state==='battle'&&phase==='duel';
-  $('dockBattle').hidden=!(state==='battle'&&(phase==='fight'||phase==='intro'));
+  $('dockBattle').hidden=!(state==='battle'&&(phase==='fight'||phase==='intro'||(phase==='pursuit'&&pursuit&&pursuit.L===1)));
   $('duelp').hidden=!(state==='battle'&&phase==='duel');
   $('selp').hidden=!(state==='battle'&&phase==='select')||xrActive;
   $('kbar').hidden=!(state==='kingdom'||state==='transition');$('dockKingdom').hidden=state!=='kingdom';
@@ -2477,7 +2480,7 @@ function updateHud(dt){
     {const bb=$('bossbar'),on=bossActive();bb.hidden=!on||xrActive;if(on)$('bossHp').style.width=(100*BOSS.hp/BOSS.max)+'%';}
     $('objLbl').textContent=(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BANNER '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
     {const ab=$('abilBtn'),A=abil[0],AB=ABIL[active[0].d.troop];ab.textContent='R '+AB.n+(A.t>0?' ON':A.cd>0?' '+Math.ceil(A.cd):'');ab.disabled=phase!=='fight'||A.cd>0;ab.classList.toggle('ready',phase==='fight'&&A.cd<=0);}
-    const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
+    const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&castPhase(0)&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
     sp.textContent=phase==='pursuit'&&pursuit&&pursuit.L===0?'Space Sprint · '+Math.round(fg[0].sta*100)+'%':storm.on?'Click to '+(storm.kind==='volley'?'loose · '+storm.left+' volleys · ':'strike · '+storm.left+' bolts · ')+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
     if(chal)$('chalTime').style.width=(100*chal.t/chal.max)+'%';
     const db=$('duelBtn');db.disabled=phase!=='fight';db.textContent=seekDuel[0]?'5 Stop seeking':'5 Seek duel';db.classList.toggle('on',seekDuel[0]);
@@ -2530,7 +2533,7 @@ function drawVrHud(){
       line(B.d.short+' challenges '+A.d.short+'!',140,'#f1e8d4','18px');line('A: ACCEPT    X: DECLINE',170,'#f0c055','20px');
       x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
     else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
-    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · R TRIG SPRINT':'RUN HIM DOWN!',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
+    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · R TRIG SPRINT':'RUN HIM DOWN! AIM + R TRIG: MAGIC',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
     else{if(bossActive()){x.fillStyle='#2a0e0e';x.fillRect(470,20,270,12);x.fillStyle='#e8401a';x.fillRect(470,20,270*BOSS.hp/BOSS.max,12);x.font='700 14px Silkscreen, monospace';x.fillStyle='#ff7a4a';x.fillText('ASHEN WYRM',470,38);}
       line('ORDER: '+orders[0].toUpperCase()+' · '+FNAME[form[0]].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);line('Y FORMATION · L-STICK CLICK: '+ABIL[A.d.troop].n.toUpperCase()+(abil[0].t>0?' ON':abil[0].cd>0?' '+Math.ceil(abil[0].cd):' READY')+(pups.length?' · '+pups.length+' POWER-UPS':''),190,abil[0].cd<=0?'#9ab8ff':'#857aa0','15px');
       line(storm.on?(storm.kind==='volley'?'VOLLEYS: R TRIG = FIRE · ':'STORM: R TRIG = BOLT · ')+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
@@ -2590,6 +2593,7 @@ function xrSelect(hand){audioInit();
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
     else if(phase==='pursuit'&&pursuit&&pursuit.L===0)sprint(fg[0]);
+    else if(phase==='pursuit'&&pursuit&&pursuit.L===1&&hand!=='left'){if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);}
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1)setOrder('charge');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
@@ -2696,7 +2700,7 @@ function vrAim(now){
   if(state==='kingdom'&&rc){world.updateMatrixWorld(true);rc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
     ray.set(o,d);const h=pickFirst(ray.intersectObjects(pickables,false));vrHover=h?h.object:null;const L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:3;L.material.color.set(CAMP.target?0xf0c055:0xd8d0e8);
     if(vrHover){hoverRing.visible=true;hoverRing.position.copy(vrHover.position);hoverRing.position.y+=0.12;}return;}
-  if(state!=='battle'||phase!=='fight'||!battle.visible||!rc){reticle.visible=false;aim.valid=false;return;}
+  if(state!=='battle'||!castPhase(0)||!battle.visible||!rc){reticle.visible=false;aim.valid=false;return;}
   world.updateMatrixWorld(true);rc.updateMatrixWorld(true);
   const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
   const h=aimAt(o,d),L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:4;L.material.color.set(mp[0]>=1?0xf0c055:0x7a6f98);placeReticle(true,now);
