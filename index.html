@@ -66,6 +66,13 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .view input[type=range]{width:84px;accent-color:var(--gold)}
 .view .hint{width:100%;font-family:var(--f-term);font-size:15px;letter-spacing:0;color:#857aa0}
 /* center banner */
+#talk{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);z-index:8;width:min(620px,calc(100% - 32px));box-sizing:border-box;
+  display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:start;padding:12px 14px;background:linear-gradient(#1a2a5a,#0c1430);border:2px solid #f0c055;box-shadow:0 0 0 3px #0b0912,0 0 0 4px #9c6519,0 10px 30px rgba(0,0,0,.6)}
+#talk[hidden]{display:none}#talk.foe{background:linear-gradient(#4a1418,#1e080a);border-color:#ff7a4a}
+#talk img{width:64px;height:85px;image-rendering:pixelated;background:#0b0912;border:1px solid #f0c055}
+#talk b{display:block;font-family:var(--f-display);font-weight:900;font-size:16px;color:var(--gold);margin-bottom:4px}
+#talk p{margin:0;font-size:13px;line-height:1.55;color:#fff;min-height:3.1em}
+#talk .tk{position:absolute;right:10px;bottom:6px;font-family:var(--f-term);font-size:14px;color:#a99fb8}
 #banner{position:fixed;left:0;right:0;top:38%;text-align:center;pointer-events:none;z-index:6;padding:0 16px}
 #banner span{display:inline-block;font-family:var(--f-display);font-weight:900;font-size:clamp(30px,8vw,72px);line-height:1;letter-spacing:.04em;
   background:linear-gradient(#fff8dc,#f0c055 45%,#8a5414 52%,#ffe39a);-webkit-background-clip:text;background-clip:text;color:transparent;
@@ -254,6 +261,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   </div>
 </div>
 
+<div id="talk" class="panel" hidden><img id="talkPor" alt=""><div><b id="talkName"></b><p id="talkTxt"></p></div><span class="tk">Space or click to skip</span></div>
 <div id="banner"><span id="bannerTxt"></span></div>
 <div id="flash"></div>
 
@@ -1118,6 +1126,7 @@ function sfx(k){if(!AC)return;const t=AC.currentTime;
   else if(k==='whoosh'){noise(t,0.6,'bandpass',300,2400,0.2,1.5);}
   else if(k==='flame'){if(t-lastFlame<0.12)return;lastFlame=t;noise(t,0.3,'lowpass',1800,300,0.14);}
   else if(k==='zap'){noise(t,0.35,'highpass',2000,600,0.4);tone(t,'square',1800,120,0.3,0.1);}
+  else if(k==='blip'){tone(t,'square',arguments[1]||160,0,0.035,0.035);}
   else if(k==='horn'){[0,0.55].forEach((d,i)=>{const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type=o2.type='sawtooth';
     o.frequency.setValueAtTime(92,t+d);o.frequency.linearRampToValueAtTime(i?123:110,t+d+0.25);o2.frequency.setValueAtTime(93.5,t+d);o2.frequency.linearRampToValueAtTime(i?124:111,t+d+0.25);
     f.type='lowpass';f.frequency.value=900;env(g,t+d,0.08,0.22,i?1.1:0.45);o.connect(f);o2.connect(f);f.connect(g);g.connect(MG);o.start(t+d);o2.start(t+d);o.stop(t+d+1.3);o2.stop(t+d+1.3);});}
@@ -1194,7 +1203,7 @@ function clearField(){
   dragon.mode='idle';dragon.t=0;timers=[];
 }
 function deploy(){
-  round++;phase='intro';introT=0;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
+  round++;phase='taunt';introT=0;aim.mode=false;timers=[];anchor[0]=-35;anchor[1]=35;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];mp[s]=0.3;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
     if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
@@ -1205,8 +1214,44 @@ function deploy(){
   showBanner(active[0].d.short+' vs '+active[1].d.short);sfx('fanfare');
   if(traitorMsg){const m=traitorMsg;traitorMsg='';schedule(2.2,()=>showBanner(m,true));}
   warDrums(0,2,100);schedule(1.4,()=>warDrums(1,1,92));drumT=R(16,26);cheerT=6;killTally[0]=killTally[1]=0;
-  setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);
+  startTaunt();
 }
+/* ---------- pre-battle taunts ---------- */
+const TAUNTS={
+  kaelen:['Turn back now, and you may keep your banners.','Aldmere has knelt to no one. We will not start with you.','Every step you take here was paid for by my people.'],
+  seren:['I count your soldiers by the arrows I have left. I have plenty.','Stand still. It makes this kinder.','The woods taught me patience. You will not need any.'],
+  brannoch:['HA! Finally, a fight worth shouting about!','My horses are hungry and your line looks soft.','Brace yourselves. Or don\'t. It\'s louder that way.'],
+  ivo:['I... I am not afraid of you! Mostly.','Today is the day the songs start mentioning me.','Draw! All of you, draw and loose!'],
+  maelis:['Lances down. Let us make this quick and honest.','The Highmere lancers do not break. Test us.','You will remember the sound of our charge.'],
+  vorgrath:['Kneel, and I may let the dragon eat you last.','Your kingdom is ash that has not yet burned.','I have buried kings braver than you.'],
+  hask:['One rank at a time. I am in no hurry.','Grind them. Grind them all.','You will tire long before my shield arm does.'],
+  mordrae:['Look up. That is where your death comes from.','The veil whispers your name. It sounds afraid.','My arrows have already chosen you.'],
+  skarn:['I fought for scraps in the pits. You are a feast.','Bleed for me, little lord!','I have broken stronger jaws than yours.'],
+  veyra:['The dunes drank better armies than this one.','Run if you like. The sand remembers footprints.','My fire arrows will light your way home.'],
+  ysolde:['You mistake patience for weakness. Everyone does, once.','Duskmarch has outlasted every king who came this way.','I have already won. You simply have not noticed.'],
+  corvin:['My queen need not lift a hand. I am her hand.','When the stars fall, stand very still.','No one passes while I hold the line.'],
+  brisa:['You took the dry path? Shame. That is the one I trapped.','Every bog in this land is a friend of mine.','You will be stuck long before you are beaten.'],
+  odric:['I have held passes for twenty winters. One more.','Come. Break yourselves on me.','The mountain does not move. Neither do I.']};
+const VOICE={kaelen:140,seren:260,brannoch:110,ivo:240,maelis:220,vorgrath:80,hask:95,mordrae:230,skarn:100,veyra:250,ysolde:200,corvin:120,brisa:270,odric:90};
+const pickLine=k=>{const L=TAUNTS[k]||['Your end begins here.'];return L[(Math.random()*L.length)|0];};
+const talkC=cv(512,168),talkX=talkC.getContext('2d'),talkT=tex(talkC,true);
+const talkCard=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:talkT,transparent:true,depthTest:false}));talkCard.renderOrder=11;talkCard.visible=false;battle.add(talkCard);
+let taunt=null;
+function drawTalkCard(r,txt,foe){const x=talkX,W=512,H=168;x.clearRect(0,0,W,H);const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,foe?'#4a1418':'#1a2a5a');g.addColorStop(1,foe?'#1e080a':'#0c1430');
+  x.fillStyle=g;x.fillRect(4,4,W-8,H-8);x.strokeStyle=foe?'#ff7a4a':'#f0c055';x.lineWidth=4;x.strokeRect(4,4,W-8,H-8);
+  x.imageSmoothingEnabled=false;x.drawImage(GCV[r.d.key][0],16,16,102,136);
+  x.fillStyle='#f0c055';x.font='700 22px Silkscreen, monospace';x.textBaseline='top';x.fillText(r.d.short.toUpperCase(),134,18);
+  x.fillStyle='#ffffff';x.font='17px Silkscreen, monospace';const words=txt.split(' ');let line='',y=54;for(const w of words){const t=line?line+' '+w:w;if(x.measureText(t).width>360&&line){x.fillText(line,134,y);line=w;y+=26;}else line=t;}x.fillText(line,134,y);
+  talkT.needsUpdate=true;}
+function startTaunt(){taunt={i:0,t:0,lines:[pickLine(active[0].d.key),pickLine(active[1].d.key)],shown:-1};phase='taunt';updateModeUI();showTauntLine();}
+function showTauntLine(){const s=taunt.i,g=fg[s],r=active[s],dir=s?-1:1;
+  setOrbitGoal({theta:dir*0.32,phi:1.28,r:15,ty:1.2,tx:g.x+dir*4,tz:g.z},0.55);
+  $('talkPor').src=portrait(r.d.key);$('talkName').textContent=r.d.name;$('talkTxt').textContent='';$('talk').className='panel'+(s?' foe':'');$('talk').hidden=xrActive;
+  talkCard.visible=true;talkCard.scale.set(18,5.9,1);talkCard.position.set(g.x+dir*6,Hb(g.x,g.z)+8,g.z+1);drawTalkCard(r,'',s===1);}
+function updateTaunt(dt){const s=taunt.i,txt=taunt.lines[s];taunt.t+=dt;fg[s].cast=0.15;
+  const n=Math.min(txt.length,Math.floor(taunt.t*30));if(n!==taunt.shown){if(n>taunt.shown&&n%2===0&&n<txt.length&&txt[n]!==' ')sfx('blip',VOICE[active[s].d.key]||160);taunt.shown=n;const part=txt.slice(0,n);$('talkTxt').textContent=part;drawTalkCard(active[s],part,s===1);if(xrActive){vrMsg='';}}
+  if(taunt.t>txt.length/30+1.6){if(s===0){taunt.i=1;taunt.t=0;taunt.shown=-1;showTauntLine();}else endTaunt();}}
+function endTaunt(){if(phase!=='taunt')return;taunt=null;$('talk').hidden=true;talkCard.visible=false;phase='intro';introT=0;showBanner('Ready');updateModeUI();setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.8);}
 function buildGrid(){for(let i=0;i<GA.length;i++){GA[i].length=0;GB[0][i].length=0;GB[1][i].length=0;}
   for(let s=0;s<2;s++)for(const u of alive[s]){const k=gcz(u.z)*GW+gcx(u.x);GA[k].push(u);GB[s][k].push(u);}}
 function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=null,bd=1e18;
@@ -1319,7 +1364,7 @@ function updateGenerals(dt){
     else if(!g.dead){
       let tx=g.x,tz=g.z,spd=2.6;g.chase=false;
       if(phase==='duel'){tx=duel.cx-dir*(2.3-g.lunge*1.7);tz=duel.cz;spd=6;}
-      else if(phase==='intro'){tx=dir>0?-52:52;tz=0;}
+      else if(phase==='intro'||phase==='taunt'){tx=dir>0?-52:52;tz=0;}
       else if(phase==='fight'){const own=alive[g.side];
         if(own.length>30&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*7;tz=c.z*0.6;}
         else if(orders[g.side]==='retreat'){tx=dir>0?-52:52;tz=0;}
@@ -1653,7 +1698,9 @@ function drawVrHud(){
     bar(24,62,320,5,A.hp/A.d.hp,'#7fe39a');bar(W-344,62,320,5,B.hp/B.d.hp,'#7fe39a',true);
     bar(24,70,320,4,mp[0],'#f0c055');bar(W-344,70,320,4,mp[1],'#f0c055',true);
     bar(24,77,320,4,morale[0],'#8fd0ff');bar(W-344,77,320,4,morale[1],'#8fd0ff',true);
-    if(phase==='duel'){line('DUEL · R trig STRIKE · L trig GUARD · A/X POWER',96,'#f0c055');
+    if(phase==='taunt'&&taunt){const tr=active[taunt.i],tx=taunt.lines[taunt.i].slice(0,Math.max(0,taunt.shown));line(tr.d.name.toUpperCase(),96,taunt.i?'#ffb09a':'#9ab8ff','18px');
+      const ws=tx.split(' ');let l1='',l2='';for(const w of ws){if((l1+w).length<50&&!l2)l1+=w+' ';else l2+=w+' ';}line(l1,128,'#f1e8d4','16px');line(l2,152,'#f1e8d4','16px');line('Any trigger: skip',196,'#857aa0','14px');}
+    else if(phase==='duel'){line('DUEL · R trig STRIKE · L trig GUARD · A/X POWER',96,'#f0c055');
       line(duel.stage==='choose'?(duel.pick?'You chose '+duel.pick.toUpperCase():'Choose! Gold glow = power blow coming'):'',126,'#f1e8d4','16px');
       const words=duel.log.split(' ');let l1='',l2='';for(const w of words){if((l1+w).length<54&&!l2)l1+=w+' ';else l2+=w+' ';}line(l1,156,'#a99fb8','16px');line(l2.slice(0,56),180,'#a99fb8','16px');}
     else if(chal){const on=((performance.now()/250)|0)%2===0;x.fillStyle=on?'rgba(120,20,16,0.85)':'rgba(60,10,12,0.85)';x.fillRect(0,88,W,H-88);x.fillStyle='#ff5a3a';x.fillRect(0,88,W,4);
@@ -1682,6 +1729,7 @@ $('againBtn').addEventListener('click',fightAgain);
 $('mapBtn').addEventListener('click',backToKingdom);
 addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;const k=e.key.toLowerCase();
   if(state==='battle'){
+    if(phase==='taunt'){if(k===' '||k==='enter'||k==='escape'){e.preventDefault();endTaunt();}return;}
     if(phase==='select'){const n=parseInt(k,10),it=selItems();if(n>=1&&n<=it.length)selAct(it[n-1]);return;}
     if(phase==='duel'){if(k==='j')duelPick('strike');else if(k==='k')duelPick('guard');else if(k==='l')duelPick('power');return;}
     if(chal){if(k==='y')answerChallenge(true);else if(k==='n')answerChallenge(false);}
@@ -1692,6 +1740,7 @@ addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'||e.target.tagName=
 function xrSelect(hand){audioInit();
   if(state==='title')startGame();else if(state==='kingdom'){if(hand==='left')togglePause();else campClick(vrHover);drawVrHud();}
   else if(state==='battle'){
+    if(phase==='taunt'){endTaunt();return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(mp[0]>=1)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else setOrder('charge');}
@@ -1730,7 +1779,7 @@ function panBy(sx,fw){const c=Math.cos(orbit.theta),sn=Math.sin(orbit.theta),lim
   orbit.tx=clamp(orbit.tx+c*sx-sn*fw,-lim[0],lim[0]);orbit.tz=clamp(orbit.tz-sn*sx-c*fw,-lim[1],lim[1]);}
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 let downAt=null;
-canvas.addEventListener('pointerdown',e=>{if(state==='title')return;downAt={x:e.clientX,y:e.clientY,t:performance.now()};if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
+canvas.addEventListener('pointerdown',e=>{if(state==='title')return;if(state==='battle'&&phase==='taunt'){endTaunt();return;}downAt={x:e.clientX,y:e.clientY,t:performance.now()};if(aim.mode&&e.button===0&&state==='battle'){mouseAim(e);if(aim.valid)castSpell(0,{x:aim.x,z:aim.z});return;}canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,pan:e.button===2||e.button===1||e.shiftKey});orbit.g=null;pinch0=0;});
 canvas.addEventListener('pointermove',e=>{if(aim.mode&&!ptrs.size)mouseAim(e);const p=ptrs.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
   if(ptrs.size===1){if(p.pan){const k=orbit.r*0.0018;panBy(-dx*k,dy*k);}else{orbit.theta=clamp(orbit.theta-dx*0.005,-1.35,1.35);orbit.phi=clamp(orbit.phi-dy*0.005,0.2,1.5);}}
   else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0)orbit.r=clamp(orbit.r*pinch0/d,3,900);pinch0=d;const k=orbit.r*0.0009;panBy(-dx*k,dy*k);}});
@@ -1811,7 +1860,8 @@ function loop(tms){
   }
   if(battle.visible){
     if(state==='battle'){
-      if(phase==='intro'){introT+=dt;if(introT>1.8){phase='fight';showBanner('Fight!');updateModeUI();battleCry(0,22,1);battleCry(1,22,1);}}
+      if(phase==='taunt'&&taunt)updateTaunt(dt);
+      else if(phase==='intro'){introT+=dt;if(introT>1.8){phase='fight';showBanner('Fight!');updateModeUI();battleCry(0,22,1);battleCry(1,22,1);}}
       else if(phase==='fight')fightTick(dt);
       else if(phase==='duel')updateDuel(dt);
       else if(phase==='pursuit'&&pursuit)updatePursuit(dt);

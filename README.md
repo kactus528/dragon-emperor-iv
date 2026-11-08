@@ -10,6 +10,8 @@ The war table is a living map of 18 castles joined by roads. Aldmere (you), the 
 Generals gain experience from kills, wins, duels and captures. Each level raises their HP, attack and defense, increases how many troops they command (110 at level 0 up to 400), and strengthens their spell. Ranks run from Captain to Warlord.
 
 ## How a battle works
+Every round opens with the two generals trading taunts: the camera zooms in on each in turn while they speak in a Taiyo-style dialogue box (a speech card above the general in VR). Any trigger, Space or a click skips it.
+
 Each side fields three generals, each leading 400 troops of one type. Spears beat cavalry, cavalry rides down archers, archers shred infantry. You pick a general for each round, the Ashen Legion tries to counter-pick, and survivors carry their losses into the next round. The battle ends when one side runs out of generals.
 
 - **Orders:** Charge (hits harder, takes more), Hold (everyone stops where they stand, fights only what comes close, takes less damage and restores morale), Flank (sweeps around the enemy's sides), Retreat (falls back to the general), Withdraw (pulls your general out with the troops he has left).
