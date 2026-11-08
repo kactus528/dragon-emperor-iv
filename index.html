@@ -498,7 +498,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 66';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 67';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -989,9 +989,9 @@ function mapIsSound(){
   for(let z=-30;z<=30;z+=2)for(const x of[-47,-41,-35,35,41,47])if(navAt(x,z)===1)return false;return true;}
 let mapSeed=(Date.now()%100000)+11;
 function buildBattlefield(type){efOk=false;DE4LOG.beat('buildBattlefield '+type);
-  for(let a=0;a<14;a++){mapSeed=(mapSeed*48271)%2147483647;genMap(type,mapSeed);fillNAV();if(mapIsSound())break;}
+  for(let a=0;a<14;a++){mapSeed=(mapSeed*48271)%2147483647;genMap(type,mapSeed);fillNAV();fillRB();if(mapIsSound())break;}
   clearMapGroup();
-  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);
+  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);fillRB();
   const D=new THREE.Object3D();
   if(MAP.rocks.length){const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshPhongMaterial({color:BIO.rock,flatShading:true,shininess:4}),MAP.rocks.length);
     MAP.rocks.forEach((b,i)=>{b.i=i;D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);MAP.rockIM=im;}
@@ -1045,6 +1045,13 @@ for(let i=0;i<GW*GD;i++){GB[0].push([]);GB[1].push([]);GA.push([]);}
 const gcx=x=>clamp(Math.floor((x+FW/2+5)/GC),0,GW-1),gcz=z=>clamp(Math.floor((z+FD/2+5)/GC),0,GD-1);
 const NAV=new Uint8Array(GW*GD);function fillNAV(){for(let z=0;z<GD;z++)for(let x=0;x<GW;x++)NAV[z*GW+x]=terrType((x+0.5)*GC-FW/2-5,(z+0.5)*GC-FD/2-5);}
 const navAt=(x,z)=>NAV[gcz(z)*GW+gcx(x)];
+const RB=new Uint8Array(GW*GD);const BLK=k=>NAV[k]===1||RB[k]===1;
+function fillRB(){RB.fill(0);if(!MAP)return;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){const k=z*GW+x;if(NAV[k]===1)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5;
+    for(const b of MAP.rocks){const dx=wx-b.x,dz=wz-b.z,r=b.r+0.55;if(dx*dx+dz*dz<r*r){RB[k]=1;break;}}
+    if(!RB[k])for(const w of MAP.walls){if(segD(wx,wz,w)<(w.th||1)/2+0.6){RB[k]=1;break;}}}
+  PTF.clear();}
+const PTF=new Map();
+function fieldTo(x,z){const k=gcz(z)*GW+gcx(x);let F=PTF.get(k);if(F)return F;F=new Float64Array(GW*GD);F.pt=true;dijkstra(F,[k]);PTF.set(k,F);if(PTF.size>10)PTF.delete(PTF.keys().next().value);return F;}
 const FF=[new Float64Array(GW*GD),new Float64Array(GW*GD)],PF=new Float64Array(GW*GD),EF=[new Float64Array(GW*GD),new Float64Array(GW*GD)];let fieldT=0,efOk=false;
 function edgeFields(){const src=new Set(),x0=gcx(-FW/2+1),x1=gcx(FW/2-1),z0=gcz(-FD/2+1),z1=gcz(FD/2-1);
   for(let z=z0;z<=z1;z++)for(const x of[x0,x0+1,x1,x1-1])src.add(z*GW+x);for(let x=x0;x<=x1;x++)for(const z of[z0,z0+1,z1,z1-1])src.add(z*GW+x);
@@ -1056,15 +1063,15 @@ function dijkstra(F,src){F.fill(1e9);const H=[];
   const pop=()=>{const d=H[0],k=H[1],ld=H[H.length-2],lk=H[H.length-1];H.length-=2;if(H.length){H[0]=ld;H[1]=lk;let i=0;const n=H.length/2;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<n&&H[2*l]<H[2*m])m=l;if(r<n&&H[2*r]<H[2*m])m=r;if(m===i)break;let t=H[2*m];H[2*m]=H[2*i];H[2*i]=t;t=H[2*m+1];H[2*m+1]=H[2*i+1];H[2*i+1]=t;i=m;}}return[d,k];};
   for(const k of src){if(F[k]>0){F[k]=0;push(k,0);}}
   while(H.length){const[d,k]=pop();if(d>F[k]+1e-6)continue;const cx=k%GW,cz=(k/GW)|0;
-    for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const n=z*GW+x;if(NAV[n]===1)continue;
-      if(ox&&oz&&(NAV[cz*GW+x]===1||NAV[z*GW+cx]===1))continue;const nd=d+(ox&&oz?1.414:1)*(NAV[n]===2?1.8:1);if(nd<F[n]){F[n]=nd;push(n,nd);}}}}
+    for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const n=z*GW+x;if(BLK(n))continue;
+      if(ox&&oz&&(BLK(cz*GW+x)||BLK(z*GW+cx)))continue;const nd=d+(ox&&oz?1.414:1)*(NAV[n]===2?1.8:1);if(nd<F[n]){F[n]=nd;push(n,nd);}}}}
 function computeFields(){for(let s=0;s<2;s++){let src=[];const G=GB[1-s];for(let k=0;k<G.length;k++)if(G[k].length)src.push(k);const g=fg[1-s];if(g.rec&&!g.dead&&!g.captured)src.push(gcz(g.z)*GW+gcx(g.x));if(SIEGE&&SIEGE.hp>0&&s===SIEGE.att)src=SIEGE.app;dijkstra(FF[s],src);}
   if(pursuit){const g=fg[pursuit.L];dijkstra(PF,[gcz(g.z)*GW+gcx(g.x)]);}
   for(let s=0;s<2;s++)if(seekDuel[s]&&fg[1-s].rec)dijkstra(GF[s],[gcz(fg[1-s].z)*GW+gcx(fg[1-s].x)]);}
-function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!F||d<3.5)return[dx/d,dz/d];
+function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!F||d<(F.pt?1.4:3.5))return[dx/d,dz/d];
   const cx=gcx(e.x),cz=gcz(e.z);let best=F[cz*GW+cx],bx=0,bz=0;
-  for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const k=z*GW+x;if(NAV[k]===1)continue;
-    if(ox&&oz&&(NAV[cz*GW+x]===1||NAV[z*GW+cx]===1))continue;if(F[k]<best-1e-3){best=F[k];bx=ox;bz=oz;}}
+  for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const k=z*GW+x;if(BLK(k))continue;
+    if(ox&&oz&&(BLK(cz*GW+x)||BLK(z*GW+cx)))continue;if(F[k]<best-1e-3){best=F[k];bx=ox;bz=oz;}}
   if(!bx&&!bz)return[dx/d,dz/d];const wx=(cx+bx+0.5)*GC-FW/2-5,wz=(cz+bz+0.5)*GC-FD/2-5,ex=wx-e.x,ez=wz-e.z,el=Math.hypot(ex,ez)||1;return[ex/el,ez/el];}
 /* exact collision with wall and fence blocks and rocks (the nav grid is only 2 units fine, so diagonal walls leaked through) */
 function solid(x,z){if(navAt(x,z)===1)return true;
@@ -1656,7 +1663,7 @@ let squadAim=false,squadCD=0;const esc=[0,0];
 function sendSquad(x,z){if(state!=='battle'||phase!=='fight')return;if(squadCD>0){showBanner('Squad not ready ('+Math.ceil(squadCD)+'s)');return;}
   let bx=x,bz=z,bd=7;for(const p of pups){const d=Math.hypot(p.x-x,p.z-z);if(d<bd){bd=d;bx=p.x;bz=p.z;}}
   const L=alive[0].filter(u=>u.state==='alive'&&!u.sq).map(u=>({u,d:Math.hypot(u.x-bx,u.z-bz)/STATS[u.type].spd})).sort((a,b)=>a.d-b.d).slice(0,12);
-  if(!L.length)return;for(const {u} of L)u.sq={x:bx+R(-0.6,0.6),z:bz+R(-0.6,0.6),t:14};squadCD=5;
+  if(!L.length)return;for(const {u} of L)u.sq={x:bx+R(-0.6,0.6),z:bz+R(-0.6,0.6),t:20};squadCD=5;
   spawn({x:bx,y:Hb(bx,bz)+0.2,z:bz,tex:T_RUNE,w:3,h:3,life:2.5,grow:0.2,blink:true});sfx('lock');buzz(0.4,100);showBanner(L.length+' soldiers sent'+(bd<7?' for the crystal':''));hudAcc=1;}
 const PU={mana:{n:'Mana Surge',col:'#7fb0ff',g:'✦',w:8},heal:{n:'Holy Nova',col:'#7fe39a',g:'✚',w:11},reinf:{n:'Reinforcements',col:'#f1e8d4',g:'⚑',w:9},
   fury:{n:'Berserk Rage',col:'#ff8a2a',g:'⚔',w:11},dread:{n:'Dread Horn',col:'#ff6a4a',g:'☠',w:10},swift:{n:'Cyclone',col:'#9ff0ff',g:'@',w:12},cloud:{n:'Thundercloud',col:'#b48cff',g:'⚡',w:13},raise:{n:'Resurrection',col:'#ff2a2a',g:'☥',w:9},
@@ -1803,7 +1810,7 @@ function laneCost(zc){let c=0;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b
 function clearLane(zc){const half=5.4;let n=0;
   MAP.rocks=MAP.rocks.filter(b=>{if(Math.abs(b.z-zc)<half+b.r){if(MAP.rockIM&&b.i!==undefined){MAP.rockIM.setMatrixAt(b.i,_zm);MAP.rockIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
   MAP.walls=MAP.walls.filter(w=>{const zmin=Math.min(w.z1,w.z2)-1,zmax=Math.max(w.z1,w.z2)+1;if(zmax>zc-half&&zmin<zc+half){if(MAP.wallIM&&w.bi){for(const i of w.bi)MAP.wallIM.setMatrixAt(i,_zm);MAP.wallIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
-  if(n)DE4LOG.info('siege lane at z '+zc+' cleared '+n+' obstacles');}
+  fillRB();if(n)DE4LOG.info('siege lane at z '+zc+' cleared '+n+' obstacles');}
 function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;for(let z=-24;z<=24;z+=2){const c=laneCost(z);if(c<best){best=c;gzc=z;}}clearLane(gzc);
   const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(gzc-3.2),gz1=gcz(gzc+3.2),gate=[];
   for(let z=gz0-1;z<=gz1+1;z++)for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++){const k=z*GW+x;if(NAV[k]===1)NAV[k]=2;}
@@ -1998,7 +2005,7 @@ function updateUnits(dt){
     if(dueling){tx=u.rx;tz=u.rz;move=Math.hypot(tx-u.x,tz-u.z)>0.3;}
     else if(fighting){
       u.retarget-=dt;if(u.retarget<=0||!u.target||u.target.state!=='alive'){u.target=nearestEnemy(u);u.retarget=R(0.25,0.5);}
-      if(u.sq){u.sq.t-=dt;const dd=Math.hypot(u.sq.x-u.x,u.sq.z-u.z);if(dd<0.9||u.sq.t<=0||!pups.length&&dd<3){u.sq=null;u.hs=-1;}else{const nd=navDir(u,u.sq.x,u.sq.z,null),sp=st.spd*1.15*terrSpd(u,u.type);const k2=Math.min(1,dt*6);u.vx+=(nd[0]*sp-u.vx)*k2;u.vz+=(nd[1]*sp-u.vz)*k2;continue;}}
+      if(u.sq){u.sq.t-=dt;const dd=Math.hypot(u.sq.x-u.x,u.sq.z-u.z);if(dd<0.9||u.sq.t<=0||!pups.length&&dd<3){u.sq=null;u.hs=-1;}else{const nd=navDir(u,u.sq.x,u.sq.z,FLY[u.type]?null:fieldTo(u.sq.x,u.sq.z)),sp=st.spd*1.15*terrSpd(u,u.type);const k2=Math.min(1,dt*6);u.vx+=(nd[0]*sp-u.vx)*k2;u.vz+=(nd[1]*sp-u.vz)*k2;continue;}}
       const T=u.target,ord=orders[u.side],eg=fg[1-u.side];
       if(u.side===0&&bossActive()&&dragon.mode==='ground'&&Math.hypot(u.x-dragon.x,u.z-dragon.z)<(RANGED[u.type]?rg+4:5.5)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;bossHit(st.dmg*(RANGED[u.type]?1.2:1)*(abil[0].t>0?1.3:1));if(RANGED[u.type])spawn({x:u.x,y:Hb(u.x,u.z)+1,z:u.z,vx:(dragon.x-u.x)*2,vy:6,vz:(dragon.z-u.z)*2,tex:T_SPARK,w:0.3,h:0.3,life:0.4});}u.vx*=0.5;u.vz*=0.5;continue;}
       if(SIEGE&&SIEGE.hp>0&&u.side===SIEGE.att&&!FLY[u.type]&&Math.abs(u.x-SIEGE.gx)<3.6&&Math.abs(u.z-SIEGE.gz)<5&&!(T&&Math.hypot(T.x-u.x,T.z-u.z)<=st.rng)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;gateHit(u,st.dmg*(GATEM[u.type]||1)*(abil[u.side].t>0?1.3:1));}u.vx*=0.5;u.vz*=0.5;continue;}
@@ -2007,7 +2014,7 @@ function updateUnits(dt){
       const engage=ord==='charge'?1e9:ord==='hold'?3.2:ord==='retreat'?1.5:3.5;
       const d=T?Math.hypot(T.x-u.x,T.z-u.z):1e9;
       const dg=(eg.rec&&!eg.dead&&!eg.flee)?Math.hypot(eg.x-u.x,eg.z-u.z):1e9;
-      if(pu&&tdist>rg+0.6){tx=pu.x;tz=pu.z;move=true;}
+      if(pu&&tdist>rg+0.6){tx=pu.x;tz=pu.z;move=true;chase=fieldTo(pu.x,pu.z);}
       else if(dg<2.4&&dg<d){if(dg<=st.rng+0.4){if(u.cd<=0){u.cd=st.cd*R(0.8,1.25);u.atk=0.25;generalHit(eg,st.dmg*0.45,u);}}else{tx=eg.x;tz=eg.z;move=true;chase=FF[u.side];}}
       else if(T&&d<engage+(RANGED[u.type]?rg:0)){
         if(d<=rg){if(u.cd<=0){u.cd=st.cd*R(0.8,1.25);u.atk=0.25;if(u.type==='arc'&&(d>1.2||FLY[T.type]))fireArrow(u,T);else if(u.type==='mage'&&(d>1.2||FLY[T.type]))mageBolt(u,T);else hit(T,RANGED[u.type]?0.5:st.dmg,u);}}
@@ -2028,7 +2035,8 @@ function updateUnits(dt){
       for(const b of GA[gz*GW+gx]){if(b.uid<=a.uid)continue;const dx=b.x-a.x,dz=b.z-a.z;if(Math.abs(dx)>0.62||Math.abs(dz)>0.62)continue;const d2=dx*dx+dz*dz;if(d2>0.38||d2<1e-6)continue;
         const d=Math.sqrt(d2),push=(0.62-d)*0.5,nx=dx/d*push,nz=dz/d*push;a.x-=nx;a.z-=nz;b.x+=nx;b.z+=nz;}}}}
   for(const u of units){
-    if(u.state==='alive'){const sp=Math.hypot(u.vx,u.vz);if(FLY[u.type]){u.x+=u.vx*dt;u.z+=u.vz*dt;}else moveSlide(u,u.vx*dt,u.vz*dt);u.moving=sp>0.35;u.walk+=sp*dt*0.9;}
+    if(u.state==='alive'){const sp=Math.hypot(u.vx,u.vz);if(FLY[u.type]){u.x+=u.vx*dt;u.z+=u.vz*dt;}else{const ox=u.x,oz=u.z;moveSlide(u,u.vx*dt,u.vz*dt);
+      if(sp>0.8&&Math.hypot(u.x-ox,u.z-oz)<sp*dt*0.25){u.stk=(u.stk||0)+dt;if(u.stk>0.5){u.stk=0;const sd=Math.random()<0.5?-1:1,l=sp||1;u.dodx=-u.vz/l*sd;u.dodz=u.vx/l*sd;u.dodgeT=0.45;}}else u.stk=0;}u.moving=sp>0.35;u.walk+=sp*dt*0.9;}
     else if(u.state==='flee'){if(!efOk)edgeFields();const E=nearEdge(u),m=3.4*dt;if(FLY[u.type]){u.x+=E.nx*m;u.z+=E.nz*m;}else{const nd=navDir(u,u.x+E.nx*(E.d+4),u.z+E.nz*(E.d+4),EF[0]);if(!moveSlide(u,nd[0]*m,nd[1]*m))moveSlide(u,E.nx*m,E.nz*m);}
       u.moving=true;u.walk+=3.4*dt*0.9;u.t+=dt;if(E.d<2.6||u.t>25){u.state='gone';u.vis=false;}}
     else if(u.state==='dying'){u.t+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}{const nx=u.x+u.vx*dt,nz=u.z+u.vz*dt;if(FLY[u.type]||!solid(nx,nz)){u.x=nx;u.z=nz;}else{u.vx*=-0.3;u.vz*=-0.3;}}if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
