@@ -227,6 +227,17 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .tutdots{display:flex;gap:6px;justify-content:center}.tutdots i{width:8px;height:8px;background:#2a2238;display:block}.tutdots i.on{background:var(--gold)}
 .bloodset{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .bloodset input{width:160px;accent-color:#b01818}.bloodset b{font-family:var(--f-term);font-size:16px;font-weight:400;color:var(--ink);min-width:3.5em}
+#skirm{position:fixed;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(7,6,12,.78);overflow:auto}#skirm[hidden]{display:none}
+.skp{padding:20px;width:min(760px,100%);box-sizing:border-box;display:grid;gap:14px;max-height:calc(100vh - 32px);overflow:auto}
+.skp h2{margin:0;font-family:var(--f-display);font-weight:900;font-size:clamp(22px,5vw,30px);color:var(--gold)}.sknote{font-family:var(--f-term);font-size:16px;color:var(--dim)}
+.skcols{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:620px){.skcols{grid-template-columns:1fr}}
+.skcols h3{margin:0 0 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}.skcols h3 em{font-style:normal;color:var(--gold)}
+.sklist{display:grid;gap:4px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.sklist button{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center;text-align:left;text-transform:none;letter-spacing:0;padding:4px 8px;font-size:11px}
+.sklist button img{width:28px;height:37px;image-rendering:pixelated}.sklist button small{display:block;color:var(--dim);font-size:9px}.sklist button.on{border-color:var(--gold);background:#2a2140}.sklist button:disabled{opacity:.35}
+.skopts{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}.skopts label{display:flex;gap:6px;align-items:center}
+.skopts select{background:#1c1730;color:var(--ink);border:1px solid var(--line);padding:6px;font:inherit;text-transform:none;letter-spacing:0}.skchk input{accent-color:var(--gold)}
+.skbtns{display:flex;gap:8px;justify-content:flex-end}.skbtns .go{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700}
+.relic{color:var(--gold)}
 .cta .start{background:linear-gradient(#ffe7a3,var(--gold) 50%,var(--goldd));color:#2a1604;border-color:#ffe7a3;font-weight:700;padding:12px 20px;font-size:13px}
 .fine{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--f-term);font-size:15px;color:#7d7394;border-top:1px solid #2a2238;padding-top:10px}
 @media (max-width:560px){
@@ -364,6 +375,19 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   </div>
 </div>
 
+<div id="skirm" hidden>
+  <div class="panel skp" role="dialog" aria-labelledby="skH">
+    <div class="selhead"><h2 id="skH">Skirmish</h2><span class="sknote">Any generals, any field. Nothing carries over.</span></div>
+    <div class="skcols"><section><h3>Your army <em id="skNA">0/3</em></h3><div class="sklist" id="skA"></div></section><section><h3>Enemy army <em id="skNB">0/3</em></h3><div class="sklist" id="skB"></div></section></div>
+    <div class="skopts">
+      <label>Battlefield <select id="skMap"></select></label>
+      <label>Conditions <select id="skCond"><option value="random">Random</option><option value="none">Clear</option><option value="fog">Fog</option><option value="night">Night</option><option value="storm">Storm</option></select></label>
+      <label>Level <select id="skLvl"><option value="0">As written</option><option value="5">All Lv 5</option><option value="10">All Lv 10</option></select></label>
+      <label class="skchk"><input type="checkbox" id="skRel" checked> Random relics</label>
+    </div>
+    <div class="row skbtns"><button id="skBack">Back</button><button id="skGo" class="go">To battle</button></div>
+  </div>
+</div>
 <div id="tut" hidden>
   <div class="panel tutp" role="dialog" aria-modal="true" aria-labelledby="tutH">
     <div class="tuthead"><span id="tutStep">1 / 8</span><button id="tutSkip">Skip tutorial</button></div>
@@ -405,7 +429,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
           <label class="bloodset" for="bloodR"><span>Blood</span><input type="range" id="bloodR" min="0" max="100" step="5" value="50"><b id="bloodV">50%</b></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="start" id="startBtn">Press Start</button>
           <button id="vrBtn2" disabled>Enter VR</button>
-          <button id="howBtn">How to play</button></div>
+          <button id="howBtn">How to play</button><button id="skBtn">Skirmish</button></div>
         </div>
         <div class="fine"><span>©1997 TAIYO CO., LTD. · PLAYABLE DEMO · <span id="buildTag"></span></span><span>Dragon Emperor I not required.</span></div>
       </div>
@@ -418,7 +442,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 43';
+const BUILD='Build 44';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1072,13 +1096,22 @@ const troopCap=l=>Math.min(NPS,110+l*35);
 const RANKS=['Captain','Captain','Commander','Commander','General','General','Marshal','Marshal','Warlord','Warlord'];
 const rankOf=l=>RANKS[clamp(l,1,10)-1];
 const xpNeed=l=>60+l*40;
+const RELICS={
+  sunsteel:{n:'Sunsteel Blade',d:'+2 attack, +25% duel damage'},aegis:{n:'Aegis of Highmere',d:'+2 defense'},heart:{n:'Heartwood Charm',d:'+12 max HP'},
+  standard:{n:'War Standard',d:'+40 troop limit'},pearl:{n:'Mana Pearl',d:'+1 spell charge, starts charged'},storm:{n:'Stormglass Orb',d:'+25% spell power'},
+  gauntlet:{n:"Duelist's Gauntlet",d:'+1.5 s to choose in duels'},swift:{n:'Swiftmail',d:'Stamina refills 60% faster'},lion:{n:'Lion Banner',d:'Army starts with +15% morale'},
+  ember:{n:'Ember Ring',d:'Troops deal 10% more damage'},ward:{n:'Ward of Ash',d:'Troops take 20% less magic damage'},echo:{n:'Crown of Echoes',d:'Ability recharges 30% faster'}};
+const RELK=Object.keys(RELICS);
+const relOf=s=>(active[s]&&active[s].relic)||null;
+function giveRelic(r,k){if(!r||r.relic)return false;r.relic=k;if(k==='sunsteel')r.d.atk+=2;else if(k==='aegis')r.d.def+=2;else if(k==='heart'){r.d.hp+=12;r.hp+=12;}else if(k==='standard')r.troopsMax=capOf(r);return true;}
+function capOf(r){return Math.min(NPS,troopCap(r.lvl)+(r.relic==='standard'?40:0));}
 let GENS=[],levelUps=[];
 const BST={kills:[0,0],rounds:[0,0],snap:new Map()};let RES=null,resBoard=null;
 const xpTot=(l,x)=>{let t=x;for(let i=0;i<l;i++)t+=xpNeed(i);return t;};
 function mkRec(d){const cp=Object.assign({},d);const tm=troopCap(d.lvl);return{d:cp,nat:d.nat,lvl:d.lvl,xp:0,hp:cp.hp,troops:tm,troopsMax:tm,out:false,captor:null,turned:false,tried:-1,loc:null,alive:true};}
 function turnRec(r,side,nat){return Object.assign({},r,{d:Object.assign({},r.d,{side}),nat,hp:Math.max(10,r.d.hp*0.6),troops:Math.round((r.troopsMax||NPS)*0.6),out:false,captor:null,turned:false,tried:-1,alive:true,loc:null});}
 function gainXP(r,n){if(!r||r.lvl===undefined||!r.alive)return;r.xp+=n*(r.nat==='aldmere'?DIFF.xp:1);
-  while(r.lvl<10&&r.xp>=xpNeed(r.lvl)){r.xp-=xpNeed(r.lvl);r.lvl++;r.d.hp+=5;r.hp=Math.min(r.d.hp,r.hp+5);r.d.atk+=0.7;r.d.def+=0.5;r.troopsMax=troopCap(r.lvl);levelUps.push(r);}}
+  while(r.lvl<10&&r.xp>=xpNeed(r.lvl)){r.xp-=xpNeed(r.lvl);r.lvl++;r.d.hp+=5;r.hp=Math.min(r.d.hp,r.hp+5);r.d.atk+=0.7;r.d.def+=0.5;r.troopsMax=capOf(r);levelUps.push(r);}}
 const power=r=>r.troops*(1+r.lvl*0.08)+Math.max(0,r.hp)*r.d.atk*0.8;
 const ready=r=>r.alive&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
 
@@ -1096,7 +1129,7 @@ function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.leng
 function initCampaign(){
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);});
   if(endCard){kingdom.remove(endCard);endCard=null;}
-  Object.assign(CAMP,{feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
+  Object.assign(CAMP,{vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
   CASTLES.forEach(c=>{c.o=c.o0;});
   GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
   at('kaelen','Highmere');at('seren','Highmere');at('brannoch','Thornwick');at('ivo','Greenhollow');at('maelis','Saltmarsh');
@@ -1209,7 +1242,7 @@ function startCampaignBattle(ctx){
   setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);
 }
 function applyCampaignBattle(win){
-  const B=pendingBattle;if(!B)return;pendingBattle=null;const ctx=B.ctx,pAtt=ctx.attN==='aldmere';
+  const B=pendingBattle;if(!B)return;if(B.ctx.kind==='skirmish'){pendingBattle=null;return;}pendingBattle=null;const ctx=B.ctx,pAtt=ctx.attN==='aldmere';
   const newP=roster[0].filter(r=>!B.p.includes(r)),newE=roster[1].filter(r=>!B.e.includes(r));
   newP.forEach(r=>{r.nat='aldmere';r.alive=true;GENS.push(r);});newE.forEach(r=>{r.nat=B.eNat;r.alive=true;GENS.push(r);});
   B.p.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1){
@@ -1225,7 +1258,7 @@ function applyCampaignBattle(win){
 function genRow(r,own,checked){
   const bar=(f,c)=>`<span class="cb"><i style="width:${clamp(f*100,0,100)}%;background:${c}"></i></span>`;
   return `<label class="grow${own?'':' ro'}">${own?`<input type="checkbox" data-g="${GENS.indexOf(r)}"${checked?' checked':''}>`:''}<img src="${portrait(r.d.key)}" alt="">
-  <span class="gi"><span class="gn">${r.d.short} <em>${rankOf(r.lvl)} · Lv ${r.lvl}</em></span><span class="gt">${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} · ${SPELL[r.d.spell]}</span>
+  <span class="gi"><span class="gn">${r.d.short} <em>${rankOf(r.lvl)} · Lv ${r.lvl}</em></span><span class="gt">${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} · ${SPELL[r.d.spell]}${r.relic?` · <b class="relic">${RELICS[r.relic].n}</b>`:""}</span>
   <span class="gbars">${bar(r.troops/r.troopsMax,'#5b8cff')}${bar(r.hp/r.d.hp,'#7fe39a')}${bar(r.xp/xpNeed(r.lvl),'#f0c055')}</span><span class="gb">${r.d.bio}</span></span></label>`;}
 function updateCampPanel(){
   const P=$('campPanel');const s=CAMP.sel;if(!s||state!=='kingdom'){P.hidden=true;selRing.visible=false;return;}
@@ -1233,6 +1266,7 @@ function updateCampPanel(){
   if(s.castle){const c=s.castle,own=c.o==='aldmere',G=garrison(c);selRing.visible=true;selRing.position.set(c.x,c.y+0.1,c.z);
     $('cpName').textContent=c.n;$('cpName').style.color=NATIONS[c.o].col;$('cpSub').textContent=`${NATIONS[c.o].name}${c.cap?' capital':''} · ${BIOMES[c.b].name}`;
     html=G.length?G.map(r=>genRow(r,own,CAMP.picked.has(r))).join(''):'<p class="cpnote">No generals stationed here.</p>';
+    const V=CAMP.vault||[];if(own&&G.length&&V.length)html+=`<p class="cpnote">Vault: ${V.map((k,i)=>`<button data-vault="${i}" title="${RELICS[k].d}">Give ${RELICS[k].n}</button>`).join(' ')} (goes to the first ticked general without a relic)</p>`;
     if(own&&G.length)btns=CAMP.picked.size?`<span class="cpnote">Click any castle on the map to march there with ${CAMP.picked.size} general${CAMP.picked.size>1?'s':''}.</span>`:'<span class="cpnote">Tick at least one general with troops to march.</span>';}
   else if(s.army){const a=s.army,own=a.nat==='aldmere';selRing.visible=false;
     $('cpName').textContent=own?'Your army':NATIONS[a.nat].name+' army';$('cpName').style.color=NATIONS[a.nat].col;$('cpSub').textContent=(a.halt?'Halted · heading for ':'Marching to ')+CASTLES[a.path[a.path.length-1]].n;
@@ -1240,6 +1274,8 @@ function updateCampPanel(){
     if(own)btns=CAMP.target?'<span class="cpnote">Click the castle to march to instead.</span><button id="cpCancel">Cancel</button>':`<span class="cpnote">${a.halt?'Halted on the road. ':''}Click an enemy castle to redirect, or Change course for any castle.</span><button id="cpRedirect">Change course</button><button id="cpHalt">${a.halt?'March on':'Halt'}</button><button id="cpBack">Turn back</button>`;}
   $('cpList').innerHTML=html;$('cpBtns').innerHTML=btns+'<button id="cpClose">Close</button>';
   $('cpList').querySelectorAll('input[data-g]').forEach(i=>i.addEventListener('change',e=>{const r=GENS[+e.target.dataset.g];if(e.target.checked){if(CAMP.picked.size>=5){e.target.checked=false;return;}CAMP.picked.add(r);}else CAMP.picked.delete(r);updateCampPanel();}));
+  $('cpList').querySelectorAll('[data-vault]').forEach(b=>b.addEventListener('click',()=>{const V=CAMP.vault,i=+b.dataset.vault,G=s.castle?garrison(s.castle):[];const r=[...CAMP.picked].find(x=>!x.relic&&G.includes(x))||G.find(x=>!x.relic);
+    if(!r){clog('Every general here already carries a relic.');return;}const k=V.splice(i,1)[0];giveRelic(r,k);clog(`${r.d.short} takes up the ${RELICS[k].n}: ${RELICS[k].d}.`);sfx('lvlup');updateCampPanel();}));
   const on=(id,f)=>{const b=$(id);if(b)b.addEventListener('click',f);};
   on('cpMarch',()=>{CAMP.target=true;updateCampPanel();});on('cpRedirect',()=>{CAMP.target=true;updateCampPanel();});on('cpCancel',()=>{CAMP.target=false;updateCampPanel();});
   on('cpBack',()=>{const a=s.army;a.halt=false;redirect(a,a.from);});on('cpHalt',()=>{const a=s.army;a.halt=!a.halt;clog(a.halt?'Your army halts on the road.':'Your army marches on.');updateCampPanel();});on('cpClose',()=>{CAMP.sel=null;CAMP.target=false;updateCampPanel();});
@@ -1376,12 +1412,12 @@ let engT=0,exhB=false,aiCast=false,aiFormCD=0,hitStop=0,slowT=0,frameK=0,MOD='no
 const MODN={none:'',fog:'Fog',night:'Night',storm:'Storm'};
 function stopHit(t){if(reduceMotion)return;hitStop=Math.max(hitStop,t);}
 function slowMo(t){if(reduceMotion)return;slowT=Math.max(slowT,t);}
-function fMul(s,ts,raw,type){let m=raw?FMAG[ef(ts)]:FDM[ef(s)][ef(ts)];if(!raw&&abil[s].t>0&&active[s])m*=ABIL[active[s].d.troop].dmg;if(ls[s])m*=1.6;if(ls[ts])m*=0.65;if(fury[s]>0)m*=1.3;if(MOD==='night'&&type==='arc')m*=0.8;return m;}
+function fMul(s,ts,raw,type){let m=raw?FMAG[ef(ts)]:FDM[ef(s)][ef(ts)];if(!raw&&abil[s].t>0&&active[s])m*=ABIL[active[s].d.troop].dmg;if(ls[s])m*=1.6;if(ls[ts])m*=0.65;if(fury[s]>0)m*=1.3;if(!raw&&relOf(s)==='ember')m*=1.1;if(raw&&relOf(ts)==='ward')m*=0.8;if(MOD==='night'&&type==='arc')m*=0.8;return m;}
 function setForm(s,f){if(state!=='battle'||(phase!=='fight'&&phase!=='intro')||form[s]===f)return;form[s]=f;reform[s]=1.2;holdStamp[s]++;
   if(s===0){showBanner(FNAME[f]+' formation');setFormUI();sfx('lock');}else showBanner(active[1].d.short+': '+FNAME[f]+'!',true);hudAcc=1;}
 function cycleForm(){setForm(0,FORMS[(FORMS.indexOf(form[0])+1)%FORMS.length]);}
 function setFormUI(){document.querySelectorAll('[data-form]').forEach(b=>{b.classList.toggle('on',b.dataset.form===form[0]);b.textContent=(b.dataset.form===form[0]?'F ':'')+FNAME[b.dataset.form];});}
-function useAbility(s){if(state!=='battle'||phase!=='fight'||!active[s])return;const A=abil[s];if(A.cd>0)return;const ab=ABIL[active[s].d.troop];A.cd=ab.cd;A.t=ab.dur;
+function useAbility(s){if(state!=='battle'||phase!=='fight'||!active[s])return;const A=abil[s];if(A.cd>0)return;const ab=ABIL[active[s].d.troop];A.cd=ab.cd*(relOf(s)==='echo'?0.7:1);A.t=ab.dur;
   if(active[s].d.troop==='inf')morale[s]=clamp(morale[s]+0.25,0,1);showBanner(active[s].d.short+': '+ab.n+'!',s===1);battleCry(s,18,1);sfx('horn');if(s===0)buzz(0.6,200);fg[s].cast=1;hudAcc=1;
   const g=fg[s];spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:5,h:5,life:0.8,grow:1.2,blink:true});}
 const STREAKS=[[20,'Carnage!'],[45,'Rampage!'],[80,'Slaughter!'],[130,'Unstoppable!'],[200,'Legendary!']];
@@ -1461,7 +1497,7 @@ function tickPU(dt){puT-=dt;if(puT<=0){puT=R(10,16);spawnPU();}fury[0]=Math.max(
     for(let s=0;s<2&&!best;s++){const g=fg[s];if(okGen(g)&&Math.hypot(g.x-p.x,g.z-p.z)<1.2)best={side:s};}
     if(best)claimPU(p,best.side);}}
 const AMB0=0xffe8d0,SUN0=0xfff0d8;
-function rollMod(){clearBlood();const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
+function rollMod(){clearBlood();const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';if(SK&&SK.cond!=='random')MOD=SK.cond;applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
 function applyMod(){ambLight.intensity=MOD==='night'?0.3:MOD==='storm'?0.44:0.62;sun.intensity=MOD==='night'?0.3:MOD==='storm'?0.46:0.78;
   if(MOD==='night'){ambLight.color.setHex(0x8f9fff);sun.color.setHex(0xa8b8ff);}scene.fog=MOD==='fog'?new THREE.Fog(0xa8a6b4,10,100):null;modT=R(6,10);}
 function clearMod(){MOD='none';applyMod();ambLight.color.setHex(AMB0);sun.color.setHex(SUN0);shrRing.visible=shrRune.visible=false;shrine.on=false;}
@@ -1501,7 +1537,7 @@ function clearField(){
 function deploy(){
   form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-28;anchor[1]=28;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
-  for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf;mpMax[s]=pf.max;mp[s]=pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
+  for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf,pe=r.relic==='pearl';mpMax[s]=pf.max+(pe?1:0);mp[s]=pe?mpMax[s]:pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp)+(r.relic==='lion'?0.15:0);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
     if(u.i<r.troops){u.type=r.d.troop;const st=STATS[u.type];Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0});
       const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);for(let k=0;k<40&&navAt(u.x,u.z)===1;k++)u.x+=(u.side?1:-1)*0.8;u.vis=true;}
@@ -1703,7 +1739,7 @@ function castSpell(side,tgt){
   morale[side]=clamp(morale[side]+0.08,0,1);morale[1-side]=clamp(morale[1-side]-0.05,0,1);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.4,z:g.z+0.3,tex:T_RUNE,w:3.4,h:3.4,life:1.5,grow:0.6,vy:0.8,blink:true});
   for(let i=0;i<14;i++)spawn({x:g.x+R(-1,1),y:Hb(g.x,g.z)+R(0,2),z:g.z+R(-0.5,0.5),vy:R(3,7),vz:R(0,2),tex:T_SPARK,w:0.4,h:0.4,life:R(0.6,1.2),blink:true});
-  const pw=1+0.06*((g.rec.lvl||1)-1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
+  const pw=(1+0.06*((g.rec.lvl||1)-1))*(g.rec.relic==='storm'?1.25:1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
   if(sp==='starfall'||sp==='ashrain'){for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));dropMeteor(x,z,V);});}
   else if((sp==='thunder'||sp==='volley')&&side===0){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);storm.kind=sp;storm.on=true;storm.left=storm.tot=n;storm.t=10;storm.gap=0.35;aim.mode=true;
@@ -1784,7 +1820,7 @@ function sprint(g,auto){if(g.burst>0||g.sta<STA.min||g.captured||g.dead)return f
 function staTick(g,dt){if(g.burst>0){g.burst-=dt;g.sta=Math.max(0,g.sta-STA.drain*dt);if(g.sta<=0)g.burst=0;
     if(Math.random()<dt*14)spawn({x:g.x+(g.side?0.6:-0.6)*(phase==='pursuit'&&pursuit&&pursuit.L===g.side?-1:1),y:Hb(g.x,g.z)+0.3,z:g.z+R(-0.3,0.3),frames:SMOKE,w:0.8,h:0.8,life:0.5,grow:0.9,vy:0.5});
     return STA.mult;}
-  g.sta=Math.min(1,g.sta+STA.regen*dt);return 1;}
+  g.sta=Math.min(1,g.sta+STA.regen*dt*(g.rec&&g.rec.relic==='swift'?1.6:1));return 1;}
 function nearestFoe(g){let bd=1e9;for(const u of alive[1-g.side]){if(u.state!=='alive')continue;const d=Math.abs(u.x-g.x)+Math.abs(u.z-g.z);if(d<bd)bd=d;}return bd;}
 function startDuel(){
   if(phase!=='fight')return;stormEnd(false);phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
@@ -1817,11 +1853,11 @@ function enemyPick(){
   if(active[1].hp<active[1].d.hp*0.3)w.guard+=0.15;
   const tot=w.strike+w.guard+w.power;let r=Math.random()*tot;for(const k of['strike','guard','power']){r-=w[k];if(r<=0)return k;}return'strike';
 }
-function beginRound(){duel.round=(duel.round||0)+1;duel.win=DIFF.duelWin;duel.stage='choose';duel.t=0;duel.pick=null;duel.reveal=null;duel.eLocked=false;duel.toldFx=false;duel.epick=enemyPick();duel.tell=duel.epick==='power'&&Math.random()<DIFF.tell;duel.elock=duel.win*R(0.3,0.75);if(duel.round===1)showBanner('Fight!');hudAcc=1;}
+function beginRound(){duel.round=(duel.round||0)+1;duel.win=DIFF.duelWin+(relOf(0)==='gauntlet'?1.5:0);duel.stage='choose';duel.t=0;duel.pick=null;duel.reveal=null;duel.eLocked=false;duel.toldFx=false;duel.epick=enemyPick();duel.tell=duel.epick==='power'&&Math.random()<DIFF.tell;duel.elock=duel.win*R(0.3,0.75);if(duel.round===1)showBanner('Fight!');hudAcc=1;}
 function duelPick(a){if(phase!=='duel'||duel.stage!=='choose'||duel.pick)return;duel.pick=a;sfx('lock');hudAcc=1;}
 function applyClash(){stopHit(0.1);buzz(0.6,120);
   const A=active[0],B=active[1],p=duel.pick||'strike',e=duel.epick;duel.lastP=p;duel.reveal={p,e};
-  const bA=Math.max(2,A.d.atk*R(0.85,1.15)-B.d.def*0.25),bB=Math.max(2,B.d.atk*R(0.85,1.15)-A.d.def*0.25);
+  const bA=Math.max(2,A.d.atk*R(0.85,1.15)-B.d.def*0.25)*(A.relic==='sunsteel'?1.25:1),bB=Math.max(2,B.d.atk*R(0.85,1.15)-A.d.def*0.25)*(B.relic==='sunsteel'?1.25:1);
   let dA=0,dB=0,txt='';
   const key=p+'-'+e;
   if(key==='strike-strike'){dA=bB*0.8;dB=bA*0.8;txt='Blades clash';}
@@ -1938,6 +1974,28 @@ function drawTutBoard(){const P=TUT_PAGES[TUT.i],N=TUT_PAGES.length,x=tutX,W=102
   const im=padImg(TUT.i);if(im.complete&&im.naturalWidth){const pw=420,ph=210;x.drawImage(im,W-40-pw,Math.min(y-6,560-ph),pw,ph);}
   x.textAlign='center';x.font='700 18px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText((TUT.i?'L TRIG: BACK   ·   ':'')+'R TRIG: '+(TUT.i===N-1?(TUT.after?'START THE WAR':'DONE'):'NEXT'),W/2,596);
   for(let i=0;i<N;i++){x.fillStyle=i===TUT.i?'#f0c055':'#2a2238';x.fillRect(W/2-N*12+i*24,570,12,12);}tutT.needsUpdate=true;}
+let SK=null;const skSel=[[],[]];
+function skRec(d,side,lvl){const r=mkRec(d);r.d=Object.assign({},r.d,{side});r.nat=side?(d.nat==='aldmere'?'ashen':d.nat):'aldmere';
+  if(lvl){while(r.lvl<lvl){r.lvl++;r.d.hp+=5;r.d.atk+=0.7;r.d.def+=0.5;}r.hp=r.d.hp;r.troopsMax=capOf(r);r.troops=r.troopsMax;}return r;}
+function openSkirm(){if(state!=='title')return;audioInit();if(!skSel[0].length){skSel[0]=['kaelen','seren','brannoch'];skSel[1]=['vorgrath','hask','mordrae'];}
+  const m=$('skMap');if(!m.options.length){m.innerHTML='<option value="random">Random</option>'+BIOKEYS.map(k=>`<option value="${k}">${BIOMES[k].name}</option>`).join('');}
+  renderSkirm();$('skirm').hidden=false;}
+function renderSkirm(){for(let s=0;s<2;s++){const box=$(s?'skB':'skA');box.innerHTML=GENDEFS.map(d=>{const on=skSel[s].includes(d.key),taken=skSel[1-s].includes(d.key);
+    return `<button data-sk="${s}:${d.key}" class="${on?'on':''}"${taken?' disabled':''}><img src="${portrait(d.key)}" alt=""><span>${d.short} <small>${TROOP[d.troop]} · ${SPELL[d.spell]} · Lv ${d.lvl}</small></span></button>`;}).join('');
+    $(s?'skNB':'skNA').textContent=skSel[s].length+'/3';}
+  document.querySelectorAll('[data-sk]').forEach(b=>b.addEventListener('click',()=>{const[sd,k]=b.dataset.sk.split(':'),L=skSel[+sd],i=L.indexOf(k);if(i>=0)L.splice(i,1);else if(L.length<3)L.push(k);else{L.shift();L.push(k);}sfx('blip',300);renderSkirm();}));
+  $('skGo').disabled=!skSel[0].length||!skSel[1].length;}
+function startSkirm(){if(!skSel[0].length||!skSel[1].length)return;const lv=+$('skLvl').value,rel=$('skRel').checked;
+  SK={cond:$('skCond').value,map:$('skMap').value,lvl:lv,rel};launchSkirm();}
+function launchSkirm(){const P=skSel[0].map(k=>skRec(GENDEFS.find(d=>d.key===k),0,SK.lvl)),E=skSel[1].map(k=>skRec(GENDEFS.find(d=>d.key===k),1,SK.lvl));
+  if(SK.rel){for(const r of P.concat(E))if(Math.random()<0.6)giveRelic(r,RELK[(Math.random()*RELK.length)|0]);}
+  const eNat=E[0].nat;pendingBattle={ctx:{kind:'skirmish'},p:P,e:E,eNat};sidePal[1]=NATIONS[eNat].pal;
+  mapChoice=SK.map==='random'?'random':SK.map;$('skirm').hidden=true;$('title').hidden=true;$('endp').hidden=true;
+  state='transition';trT=0.79;swapped=false;sfx('fanfare');updateModeUI();setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);}
+function backToTitle(){if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();SK=null;pendingBattle=null;mapChoice='random';
+  state='title';phase='intro';battle.visible=false;kingdom.visible=true;$('endp').hidden=true;$('selp').hidden=true;$('title').hidden=false;updateModeUI();
+  setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});}
+function rematch(){if(!SK)return;if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();launchSkirm();}
 function startGame(){
   if(state!=='title'||TUT.open)return;if(tutWanted){audioInit();openTut(beginCampaign);return;}beginCampaign();}
 function beginCampaign(){
@@ -1980,12 +2038,12 @@ function drawResBoard(){const Q=RES,x=resX,W=1024,H=640;x.clearRect(0,0,W,H);x.f
   if(Q.stamped){x.save();x.translate(W-130,250);x.rotate(-0.2);x.textAlign='center';x.font='900 120px Silkscreen, monospace';x.fillStyle='#0b0912';x.fillText(Q.grade,5,5);x.fillStyle='#f0c055';x.fillText(Q.grade,0,0);x.font='18px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('RANK',0,126);x.restore();}
   x.textAlign='center';x.font='700 18px Silkscreen, monospace';const sp=Q.spoils.slice(0,Q.spoiled).slice(-2);sp.forEach(([c,t],i)=>{x.fillStyle=c==='bad'?'#ffb09a':'#f0c055';x.fillText(t.slice(0,70),W/2,546+i*26-(sp.length>1?13:0));});
   x.font='16px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText(Q.t<Q.T?'TRIGGER: SKIP':'TRIGGER: RETURN TO THE WAR TABLE',W/2,604);resT.needsUpdate=true;}
-function backToKingdom(){if(skipResults())return;
+function backToKingdom(){if(state==='title')return;if(skipResults())return;if(SK){backToTitle();return;}
   if(RES)RES.live=false;if(resBoard)resBoard.visible=false;
   clearMod();clearPU();state='kingdom';phase='intro';battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
   $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();updateCampPanel();checkCampaignEnd();
 }
-function fightAgain(){$('endp').hidden=true;RES=null;initCampaign();backToKingdom();}
+function fightAgain(){if(SK){rematch();return;}$('endp').hidden=true;RES=null;initCampaign();backToKingdom();}
 function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);orders[0]=o;setOrderUI();}
 function cycleOrder(){setOrder(ORDERS[(ORDERS.indexOf(orders[0])+1)%ORDERS.length]);}
 function setOrderUI(){document.querySelectorAll('[data-ord]').forEach(b=>b.classList.toggle('on',b.dataset.ord===orders[0]));$('ordLbl').textContent=orders[0].toUpperCase();}
@@ -2014,7 +2072,7 @@ function renderSelect(){
   $('selSub').textContent=(e?`${e.d.short} holds the field with ${e.troops} ${TROOP[e.d.troop].toLowerCase()} and ${Math.ceil(e.hp)} HP.`:'The Ashen Legion picks after you, and it will try to counter you.')+(held.length?` The enemy holds ${held.join(' and ')} prisoner.`:'');
   it.forEach((x,i)=>{const r=x.r,b=document.createElement('button');b.type='button';
     if(x.k==='gen'){const m=e?matchup(r.d.troop,e.d.troop):'';b.className='gcard'+(i===selIdx?' on':'');
-      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${rankOf(r.lvl||1)} Lv ${r.lvl||1} · ${TROOP[r.d.troop]} · ${r.troops}</span><span class="gh">HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]} ×${(MPPROF[r.d.troop]||MPPROF.inf).max}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
+      b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${rankOf(r.lvl||1)} Lv ${r.lvl||1} · ${TROOP[r.d.troop]} · ${r.troops}</span><span class="gh">${r.relic?`<b class="relic">${RELICS[r.relic].n}</b> · `:""}HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]} ×${(MPPROF[r.d.troop]||MPPROF.inf).max}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
     else{const tried=r.tried===round;b.className='gcard cap'+(i===selIdx?' on':'');b.disabled=tried;
       b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">Prisoner · ${TROOP[r.d.troop]}</span><span class="gh">${tried?'Refused you this round':'Persuade to join · ${Math.round(DIFF.persuade*100)}%'}</span><span class="gm even">Joins with ${Math.round((r.troopsMax||NPS)*0.6)} troops</span>`;}
     b.addEventListener('click',()=>selAct(x));box.appendChild(b);});
@@ -2065,7 +2123,7 @@ function endBattle(win,why){
   if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;pursuit=null;
   showBanner(why==='tyrant'?'The Tyrant is taken!':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();if(win){cheer(0,1.6);warDrums(0,3,120);}else cheer(1,1.4);
   const caps=roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
-  const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
+  const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:SK?BIOMES[lastType].name:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
   const eName=pendingBattle?NATIONS[pendingBattle.eNat].name:'the enemy';
   const cst=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle:null,cBefore=cst&&cst.o;
   const gens=roster[0].map(r=>{const sn=BST.snap.get(r);return{r,sn,cap:r.captor===1&&!r.turned,def:r.turned&&r.captor===1};});
@@ -2079,11 +2137,13 @@ function endBattle(win,why){
      const v0=g.sn?g.sn.lvl+Math.min(0.999,g.sn.xp/xpNeed(g.sn.lvl)):r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl)),v1=r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl));
      return{r,tag,cls,v0,v1,gain:g.sn?Math.round(xpTot(r.lvl,r.xp)-xpTot(g.sn.lvl,g.sn.xp)):0,lv0:g.sn?g.sn.lvl:r.lvl,shownLv:g.sn?g.sn.lvl:r.lvl};});
    for(const x of rows)if(x.r.lvl>x.lv0)spoils.push(['big',x.r.d.short+' is now '+rankOf(x.r.lvl)+' · leads '+x.r.troopsMax+' troops']);
+   if(win&&!SK&&Math.random()<(why==='tyrant'?1:0.55)){const k=RELK[(Math.random()*RELK.length)|0],cand=rows.filter(x=>x.r.alive!==false&&!x.r.relic&&!x.tag).sort((a,b)=>b.gain-a.gain)[0];
+     if(cand){giveRelic(cand.r,k);spoils.push(['big','Relic found: '+RELICS[k].n+' → '+cand.r.d.short+' ('+RELICS[k].d+')']);}else{CAMP.vault=(CAMP.vault||[]);CAMP.vault.push(k);spoils.push(['big','Relic found: '+RELICS[k].n+' (stored in the vault)']);}}
    RES={t:0,T:4.2,win,K,Lo,R:[...BST.rounds],grade,rows,spoils,stamped:false,spoiled:0,lastBlip:0,where,eName,why};}
-  schedule(1.8,()=>{if(CAMP.over){showCampaignEnd();return;}$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
+  schedule(1.8,()=>{if(CAMP.over&&!SK){showCampaignEnd();return;}$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
     $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion breaks apart.':win?`You win the battle at ${where} against ${eName}.`:`${eName} wins the battle at ${where}. Your survivors fall back.`)
     ;
-    $('againBtn').hidden=true;$('mapBtn').hidden=false;$('mapBtn').textContent='Return to the war table';
+    $('againBtn').hidden=!SK;$('againBtn').textContent='Rematch';$('mapBtn').hidden=false;$('mapBtn').textContent=SK?'Back to title':'Return to the war table';
     showResults();});
 }
 function fightTick(dt){
@@ -2231,6 +2291,7 @@ $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
 setBlood(blood);$('bloodR').addEventListener('input',e=>setBlood(+e.target.value/100));
+$('skBtn').addEventListener('click',openSkirm);$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',startSkirm);
 $('howBtn').addEventListener('click',()=>{audioInit();openTut(null);});
 $('tutNext').addEventListener('click',()=>tutGo(1));$('tutBack').addEventListener('click',()=>tutGo(-1));$('tutSkip').addEventListener('click',closeTut);
 $('tut').addEventListener('click',e=>{if(e.target.id==='tut')closeTut();});
