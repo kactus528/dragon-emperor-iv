@@ -55,6 +55,10 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 #kbar{max-width:560px;margin:0 auto;padding:10px 14px;text-align:center;display:grid;gap:3px}
 #kbar .place{font-family:var(--f-display);font-weight:900;font-size:clamp(18px,4.4vw,26px);color:var(--gold);text-wrap:balance}
 #kbar .line{color:var(--dim);font-size:11px;letter-spacing:.05em;text-wrap:balance}
+#kbar .khint{font-size:12px;font-weight:700;color:var(--gold);line-height:1.45;text-wrap:balance;padding:6px 8px;border:1px solid #4a3d63;background:#16121f}
+#kbar .khint.warn{color:#ffb09a;border-color:var(--ember);background:#2a1214}
+#kbar .kfeed{display:grid;gap:2px;font-family:var(--f-term);font-size:15px;line-height:1.15;color:#a99fb8;text-align:left}
+#kbar .kfeed span:nth-child(2){opacity:.75}#kbar .kfeed span:nth-child(3){opacity:.5}
 /* dock */
 .dock{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;padding:8px}
 .orders{display:flex;gap:6px;flex-wrap:wrap}
@@ -206,7 +210,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   <div id="kbar" class="panel" hidden>
     <div class="place" id="kPlace">The Kingdom of Aldmere</div>
     <div class="line" id="kStats"></div>
-    <div class="line" id="kLine">Year 1043 of the Eternal War</div>
+    <div class="khint" id="kHint"></div>
+    <div class="kfeed" id="kFeed"></div>
   </div>
 </div>
 
@@ -318,7 +323,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 21';
+const BUILD='Build 22';
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const R=(a,b)=>a+Math.random()*(b-a);
 const ease=t=>1-Math.pow(1-t,3);
@@ -911,6 +916,33 @@ function makeLabel(text,color){
 }
 function dropLabel(o){if(o&&o.lab){kingdom.remove(o.lab);o.lab.geometry!==undefined;o.lab.material.map.dispose();o.lab.material.dispose();o.lab=null;}}
 function buildLabels(){CASTLES.forEach(refreshCastle);}
+const ringGeo=new THREE.RingGeometry(1.25,1.6,28);
+function castleRing(c){if(c.ring)return c.ring;const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0xf0c055,side:THREE.DoubleSide,depthTest:false,transparent:true}));m.rotation.x=-Math.PI/2;m.renderOrder=8;m.position.set(c.x,c.y+0.07,c.z);m.visible=false;kingdom.add(m);c.ring=m;return m;}
+const ownReady=()=>CASTLES.filter(c=>c.o==='aldmere'&&garrison(c).some(ready));
+const myArmies=()=>CAMP.armies.filter(a=>a.nat==='aldmere');
+function threats(){const T=new Map();for(const a of CAMP.armies){if(a.nat==='aldmere')continue;const c=CASTLES[a.path[a.path.length-1]];if(c.o==='aldmere'){const e=etaOf(a);if(!T.has(c)||T.get(c).eta>e)T.set(c,{a,eta:e});}}return T;}
+function effSpeed(){const idle=!CAMP.sel&&!myArmies().length&&!ownReady().length&&!threats().size;CAMP.ff=idle;return idle?Math.max(CAMP.speed,5):CAMP.speed;}
+function etaOf(a){let d=0;for(let k=a.seg;k<a.path.length-1;k++){const A=CASTLES[a.path[k]],B=CASTLES[a.path[k+1]],L=Math.hypot(B.x-A.x,B.z-A.z);d+=k===a.seg?(1-a.t)*L:L;}return d/0.9/Math.max(1,CAMP.speed);}
+function weeksToReady(r){const tm=r.troopsMax||NPS,a=Math.max(0,Math.ceil((tm*0.5-r.troops)/(tm*0.4))),b=Math.max(0,Math.ceil((r.d.hp*0.5-r.hp)/(r.d.hp*0.3)));return Math.max(1,a,b);}
+const names=L=>L.length<=2?L.join(' and '):L.slice(0,-1).join(', ')+' and '+L[L.length-1];
+function advise(){
+  if(CAMP.over)return{t:''};const S=CAMP.sel,T=threats(),sec=n=>Math.max(1,Math.round(n))+'s';
+  if(S&&S.castle){const c=S.castle;
+    if(c.o==='aldmere')return CAMP.picked.size?{t:`Now click any castle to march there with ${CAMP.picked.size} general${CAMP.picked.size>1?'s':''}. Castles one road away are ringed white.`}
+      :{t:`No one at ${c.n} can march yet. Troops recover every week. Click empty ground to deselect.`};
+    return{t:`${c.n} belongs to ${NATIONS[c.o].name}. To attack it, first click one of your blue castles, then click ${c.n}.`};}
+  if(S&&S.army)return S.army.nat==='aldmere'?{t:`Your army reaches ${CASTLES[S.army.path[S.army.path.length-1]].n} in about ${sec(etaOf(S.army))}. Click a castle to send it somewhere else.`}:{t:`${NATIONS[S.army.nat].name} army heading for ${CASTLES[S.army.path[S.army.path.length-1]].n}.`};
+  if(T.size){const[c,th]=[...T.entries()].sort((a,b)=>a[1].eta-b[1].eta)[0];return{warn:true,t:`${NATIONS[th.a.nat].name} army marching on ${c.n}! It arrives in about ${sec(th.eta)}. Your generals there will defend it.`};}
+  const mine=myArmies();if(mine.length){const a=mine.sort((x,y)=>etaOf(x)-etaOf(y))[0];return{t:`Your army reaches ${CASTLES[a.path[a.path.length-1]].n} in about ${sec(etaOf(a))}.`};}
+  const R=ownReady();if(R.length){const c=R[0],G=garrison(c).filter(ready).map(r=>r.d.short);return{t:`${names(G.slice(0,3))} ${G.length>1?'are':'is'} ready at ${c.n}. Click ${c.n} (gold ring), then click a castle to attack.`};}
+  const rec=GENS.filter(r=>r.alive&&r.nat==='aldmere'&&typeof r.loc==='number');if(!rec.length)return{t:'You have no generals left in your castles.'};
+  const nx=rec.map(r=>({r,w:weeksToReady(r)})).sort((a,b)=>a.w-b.w)[0];
+  return{t:`Your generals are recovering. ${nx.r.d.short} is ready in about ${nx.w} week${nx.w>1?'s':''}. Time is fast-forwarding.`};}
+function campRings(now){const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
+  const cand=S&&S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size?new Set(S.castle.adj):S&&S.army&&S.army.nat==='aldmere'?new Set(CASTLES[S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]].adj.concat([S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]])):null;
+  for(const c of CASTLES){const m=castleRing(c);let col=null,op=0.85;
+    if(T.has(c)){col=0xff5a3a;op=pulse+0.1;}else if(cand&&cand.has(c.id)){col=0xffffff;op=0.7;}else if(!S&&R.has(c)){col=0xf0c055;op=pulse;}
+    m.visible=col!==null&&state==='kingdom';if(m.visible){m.material.color.setHex(col);m.material.opacity=op;}}}
 function refreshCastle(c){c.sp.material=castleMats[NATIONS[c.o||'none'].mat];dropLabel(c);const g=garrison(c).length;
   c.lab=makeLabel(c.n.toUpperCase()+(g?' ·'+g:''),NATIONS[c.o||'none'].col);c.lab.position.set(c.x,c.y+(c.cap?4.7:3.9),c.z);kingdom.add(c.lab);}
 
@@ -928,11 +960,11 @@ const power=r=>r.troops*(1+r.lvl*0.08)+Math.max(0,r.hp)*r.d.atk*0.8;
 const ready=r=>r.alive&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
 
 /* ---------- campaign state ---------- */
-const WEEK=24;
+const WEEK=18;
 const CAMP={on:false,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false,nextId:1};
 const garrison=c=>GENS.filter(r=>r.alive&&r.loc===c.id);
 const nationOf=r=>r.nat;
-function clog(t){CAMP.log=t;if(state==='kingdom')updateModeUI();}
+function clog(t){CAMP.log=t;(CAMP.feed=CAMP.feed||[]).unshift('W'+CAMP.week+' · '+t);CAMP.feed.length=Math.min(CAMP.feed.length,6);if(state==='kingdom')updateModeUI();}
 function bfs(a,b){const prev=new Map([[a,-1]]),q=[a];while(q.length){const v=q.shift();if(v===b)break;for(const w of CASTLES[v].adj)if(!prev.has(w)){prev.set(w,v);q.push(w);}}
   if(!prev.has(b))return null;const p=[];for(let v=b;v!==-1;v=prev.get(v))p.unshift(v);return p;}
 function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.length){const v=q.shift();if(CASTLES[v].o===nat&&v!==from)return v;for(const w of CASTLES[v].adj)if(!seen.has(w)){seen.add(w);q.push(w);}}
@@ -940,7 +972,7 @@ function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.leng
 function initCampaign(){
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);dropLabel(a);pickables.splice(pickables.indexOf(a.tok),1);});
   if(endCard){kingdom.remove(endCard);endCard=null;}
-  Object.assign(CAMP,{endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'Week 1. Aldmere stands between the Ashen Legion and Duskmarch.',sel:null,target:false,picked:new Set(),over:false});
+  Object.assign(CAMP,{feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'Week 1. Aldmere stands between the Ashen Legion and Duskmarch.',sel:null,target:false,picked:new Set(),over:false});
   CASTLES.forEach(c=>{c.o=c.o0;});
   GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
   at('kaelen','Highmere');at('seren','Highmere');at('brannoch','Thornwick');at('ivo','Greenhollow');at('maelis','Saltmarsh');
@@ -960,9 +992,9 @@ function hostile(a,b){return a&&b&&a!==b&&a!=='none'&&b!=='none';}
 function campTick(dt,now){
   if(!CAMP.on||CAMP.over||state!=='kingdom')return;
   checkCampaignEnd();if(CAMP.over||CAMP.paused)return;
-  const sdt=dt*CAMP.speed;
+  const sdt=dt*effSpeed();
   CAMP.t+=sdt;if(CAMP.t>=WEEK){CAMP.t-=WEEK;CAMP.week++;
-    for(const r of GENS)if(r.alive&&typeof r.loc==='number'){r.hp=Math.min(r.d.hp,r.hp+r.d.hp*0.25);r.troops=Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*0.3));}
+    for(const r of GENS)if(r.alive&&typeof r.loc==='number'){r.hp=Math.min(r.d.hp,r.hp+r.d.hp*0.3);r.troops=Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*0.4));}
     clog('Week '+CAMP.week+'. Garrisons rest and muster fresh troops.');marchBeat();updateCampPanel();}
   for(const a of CAMP.armies.slice()){
     const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]],L=Math.hypot(B.x-A.x,B.z-A.z);
@@ -974,7 +1006,7 @@ function campTick(dt,now){
     if(!hostile(a.nat,b.nat))continue;const ea=[a.path[a.seg],a.path[a.seg+1]],eb=[b.path[b.seg],b.path[b.seg+1]];
     if(!((ea[0]===eb[1]&&ea[1]===eb[0])||(ea[0]===eb[0]&&ea[1]===eb[1])))continue;
     if(Math.hypot(a.x-b.x,a.z-b.z)<0.9){clash({kind:'road',att:a,defArmy:b,x:(a.x+b.x)/2,z:(a.z+b.z)/2,b:CASTLES[ea[1]].b});if(state!=='kingdom')return;}}
-  CAMP.aiT+=sdt;if(CAMP.aiT>3.5){CAMP.aiT=0;aiCampaign('ashen');aiCampaign('dusk');}
+  CAMP.aiT+=sdt;if(CAMP.aiT>2.5){CAMP.aiT=0;aiCampaign('ashen');aiCampaign('dusk');}
 }
 function arrive(a,c){
   if(c.o===a.nat){a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);updateCampPanel();return;}
@@ -1033,10 +1065,10 @@ function aiCampaign(n){
     const opts=c.adj.map(i=>CASTLES[i]).filter(t=>t.o!==n&&!targeted.has(t.id));
     const send=G.slice(0,Math.min(3,G.length-keep)),my=send.reduce((s,r)=>s+power(r),0);
     let best=null,bs=0;for(const t of opts){const g=garrison(t).reduce((s,r)=>s+power(r),0);const sc=(t.o==='none'&&!g?3:g?my/(g*1.2):2)+(t.cap?0.6:0)+(t.o==='aldmere'?0.3:0)+Math.random()*0.5;if((g===0||my>g*1.3)&&sc>bs){bs=sc;best=t;}}
-    if(best&&Math.random()<0.3){const a=dispatch(n,send,c.id,best.id);if(a&&best.o==='aldmere')clog(`${NATIONS[n].name} marches on ${best.n}!`);refreshCastle(c);continue;}
+    if(best&&Math.random()<0.5){const a=dispatch(n,send,c.id,best.id);if(a&&best.o==='aldmere'){clog(`${NATIONS[n].name} marches on ${best.n}!`);warDrums(1,1,124);}refreshCastle(c);continue;}
     if(!opts.length&&G.length>keep&&Math.random()<0.15){const front=own.find(o=>o.adj.some(i=>CASTLES[i].o!==n));if(front&&front!==c)dispatch(n,[G[0]],c.id,front.id);refreshCastle(c);}}
 }
-let pendingBattle=null;
+let pendingBattle=null,advT=0;
 function startCampaignBattle(ctx){
   const pAtt=ctx.attN==='aldmere',P=pAtt?ctx.A:ctx.D,E=pAtt?ctx.D:ctx.A,eNat=pAtt?ctx.defN:ctx.attN;
   const canP=P.some(r=>r.troops>0&&r.hp>0),canE=E.some(r=>r.troops>0&&r.hp>0);
@@ -1662,9 +1694,9 @@ function updateModeUI(){
   $('selp').hidden=!(state==='battle'&&phase==='select')||xrActive;
   $('kbar').hidden=!(state==='kingdom'||state==='transition');$('dockKingdom').hidden=state!=='kingdom';
   if(state==='kingdom'||state==='transition'){const cnt=n=>CASTLES.filter(c=>c.o===n).length;
-    $('kPlace').textContent=`Week ${CAMP.week}${CAMP.paused?' · Paused':''}`;
+    $('kPlace').textContent=`Week ${CAMP.week}${CAMP.paused?' · Paused':CAMP.ff?' · Fast-forward':''}`;
     $('kStats').innerHTML=['aldmere','ashen','dusk'].map(n=>`<span style="color:${NATIONS[n].col}">${NATIONS[n].name} ${cnt(n)}</span>`).join(' · ');
-    $('kLine').textContent=CAMP.log;$('pauseBtn').textContent=CAMP.paused?'Resume':'Pause';$('spdBtn').textContent='Speed '+CAMP.speed+'×';}
+    {const A=advise(),h=$('kHint');h.textContent=A.t;h.hidden=!A.t;h.className='khint'+(A.warn?' warn':'');$('kFeed').innerHTML=(CAMP.feed||[]).slice(0,3).map(f=>`<span>${f}</span>`).join('');}$('pauseBtn').textContent=CAMP.paused?'Resume':'Pause';$('spdBtn').textContent='Speed '+CAMP.speed+'×';}
 }
 let hudAcc=0;const lastPor=['',''];
 function updateHud(dt){
@@ -1695,12 +1727,13 @@ function drawVrHud(){
   if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');line(BUILD,196,'#857aa0','14px');}
   else if(state==='kingdom'&&CAMP.over){x.font='700 34px Silkscreen, monospace';x.fillStyle=CAMP.won?'#f0c055':'#ff5a3a';x.fillText(CAMP.won?'THE REALM IS YOURS':'ALDMERE FALLS',24,22);
     line(CAMP.won?'Every castle flies the banner of Aldmere.':'The Eternal War goes on without you.',80,'#f1e8d4','18px');line((CAMP.won?'Won':'Lost')+' in week '+CAMP.week,112,'#a99fb8','16px');line('Right trigger: new campaign',170,'#f0c055','20px');}
-  else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+(CAMP.paused?' · PAUSED':''),24,16);
+  else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+(CAMP.paused?' · PAUSED':CAMP.ff?' · FAST':''),24,16);
     const cnt=n=>CASTLES.filter(c=>c.o===n).length;line(`Aldmere ${cnt('aldmere')} · Ashen ${cnt('ashen')} · Dusk ${cnt('dusk')}`,56,'#a99fb8','16px');
     const hv=vrHover&&(vrHover.userData.castle||vrHover.userData.army),sel=CAMP.sel;
     line(hv?(hv.n?hv.n+' ('+NATIONS[hv.o].name+', '+garrison(hv).length+' gen)':NATIONS[hv.nat].name+' army: '+hv.gens.map(r=>r.d.short).join(', ')):'Point at a castle or army',84,'#f1e8d4','16px');
     line(sel?(sel.castle?(sel.castle.o==='aldmere'?(CAMP.picked.size?CAMP.picked.size+' ready: point at a target, R trig':'No one here can march'):sel.castle.n+' selected'):(sel.army.nat==='aldmere'?'Army: point at a castle to redirect':'Enemy army')):'',112,'#f0c055','16px');
-    line(CAMP.log.slice(0,60),140,'#a99fb8','14px');line('R trig select/march · L trig pause · A cancel',196,'#857aa0','14px');}
+    {const A=advise(),ws=A.t.split(' ');let l1='',l2='';for(const w of ws){if((l1+w).length<58&&!l2)l1+=w+' ';else l2+=w+' ';}line(l1,138,A.warn?'#ffb09a':'#f0c055','14px');line(l2.slice(0,60),158,A.warn?'#ffb09a':'#f0c055','14px');}
+    line(((CAMP.feed||[])[0]||'').slice(0,62),180,'#857aa0','13px');line('R trig select/march · L trig pause · A cancel',204,'#857aa0','13px');}
   else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const it=selItems(),si=selIdx%Math.max(1,it.length),e=selEnemyHint,st=Math.max(0,Math.min(si-1,it.length-4));
     it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
     line(e?`${e.d.short} holds the field (${TROOP[e.d.troop]})`:'The enemy picks after you',166,'#ffb09a','16px');line('L trig: next · R trig: choose',200,'#857aa0','16px');}
@@ -1873,7 +1906,7 @@ function loop(tms){
   if(levelUps.length&&vrMsgT<=0.2){const r=levelUps.shift();if(r.alive){if(state==='battle'||state==='end')showBanner(r.d.short+' reaches Lv '+r.lvl+'!',r.nat!=='aldmere');else if(r.nat==='aldmere')clog(`${r.d.short} reaches level ${r.lvl} (${rankOf(r.lvl)}).`);}}
   // kingdom
   if(kingdom.visible){
-    if(state==='kingdom')campTick(dt,now);campTokens(now);
+    if(state==='kingdom'){campTick(dt,now);campRings(now);advT-=dt;if(advT<=0){advT=0.3;updateModeUI();}}campTokens(now);
     kClouds.forEach((c,i)=>{c.position.x+=dt*0.5;if(c.position.x>22)c.position.x=-22;});
     const a=now*0.5;kDragon.position.set(15+Math.cos(a)*4,7+Math.sin(now*1.3)*0.5,-3+Math.sin(a)*3);kDragonMat.map=(-Math.sin(a)>=0?DRAG.r:DRAG.l)[Math.floor(now*5)%2];
   }
