@@ -32,6 +32,6 @@ Everything is synthesized live in the browser: formant-filtered voices for battl
 
 ## Controls
 - **Desktop:** drag to orbit, right-drag or WASD to pan, Q/E to turn, scroll or pinch to zoom (far enough to see the whole table). 1-4 orders, 5 duel, 6 withdraw, Space aims your spell (click the field to fire, Esc cancels). In duels J/K/L = Strike/Guard/Power. Y/N answer a challenge. Number keys pick a general.
-- **Quest:** grip to grab the table, both grips to scale and turn it. Left stick slides the battlefield, right stick turns and zooms, B resets. Point the right controller to aim your spell and pull the right trigger to fire (otherwise it orders a charge). Left trigger cycles orders, A challenges to a duel, X twice withdraws. In duels: right trigger Strike, left trigger Guard, A/X Power. When choosing a general: left trigger next, right trigger deploy.
+- **Quest:** grip to grab the table, both grips to scale and turn it. Left stick slides the battlefield, right stick turns and zooms, B resets. Point the right controller to aim your spell and pull the right trigger to fire (otherwise it orders a charge). Left trigger cycles orders, A challenges to a duel, X twice withdraws. When the enemy challenges you, a war horn sounds, the controllers buzz and the HUD flashes: A accepts, X declines (the triggers keep fighting). In duels: right trigger Strike, left trigger Guard, A/X Power. When choosing a general: left trigger next, right trigger deploy.
 
 Dragon Emperor I not required.

@@ -114,7 +114,16 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .gi{display:grid;gap:3px;min-width:0}.gi .gn{font-weight:700;font-size:12px}.gi .gn em{font-style:normal;font-weight:400;color:var(--gold);font-size:10px}
 .gi .gt{font-size:10px;color:var(--dim)}.gi .gb{font-family:var(--f-term);font-size:14px;color:#857aa0;line-height:1.1}
 .gbars{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.cb{height:4px;background:#221b33;display:block;position:relative}.cb i{position:absolute;inset:0 auto 0 0;display:block}
-.cpbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}#chal{align-items:center;gap:8px;padding:8px 10px}#chalTxt{color:var(--gold);font-weight:700;font-size:11px}
+.cpbtns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}#chal{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:9;width:min(460px,calc(100% - 32px));box-sizing:border-box;display:grid;gap:10px;padding:16px 18px;text-align:center;border:2px solid var(--ember);background:rgba(30,10,12,.94);animation:chalPulse .9s ease-in-out infinite}
+#chal[hidden]{display:none}
+@keyframes chalPulse{50%{box-shadow:0 0 28px 6px rgba(255,90,58,.55)}}
+#chal .ch1{font-family:var(--f-display);font-weight:900;font-size:clamp(22px,5vw,30px);color:var(--ember)}
+#chalTxt{color:var(--gold);font-weight:700;font-size:12px}
+#chal .chrow{display:flex;gap:8px;justify-content:center}
+#chal .chrow button{font-size:13px;padding:12px 18px}
+#chalYes{border-color:var(--gold);color:var(--gold)}
+#chal .chtime{height:6px;background:#2a1418}#chalTime{display:block;height:100%;background:var(--ember)}
+@media (prefers-reduced-motion:reduce){#chal{animation:none}}
 /* end panel */
 #endp{position:fixed;inset:0;display:grid;place-items:center;z-index:7;padding:16px;background:rgba(7,6,12,.35)}
 #endp .panel{padding:22px 24px;max-width:420px;text-align:center;display:grid;gap:12px}
@@ -220,10 +229,11 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     </div>
     <button id="spell" disabled>Starfall</button>
   </div>
-  <div class="dock panel" id="chal" hidden>
+  <div class="panel" id="chal" hidden role="alertdialog" aria-labelledby="chalHead">
+    <div class="ch1" id="chalHead">Duel challenge</div>
     <span id="chalTxt"></span>
-    <button id="chalYes">Y Accept</button>
-    <button id="chalNo">N Decline</button>
+    <div class="chtime"><i id="chalTime"></i></div>
+    <div class="chrow"><button id="chalYes">Y · Accept</button><button id="chalNo">N · Decline</button></div>
   </div>
   <div class="panel" id="duelp" hidden>
     <div class="dhead"><span id="dNameA">Kaelen</span><b>Duel</b><span id="dNameB">Hask</span></div>
@@ -1108,6 +1118,9 @@ function sfx(k){if(!AC)return;const t=AC.currentTime;
   else if(k==='whoosh'){noise(t,0.6,'bandpass',300,2400,0.2,1.5);}
   else if(k==='flame'){if(t-lastFlame<0.12)return;lastFlame=t;noise(t,0.3,'lowpass',1800,300,0.14);}
   else if(k==='zap'){noise(t,0.35,'highpass',2000,600,0.4);tone(t,'square',1800,120,0.3,0.1);}
+  else if(k==='horn'){[0,0.55].forEach((d,i)=>{const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type=o2.type='sawtooth';
+    o.frequency.setValueAtTime(92,t+d);o.frequency.linearRampToValueAtTime(i?123:110,t+d+0.25);o2.frequency.setValueAtTime(93.5,t+d);o2.frequency.linearRampToValueAtTime(i?124:111,t+d+0.25);
+    f.type='lowpass';f.frequency.value=900;env(g,t+d,0.08,0.22,i?1.1:0.45);o.connect(f);o2.connect(f);f.connect(g);g.connect(MG);o.start(t+d);o2.start(t+d);o.stop(t+d+1.3);o2.stop(t+d+1.3);});}
   else if(k==='defeat'){[392,349,311,262].forEach((f,i)=>tone(t+i*0.22,'square',f,0,0.3,0.07));}
 }
 
@@ -1397,7 +1410,8 @@ function requestDuel(){
   if(Math.random()<p){showBanner(en.d.short+' accepts!',true);startDuel();}
   else{showBanner(en.d.short+' refuses!');morale[0]=clamp(morale[0]+0.15,0,1);morale[1]=clamp(morale[1]-0.12,0,1);}
 }
-function offerChallenge(){chal={t:7};$('chalTxt').textContent=active[1].d.short+' challenges '+active[0].d.short+' to a duel!';$('chal').hidden=xrActive;showBanner('Challenge!',true);sfx('chant');hudAcc=1;}
+function buzz(intensity,ms){const s=renderer.xr.getSession&&renderer.xr.getSession();if(!s)return;for(const src of s.inputSources){const h=src.gamepad&&src.gamepad.hapticActuators&&src.gamepad.hapticActuators[0];if(h&&h.pulse)try{h.pulse(intensity,ms);}catch(e){}}}
+function offerChallenge(){chal={t:9,max:9};$('chalTxt').textContent=active[1].d.short+' challenges '+active[0].d.short+' to single combat!';$('chal').hidden=xrActive;showBanner('Duel challenge!',true);sfx('horn');buzz(0.8,350);schedule(0.5,()=>buzz(0.8,350));hudAcc=1;}
 function answerChallenge(yes){if(!chal)return;chal=null;$('chal').hidden=true;
   if(yes)startDuel();else{morale[0]=clamp(morale[0]-0.12,0,1);morale[1]=clamp(morale[1]+0.08,0,1);showBanner('Your troops waver',true);}}
 function startDuel(){
@@ -1606,6 +1620,7 @@ function updateHud(dt){
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     const sp=$('spell'),ready=mp[0]>=1&&phase==='fight'&&state==='battle';sp.disabled=!ready;sp.classList.toggle('ready',ready);
     sp.textContent=aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell];
+    if(chal)$('chalTime').style.width=(100*chal.t/chal.max)+'%';
     const db=$('duelBtn');db.disabled=phase!=='fight'||duel.cd>0||!!chal;db.textContent=duel.cd>0?'5 Duel '+Math.ceil(duel.cd):'5 Duel';
     $('wdBtn').disabled=phase!=='fight'||!avail(0).some(r=>r!==active[0]);
     if(phase==='duel'){$('dNameA').textContent=active[0].d.short;$('dNameB').textContent=active[1].d.short;
@@ -1641,7 +1656,10 @@ function drawVrHud(){
     if(phase==='duel'){line('DUEL · R trig STRIKE · L trig GUARD · A/X POWER',96,'#f0c055');
       line(duel.stage==='choose'?(duel.pick?'You chose '+duel.pick.toUpperCase():'Choose! Gold glow = power blow coming'):'',126,'#f1e8d4','16px');
       const words=duel.log.split(' ');let l1='',l2='';for(const w of words){if((l1+w).length<54&&!l2)l1+=w+' ';else l2+=w+' ';}line(l1,156,'#a99fb8','16px');line(l2.slice(0,56),180,'#a99fb8','16px');}
-    else if(chal){line(B.d.short+' challenges you to a duel!',100,'#ffb09a','20px');line('R trig: accept · L trig: decline',140,'#f1e8d4');}
+    else if(chal){const on=((performance.now()/250)|0)%2===0;x.fillStyle=on?'rgba(120,20,16,0.85)':'rgba(60,10,12,0.85)';x.fillRect(0,88,W,H-88);x.fillStyle='#ff5a3a';x.fillRect(0,88,W,4);
+      x.font='700 30px Silkscreen, monospace';x.fillStyle=on?'#ffe39a':'#ff7a4a';x.fillText('DUEL CHALLENGE!',24,100);
+      line(B.d.short+' challenges '+A.d.short+'!',140,'#f1e8d4','18px');line('A: ACCEPT    X: DECLINE',170,'#f0c055','20px');
+      x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
     else if(state==='end'){line('Trigger: return to the war table',110,'#f0c055');}
     else{line('ORDER: '+orders[0].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);
       line(mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase():'R trig charge · L trig next order',128,mp[0]>=1?'#f0c055':'#857aa0');
@@ -1676,7 +1694,6 @@ function xrSelect(hand){audioInit();
   else if(state==='battle'){
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
-    else if(chal)answerChallenge(hand!=='left');
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(mp[0]>=1)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else setOrder('charge');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
@@ -1685,6 +1702,7 @@ function xrFace(hand){
   if(state!=='battle')return;
   if(phase==='duel'){duelPick('power');return;}
   if(phase!=='fight')return;
+  if(chal){answerChallenge(hand!=='left');return;}
   if(hand==='left'){if(withdrawArm>0){withdrawArm=0;withdraw();}else{withdrawArm=2.5;showBanner('X again: withdraw');}}
   else requestDuel();
 }
