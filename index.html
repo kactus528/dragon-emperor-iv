@@ -383,6 +383,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
       <label>Battlefield <select id="skMap"></select></label>
       <label>Conditions <select id="skCond"><option value="random">Random</option><option value="none">Clear</option><option value="fog">Fog</option><option value="night">Night</option><option value="storm">Storm</option></select></label>
       <label>Level <select id="skLvl"><option value="0">As written</option><option value="5">All Lv 5</option><option value="10">All Lv 10</option></select></label>
+      <label>Battle <select id="skSiege"><option value="">Open field</option><option value="att">Siege: you attack</option><option value="def">Siege: you defend</option></select></label>
       <label class="skchk"><input type="checkbox" id="skRel" checked> Random relics</label>
     </div>
     <div class="row skbtns"><button id="skBack">Back</button><button id="skGo" class="go">To battle</button></div>
@@ -442,7 +443,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 45';
+const BUILD='Build 46';
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -976,7 +977,7 @@ function dijkstra(F,src){F.fill(1e9);const H=[];
   while(H.length){const[d,k]=pop();if(d>F[k]+1e-6)continue;const cx=k%GW,cz=(k/GW)|0;
     for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const n=z*GW+x;if(NAV[n]===1)continue;
       if(ox&&oz&&(NAV[cz*GW+x]===1||NAV[z*GW+cx]===1))continue;const nd=d+(ox&&oz?1.414:1)*(NAV[n]===2?1.8:1);if(nd<F[n]){F[n]=nd;push(n,nd);}}}}
-function computeFields(){for(let s=0;s<2;s++){const src=[];const G=GB[1-s];for(let k=0;k<G.length;k++)if(G[k].length)src.push(k);const g=fg[1-s];if(g.rec&&!g.dead&&!g.captured)src.push(gcz(g.z)*GW+gcx(g.x));dijkstra(FF[s],src);}
+function computeFields(){for(let s=0;s<2;s++){let src=[];const G=GB[1-s];for(let k=0;k<G.length;k++)if(G[k].length)src.push(k);const g=fg[1-s];if(g.rec&&!g.dead&&!g.captured)src.push(gcz(g.z)*GW+gcx(g.x));if(SIEGE&&SIEGE.hp>0&&s===SIEGE.att)src=SIEGE.app;dijkstra(FF[s],src);}
   if(pursuit){const g=fg[pursuit.L];dijkstra(PF,[gcz(g.z)*GW+gcx(g.x)]);}
   for(let s=0;s<2;s++)if(seekDuel[s]&&fg[1-s].rec)dijkstra(GF[s],[gcz(fg[1-s].z)*GW+gcx(fg[1-s].x)]);}
 function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!F||d<3.5)return[dx/d,dz/d];
@@ -1543,7 +1544,23 @@ function tickPU(dt){puT-=dt;if(puT<=0){puT=R(10,16);spawnPU();}fury[0]=Math.max(
     for(let s=0;s<2&&!best;s++){const g=fg[s];if(okGen(g)&&Math.hypot(g.x-p.x,g.z-p.z)<1.2)best={side:s};}
     if(best)claimPU(p,best.side);}}
 const AMB0=0xffe8d0,SUN0=0xfff0d8;
-function rollMod(){clearBlood();const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';if(SK&&SK.cond!=='random')MOD=SK.cond;applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
+let SIEGE=null;const wallGeo=new THREE.BoxGeometry(1,1,1),wallMat=new THREE.MeshLambertMaterial({color:0x8a8478}),gateMat=new THREE.MeshLambertMaterial({color:0x6a4424}),siegeGrp=new THREE.Group();
+function clearSiege(){SIEGE=null;while(siegeGrp.children.length)siegeGrp.remove(siegeGrp.children[0]);}
+function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(-3.2),gz1=gcz(3.2),gate=[];
+  for(let z=gz0-1;z<=gz1+1;z++)for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++){const k=z*GW+x;if(NAV[k]===1)NAV[k]=2;}
+  for(let z=0;z<GD;z++)for(let x=x0;x<=x1;x++){const k=z*GW+x;NAV[k]=1;if(z>=gz0&&z<=gz1)gate.push(k);}
+  const app=[];for(let z=gz0;z<=gz1;z++){const ax=def?x0-1:x1+1;app.push(z*GW+ax);}
+  const hpMax=180+fort*120;SIEGE={def,att,wx,gx:wx,gate,app,hp:hpMax,max:hpMax,fort,gateMesh:null};
+  const cx=(x0+x1+1)*GC/2-FW/2-5,thick=(x1-x0+1)*GC,H=3.4+fort*0.6;
+  for(let z=0;z<GD;z++){if(z>=gz0&&z<=gz1)continue;const wz=(z+0.5)*GC-FD/2-5;if(Math.abs(wz)>FD/2)continue;const m=new THREE.Mesh(wallGeo,wallMat),y=Hb(cx,wz);m.scale.set(thick,H+(z%2?0.6:0),GC*0.98);m.position.set(cx,y+(H+(z%2?0.6:0))/2-0.3,wz);siegeGrp.add(m);}
+  for(const tz of[-1,1]){const tzz=tz*((gz1-gz0+1)*GC/2+GC),m=new THREE.Mesh(wallGeo,wallMat),y=Hb(cx,tzz);m.scale.set(thick+1.2,H+2.4,GC*1.6);m.position.set(cx,y+(H+2.4)/2-0.3,tzz);siegeGrp.add(m);}
+  const g=new THREE.Mesh(wallGeo,gateMat),gy=Hb(cx,0);g.scale.set(thick*0.7,H*0.85,(gz1-gz0+1)*GC);g.position.set(cx,gy+H*0.85/2-0.3,0);siegeGrp.add(g);SIEGE.gateMesh=g;efOk=false;}
+function gateHit(u,dmg){const S=SIEGE;if(!S||S.hp<=0)return;S.hp-=dmg;if(Math.random()<0.3){chips(S.gx,Hb(S.gx,0)+1.5,u.z*0.3,3,2,4,u.side?-2:2,[T_CHIPS[0],T_CHIPS[4]]);sfx('clang');}
+  if(S.hp<=0){S.hp=0;for(const k of S.gate)NAV[k]=0;if(S.gateMesh){siegeGrp.remove(S.gateMesh);S.gateMesh=null;}efOk=false;fieldT=0;
+    impact(S.gx,0,S.def,false);showBanner('The gate is broken!',S.att===1);sfx('boom');slowMo(0.8);if(S.att===0)buzz(1,300);morale[S.def]=clamp(morale[S.def]-0.15,0,1);morale[S.att]=clamp(morale[S.att]+0.15,0,1);}}
+const GATEM={kni:2.2,inf:1.2,cav:0.6,arc:0.25,monk:0.3,mage:1.4,harp:0.3,drag:1.8};
+const behindWall=T=>SIEGE&&T.side===SIEGE.def&&(SIEGE.def?T.x>SIEGE.wx-2:T.x<SIEGE.wx+2);
+function rollMod(){clearBlood();clearSiege();const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';if(SK&&SK.cond!=='random')MOD=SK.cond;applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
 function applyMod(){ambLight.intensity=MOD==='night'?0.3:MOD==='storm'?0.44:0.62;sun.intensity=MOD==='night'?0.3:MOD==='storm'?0.46:0.78;
   if(MOD==='night'){ambLight.color.setHex(0x8f9fff);sun.color.setHex(0xa8b8ff);}scene.fog=MOD==='fog'?new THREE.Fog(0xa8a6b4,10,100):null;modT=R(6,10);}
 function clearMod(){MOD='none';applyMod();ambLight.color.setHex(AMB0);sun.color.setHex(SUN0);shrRing.visible=shrRune.visible=false;shrine.on=false;}
@@ -1654,6 +1671,7 @@ function kill(u,fx,fz,power=3,launch=0){
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
   if(T.state!=='alive')return;hitsAcc++;const s=att.side!=null?att.side:1-T.side;
+  if(SIEGE&&(RANGED[att.type]||raw)&&behindWall(T))dmg*=0.7;
   T.hp-=dmg*(raw?1:MULT[att.type][T.type]*(0.75+0.5*morale[s])*ORD[orders[s]].dmg)*ORD[orders[T.side]].def*R(0.7,1.2)*(s===1?DIFF.eDmg:1)*fMul(s,T.side,raw,att.type);
   spawn({x:T.x,y:Hb(T.x,T.z)+0.7,z:T.z+0.1,tex:T_SPARK,w:0.35,h:0.35,life:0.12});
   if(T.hp<=0)kill(T,att.x,att.z,att.type==='cav'?5:3,att.type==='cav'?4:1.5);
@@ -1712,6 +1730,7 @@ function updateUnits(dt){
     else if(fighting){
       u.retarget-=dt;if(u.retarget<=0||!u.target||u.target.state!=='alive'){u.target=nearestEnemy(u);u.retarget=R(0.25,0.5);}
       const T=u.target,ord=orders[u.side],eg=fg[1-u.side];
+      if(SIEGE&&SIEGE.hp>0&&u.side===SIEGE.att&&!FLY[u.type]&&Math.abs(u.x-SIEGE.gx)<3.6&&Math.abs(u.z)<5&&!(T&&Math.hypot(T.x-u.x,T.z-u.z)<=st.rng)){if(u.cd<=0){u.cd=st.cd*R(0.8,1.2);u.atk=0.25;gateHit(u,st.dmg*(GATEM[u.type]||1)*(abil[u.side].t>0?1.3:1));}u.vx*=0.5;u.vz*=0.5;continue;}
       let pu=null;if(pups.length&&(u.i%3===0||u.type==='cav')){let pd=ord==='hold'?4:9;for(const p of pups){const dd=Math.hypot(p.x-u.x,p.z-u.z);if(dd<pd){pd=dd;pu=p;}}}
       const tdist=T?Math.hypot(T.x-u.x,T.z-u.z):1e9;
       const engage=ord==='charge'?1e9:ord==='hold'?3.2:ord==='retreat'?1.5:3.5;
@@ -1977,7 +1996,7 @@ const TUT_PAGES=[
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b> falls back toward your general and steadies morale. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
- {h:'Battle tactics',q:['y','ls'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). <b>Power-ups</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (mana, healing, reinforcements, a war banner, a dread horn, swift boots, or a thundercloud that rains lightning on the enemy). Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
+ {h:'Battle tactics',q:['y','ls'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). Castle battles are <b>sieges</b>: the defender sits behind a wall, and attackers must batter down the gate first (knights and dragonriders hit it hardest; flyers just fly over). <b>Power-ups</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (mana, healing, reinforcements, a war banner, a dread horn, swift boots, or a thundercloud that rains lightning on the enemy). Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
   d:[['F / buttons','Change formation'],['R','General ability']],v:[['Y','Cycle formation'],['L stick click','General ability']]},
  {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) and <b>Arrow Storm</b> (archers) are aimed by hand: one charge gives you a run of bolts or tight arrow volleys, and every click or trigger pull lands one exactly where you aim. Snipe the enemy general or pick apart his clumps. Anything unused fires on its own after 10 seconds.',
   d:[['Space','Aim the spell'],['Click','Fire (Thunder/Arrows: one per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder/Arrows: one per pull)'],['R stick','Turn and zoom to find a target']]},
@@ -2047,13 +2066,13 @@ function renderSkirm(){for(let s=0;s<2;s++){const box=$(s?'skB':'skA');box.inner
   document.querySelectorAll('[data-sk]').forEach(b=>b.addEventListener('click',()=>{const[sd,k]=b.dataset.sk.split(':'),L=skSel[+sd],i=L.indexOf(k);if(i>=0)L.splice(i,1);else if(L.length<3)L.push(k);else{L.shift();L.push(k);}sfx('blip',300);renderSkirm();}));
   $('skGo').disabled=!skSel[0].length||!skSel[1].length;}
 function startSkirm(){if(!skSel[0].length||!skSel[1].length)return;const lv=+$('skLvl').value,rel=$('skRel').checked;
-  SK={cond:$('skCond').value,map:$('skMap').value,lvl:lv,rel};launchSkirm();}
+  SK={cond:$('skCond').value,map:$('skMap').value,lvl:lv,rel,siege:$('skSiege').value};launchSkirm();}
 function launchSkirm(){const P=skSel[0].map(k=>skRec(GENDEFS.find(d=>d.key===k),0,SK.lvl)),E=skSel[1].map(k=>skRec(GENDEFS.find(d=>d.key===k),1,SK.lvl));
   if(SK.rel){for(const r of P.concat(E))if(Math.random()<0.6)giveRelic(r,RELK[(Math.random()*RELK.length)|0]);}
   const eNat=E[0].nat;pendingBattle={ctx:{kind:'skirmish'},p:P,e:E,eNat};sidePal[1]=NATIONS[eNat].pal;
   mapChoice=SK.map==='random'?'random':SK.map;$('skirm').hidden=true;$('title').hidden=true;$('endp').hidden=true;
   state='transition';trT=0.79;swapped=false;sfx('fanfare');updateModeUI();setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);}
-function backToTitle(){if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();SK=null;pendingBattle=null;mapChoice='random';
+function backToTitle(){if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();clearSiege();SK=null;pendingBattle=null;mapChoice='random';
   state='title';phase='intro';battle.visible=false;kingdom.visible=true;$('endp').hidden=true;$('selp').hidden=true;$('title').hidden=false;updateModeUI();
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});}
 function rematch(){if(!SK)return;if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();launchSkirm();}
@@ -2101,7 +2120,7 @@ function drawResBoard(){const Q=RES,x=resX,W=1024,H=640;x.clearRect(0,0,W,H);x.f
   x.font='16px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText(Q.t<Q.T?'TRIGGER: SKIP':'TRIGGER: RETURN TO THE WAR TABLE',W/2,604);resT.needsUpdate=true;}
 function backToKingdom(){if(state==='title')return;if(skipResults())return;if(SK){backToTitle();return;}
   if(RES)RES.live=false;if(resBoard)resBoard.visible=false;
-  clearMod();clearPU();state='kingdom';phase='intro';battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
+  clearMod();clearPU();clearSiege();state='kingdom';phase='intro';battle.visible=false;kingdom.visible=true;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);
   $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();updateCampPanel();checkCampaignEnd();
 }
 function fightAgain(){if(SK){rematch();return;}$('endp').hidden=true;RES=null;initCampaign();backToKingdom();}
@@ -2244,6 +2263,7 @@ function aiThink(){
   else if(RANGED[myT]||myT==='monk')o=Math.random()<0.7?'hold':'flank';
   else if(me.length>them.length*1.15||adv(myT,thT)>1.3)o='charge';
   else o=Math.random()<0.5?'charge':'flank';
+  if(SIEGE&&SIEGE.hp>0)o=SIEGE.def===1?'hold':'charge';
   if(o==='hold'&&orders[1]!=='hold')holdStamp[1]++;if(o==='charge'&&orders[1]!=='charge')battleCry(1,14,0.8);orders[1]=o;
   if(mp[1]>=spellCost(1)&&spellCD[1]<=0&&!aiCast&&!(fg[1].rec&&fg[1].rec.d.spell==='breath'&&dragon.mode!=='idle')){aiCast=true;const g=fg[1];g.cast=1.8;showBanner(active[1].d.short+' gathers power!',true);sfx('charge');buzz(0.4,150);
     spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:4.5,h:4.5,life:1.6,grow:0.3,blink:true});schedule(1.6,()=>{aiCast=false;castSpell(1,null);});}
@@ -2279,7 +2299,7 @@ function updateHud(dt){
       $('sub'+k).textContent='LV '+(r.lvl||1)+' · '+TROOP[r.d.troop].toUpperCase()+' · '+SPELL[r.d.spell].toUpperCase();
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';$('sta'+k).style.width=((fg[s].sta??1)*100)+'%';$('sta'+k).parentNode.classList.toggle('burst',fg[s].burst>0);}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
-    $('objLbl').textContent=(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BANNER '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
+    $('objLbl').textContent=(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BANNER '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
     {const ab=$('abilBtn'),A=abil[0],AB=ABIL[active[0].d.troop];ab.textContent='R '+AB.n+(A.t>0?' ON':A.cd>0?' '+Math.ceil(A.cd):'');ab.disabled=phase!=='fight'||A.cd>0;ab.classList.toggle('ready',phase==='fight'&&A.cd<=0);}
     const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&phase==='fight'&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
     sp.textContent=phase==='pursuit'&&pursuit&&pursuit.L===0?'Space Sprint · '+Math.round(fg[0].sta*100)+'%':storm.on?'Click to '+(storm.kind==='volley'?'loose · '+storm.left+' volleys · ':'strike · '+storm.left+' bolts · ')+Math.ceil(storm.t)+'s':aim.mode?'Click the field · Esc':'Space '+SPELL[active[0].d.spell]+' ×'+Math.floor(mp[0]);
@@ -2512,7 +2532,8 @@ function loop(tms){
   if(state==='transition'){
     trT+=dt;const sMax=xrActive?1.6:3.2;
     if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(KS*s);kingdom.position.set(PASS.x*KS*(1-s),-k*2.5,PASS.z*KS*(1-s));}
-    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();BST.kills=[0,0];BST.rounds=[0,0];BST.snap=new Map(roster[0].map(r=>[r,{lvl:r.lvl,xp:r.xp,troops:r.troops}]));RES=null;if(resBoard)resBoard.visible=false;active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();rollMod();}
+    else{if(!swapped){swapped=true;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();BST.kills=[0,0];BST.rounds=[0,0];BST.snap=new Map(roster[0].map(r=>[r,{lvl:r.lvl,xp:r.xp,troops:r.troops}]));RES=null;if(resBoard)resBoard.visible=false;active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();buildBattlefield(lastType);clearField();rollMod();
+        if(pendingBattle&&pendingBattle.ctx.kind==='castle'){const c=pendingBattle.ctx,pAtt=c.attN==='aldmere';setupSiege(pAtt?1:0,c.castle.fort||0);}else if(SK&&SK.siege)setupSiege(SK.siege==='def'?0:1,1);}
       const k=ease(Math.min(1,(trT-0.8)/0.9));battle.scale.setScalar(0.35+0.65*k);battle.position.y=(1-k)*2;
       if(trT>1.75){battle.scale.setScalar(1);battle.position.y=0;state='battle';startSelect();showBanner(BIO.name);}}
   }

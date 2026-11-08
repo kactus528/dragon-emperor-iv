@@ -29,6 +29,10 @@ Pick one on the title screen (left trigger in VR):
 
 New generals: **Sir Aldric Ironvow** (Knights) and **Sister Elowen** (Monks) for Aldmere, **Zareth the Pyromancer** (Mages) and **Kessa Wyrmrider** (Dragonriders) for the Ashen Legion, **Nyx of the Talons** (Harpies) and **Thessaly the Seer** (Mages) for Duskmarch. Each type has its own ability: Shield Wall, Sanctuary, Arcane Surge, Dive and Inferno.
 
+## Sieges
+
+Every battle for a castle is a siege. A stone wall with towers runs the full width of the field in front of the defenders, with a wooden gate in the middle and a cleared causeway leading to it. Attackers path to the gate and batter it (Knights ×2.2, Dragonriders ×1.8, Mages ×1.4, Infantry ×1.2, Cavalry ×0.6, Archers and Monks barely scratch it). The gate starts at 180 HP plus 120 per level of fortification. Defenders behind the wall take 30% less damage from arrows, bolts and spells, and the defending AI holds the wall while the gate stands. Harpies and Dragonriders fly straight over. When the gate falls the defenders lose heart and the attackers surge. A broken gate stays broken for the rest of the battle. The HUD shows the gate's health. Skirmish can also set up a siege either way round.
+
 ## Skirmish
 
 **Skirmish** on the title screen sets up a one-off battle: pick up to three generals for each side from all fourteen, the battlefield, the conditions (clear, fog, night, storm or random), a level (as written, all Lv 5 or all Lv 10) and whether generals carry random relics. Nothing carries over to the campaign. Afterwards you can take a rematch with the same setup or go back to the title.
