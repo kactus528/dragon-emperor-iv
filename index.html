@@ -307,7 +307,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
           <button class="start" id="startBtn">Press Start</button>
           <button id="vrBtn2" disabled>Enter VR</button>
         </div>
-        <div class="fine"><span>©1997 TAIYO CO., LTD. · PLAYABLE DEMO</span><span>Dragon Emperor I not required.</span></div>
+        <div class="fine"><span>©1997 TAIYO CO., LTD. · PLAYABLE DEMO · <span id="buildTag"></span></span><span>Dragon Emperor I not required.</span></div>
       </div>
     </div>
   </div>
@@ -318,6 +318,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
+const BUILD='Build 20';
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const R=(a,b)=>a+Math.random()*(b-a);
 const ease=t=>1-Math.pow(1-t,3);
@@ -1688,7 +1689,7 @@ function drawVrHud(){
   const x=hudX,W=768,H=240;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.88)';x.fillRect(0,0,W,H);x.fillStyle='#4a3d63';x.fillRect(0,0,W,3);x.fillRect(0,H-3,W,3);
   x.textBaseline='top';x.textAlign='left';x.font='700 30px Silkscreen, monospace';x.fillStyle='#f0c055';
   const line=(t,y,c='#f1e8d4',f='18px')=>{x.font=f+' Silkscreen, monospace';x.fillStyle=c;x.fillText(t,24,y);};
-  if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');}
+  if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Pull a trigger to start',130,'#a99fb8','20px');line(BUILD,196,'#857aa0','14px');}
   else if(state==='kingdom'&&CAMP.over){x.font='700 34px Silkscreen, monospace';x.fillStyle=CAMP.won?'#f0c055':'#ff5a3a';x.fillText(CAMP.won?'THE REALM IS YOURS':'ALDMERE FALLS',24,22);
     line(CAMP.won?'Every castle flies the banner of Aldmere.':'The Eternal War goes on without you.',80,'#f1e8d4','18px');line((CAMP.won?'Won':'Lost')+' in week '+CAMP.week,112,'#a99fb8','16px');line('Right trigger: new campaign',170,'#f0c055','20px');}
   else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+(CAMP.paused?' · PAUSED':''),24,16);
@@ -1733,6 +1734,7 @@ $('wdBtn').addEventListener('click',withdraw);
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
+$('buildTag').textContent=BUILD.toUpperCase();
 $('pauseBtn').addEventListener('click',togglePause);
 $('spdBtn').addEventListener('click',()=>{CAMP.speed=CAMP.speed===1?2:CAMP.speed===2?4:1;updateModeUI();});
 $('againBtn').addEventListener('click',fightAgain);
