@@ -498,7 +498,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 68';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 69';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2086,16 +2086,19 @@ function updateGenerals(dt){
       if(phase==='duel'){tx=duel.cx-dir*(2.3-g.lunge*1.7);tz=duel.cz;spd=6;}
       else if(phase==='intro'||phase==='taunt'){tx=dir>0?-52:52;tz=0;}
       else if(phase==='fight'){const own=alive[g.side],o=fg[1-g.side],oOk=okGen(o);
-        if(orders[g.side]==='retreat'){tx=dir>0?-(FW/2+4):FW/2+4;tz=g.z;spd=3.2;}
+        if(orders[g.side]==='retreat'){if(!efOk)edgeFields();const E=nearEdge(g);tx=g.x+E.nx*(E.d+4);tz=g.z+E.nz*(E.d+4);spd=3.2;g.chase='edge';if(nearestFoe(g)<6)sprint(g,true);}
         else if(g.side===1&&avoidDuel&&oOk&&Math.hypot(o.x-g.x,o.z-g.z)<16){tx=g.x+(g.x-o.x)*2;tz=g.z+(g.z-o.z)*2;spd=3.4;if(Math.hypot(o.x-g.x,o.z-g.z)<7)sprint(g,true);}
         else if(seekDuel[g.side]&&oOk){tx=o.x;tz=o.z;spd=3.6;g.chase='gen';if(g.burst<=0&&g.sta>0.55&&Math.hypot(o.x-g.x,o.z-g.z)>14)sprint(g,true);}
         else if(own.length>30&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*7;tz=c.z*0.6;}
-        else if(orders[g.side]==='retreat'){tx=dir>0?-(FW/2+4):FW/2+4;tz=g.z;spd=3.2;}
         else{let best=null,bd=1e9;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}if(best){tx=best.x;tz=best.z;g.chase=true;}}
         if(g.cd<=0){let best=null,bd=2.2;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
           if(best){g.cd=0.75;g.cast=0.2;hit(best,g.rec.d.atk*0.35,{x:g.x,z:g.z,type:'inf',side:g.side},true);}}}
       if(phase==='fight')spd*=staTick(g,dt);
-      const d=Math.hypot(tx-g.x,tz-g.z);if(d>0.35){const nd=navDir(g,tx,tz,g.chase==='gen'?GF[g.side]:g.chase?FF[g.side]:null),m=Math.min(d,spd*terrSpd(g,'inf')*dt);moveSlide(g,nd[0]*m,nd[1]*m);g.moving=true;}
+      if(g.chase==='edge'){const m=spd*terrSpd(g,'inf')*dt,nd=navDir(g,tx,tz,EF[g.side]),sl=g.side===0?Math.hypot(steer.x,steer.z):0,ox=g.x,oz=g.z;let vx=nd[0],vz=nd[1];
+          if(sl>0.15){vx=steer.x/Math.max(1,sl)+nd[0]*0.35;vz=steer.z/Math.max(1,sl)+nd[1]*0.35;const vl=Math.hypot(vx,vz)||1;vx/=vl;vz/=vl;}
+          if(g.ghost>0){g.ghost-=dt;g.x+=vx*m;g.z+=vz*m;}else if(!moveSlide(g,vx*m,vz*m)&&!moveSlide(g,nd[0]*m,nd[1]*m))moveSlide(g,-vz*m,vx*m);
+          if(Math.hypot(g.x-ox,g.z-oz)<m*0.3){g.rstk=(g.rstk||0)+dt;if(g.rstk>2){g.rstk=0;g.ghost=1.2;}}else g.rstk=0;g.moving=true;}
+      else{const d=Math.hypot(tx-g.x,tz-g.z);if(d>0.35){const nd=navDir(g,tx,tz,g.chase==='gen'?GF[g.side]:g.chase?FF[g.side]:null),m=Math.min(d,spd*terrSpd(g,'inf')*dt);moveSlide(g,nd[0]*m,nd[1]*m);g.moving=true;}}
     }
     {const fl=phase==='pursuit'&&pursuit&&g.side===pursuit.L;g.x=clamp(g.x,-FW/2-2,FW/2+2);g.z=fl?clamp(g.z,-FD/2-2,FD/2+2):clamp(g.z,-FD/2+1.2,FD/2-1.2);}
     const fr=GMF[g.rec.d.key][g.side][(g.dead||g.captured)?3:g.cast>0?2:g.moving?(Math.floor(g.t*5)%2):(Math.floor(g.t*2)%2)];
@@ -2223,7 +2226,8 @@ function answerChallenge(yes){if(!chal)return;chal=null;$('chal').hidden=true;
   if(yes)startDuel();else{morale[0]=clamp(morale[0]-0.12,0,1);morale[1]=clamp(morale[1]+0.08,0,1);showBanner('Your troops waver',true);}}
 let duelBoard=null;
 const okGen=g=>g.rec&&!g.dead&&!g.flee&&!g.captured;
-const steer={x:0,z:0},_sq=new THREE.Quaternion();let vrSteered=false;const fleeing0=()=>state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0&&!fg[0].captured;
+const steer={x:0,z:0},_sq=new THREE.Quaternion();let vrSteered=false;const fleeing0=()=>(state==='battle'&&phase==='pursuit'&&pursuit&&pursuit.L===0&&!fg[0].captured)||retreating0();
+const retreating0=()=>state==='battle'&&phase==='fight'&&orders[0]==='retreat'&&fg[0]&&fg[0].rec&&!fg[0].dead&&!fg[0].captured&&!fg[0].flee;
 const STA={drain:0.42,regen:0.09,mult:1.9,min:0.2};
 function sprint(g,auto){if(g.burst>0||g.sta<STA.min||g.captured||g.dead)return false;g.burst=1.8;sfx('whoosh');if(!auto&&g.side===0)buzz(0.5,120);hudAcc=1;return true;}
 function staTick(g,dt){if(g.burst>0){g.burst-=dt;g.sta=Math.max(0,g.sta-STA.drain*dt);if(g.sta<=0)g.burst=0;
@@ -2460,7 +2464,7 @@ function backToKingdom(){if(state==='title')return;if(skipResults())return;if(SK
   $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();updateCampPanel();checkCampaignEnd();
 }
 function fightAgain(){if(SK){rematch();return;}if(CAMP.over&&CAMP.won){startNextAge();return;}if(CAMP.over&&AGE>1){beginAge(loadAge());return;}$('endp').hidden=true;RES=null;initCampaign();backToKingdom();}
-function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);if(o==='retreat'&&orders[0]!=='retreat'&&phase==='fight')showBanner('Retreat! Reach your edge to escape the battle');orders[0]=o;setOrderUI();}
+function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);if(o==='retreat'&&orders[0]!=='retreat'&&phase==='fight')showBanner(xrActive?'Retreat! Left stick steers you to any edge':'Retreat! WASD steers you to any edge');orders[0]=o;setOrderUI();}
 function cycleOrder(){setOrder(ORDERS[(ORDERS.indexOf(orders[0])+1)%ORDERS.length]);}
 function setOrderUI(){document.querySelectorAll('[data-ord]').forEach(b=>b.classList.toggle('on',b.dataset.ord===orders[0]));$('ordLbl').textContent=orders[0].toUpperCase();}
 function withdraw(){
@@ -2596,7 +2600,7 @@ function fightTick(dt){
   aiT+=dt;if(aiT>3){aiT=0;aiThink();}
   drumT-=dt;if(drumT<=0){drumT=R(18,32);const sd=Math.random()<0.5?0:1;warDrums(sd,2+((Math.random()*2)|0),orders[sd]==='charge'?132:104);}
   cheerT-=dt;if(cheerT<=0){cheerT=5;for(let k=0;k<2;k++){if(killTally[k]>25)cheer(k,0.6);killTally[k]=0;}}
-  for(let s=0;s<2;s++)if(orders[s]==='retreat'&&okGen(fg[s])&&Math.abs(fg[s].x)>FW/2-1.5){endEngagement(1-s,'retreat');return;}
+  for(let s=0;s<2;s++)if(orders[s]==='retreat'&&okGen(fg[s])&&nearEdge(fg[s]).d<1.7){endEngagement(1-s,'retreat');return;}
   if(duel.cd<=0&&okGen(fg[0])&&okGen(fg[1])&&Math.hypot(fg[0].x-fg[1].x,fg[0].z-fg[1].z)<3.2){startDuel();return;}
   const holding=s=>orders[s]==='retreat'&&esc[s]>0&&okGen(fg[s]);
   if(alive[1].length===0&&!holding(1))endEngagement(0,'routed');else if(alive[0].length===0&&!holding(0))endEngagement(1,'routed');
@@ -2841,7 +2845,7 @@ function vrInput(dt){
   if(g1){vr.pos.copy(g1.p0).add(g1.c.position).sub(g1.c0);}
   else if(g2){const a=g2.a.position,b=g2.b.position,mid=a.clone().add(b).multiplyScalar(0.5),d=Math.max(0.05,a.distanceTo(b)),dy=Math.atan2(b.x-a.x,b.z-a.z)-g2.ang0;
     vr.scale=clamp(g2.s0*d/g2.d0,0.0015,1.5);const r=vr.scale/g2.s0;vr.yaw=g2.y0+dy;const off=g2.p0.clone().sub(g2.mid0).multiplyScalar(r).applyAxisAngle(UPV,dy);vr.pos.copy(mid).add(off);}
-  const s=renderer.xr.getSession();if(!s)return;vrSteered=false;
+  const s=renderer.xr.getSession();if(!s)return;vrSteered=false;steer.x=steer.z=0;
   const f=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);f.y=0;if(f.lengthSq()<1e-6)f.set(0,0,-1);f.normalize();const rt=new THREE.Vector3(-f.z,0,f.x);
   for(const src of s.inputSources){const gp=src.gamepad;if(!gp||gp.axes.length<4)continue;const dz=v=>Math.abs(v)<0.15?0:v;const ax=dz(gp.axes[2]),ay=dz(gp.axes[3]);
     if(src.handedness==='left'){if(fleeing0()){const v=f.clone().multiplyScalar(-ay).addScaledVector(rt,ax);battle.getWorldQuaternion(_sq);v.applyQuaternion(_sq.invert());steer.x=v.x;steer.z=v.z;vrSteered=true;}
