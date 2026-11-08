@@ -39,6 +39,16 @@ Select one of your castles to set its task for the coming weeks (in VR, press Y 
 
 Every general but Kaelen has **loyalty** (♥ in the castle panel). Wins raise it, losses and idle weeks lower it, and a relic gift gives +20. A general under 40 is restless; under 25, he may defect to a neighbouring enemy castle. Enemy castles fortify too, slowly.
 
+## New Game+: the Ages
+
+Unite the realm and the end screen offers **Begin Age II**. A story card opens the new Age, and:
+- Every Aldmere general who survived keeps their level, XP, relic and loyalty; wandering generals you recruited return with you; the vault carries over.
+- Enemy generals gain 2 levels per Age (up to 10) and increasingly carry relics; enemy castles start with stronger walls.
+- The enemy hits harder, recharges magic faster and counter-picks more each Age.
+- New battle conditions appear: **Blizzard** from Age II (slower troops, shorter archer range, snow and white-out) and **Blood Moon** from Age III (everyone deals 25% more damage under a red sky).
+
+Progress is saved in the browser: the title screen shows **Continue · Age N**, and losing restarts the current Age with the same carried-over generals. **Start over at Age I** wipes it.
+
 ## Boss battles
 
 - **The Ashen Wyrm.** In any battle where Vorgrath fights, his dragon is a boss with its own health bar. Every 7-11 seconds it either swoops with fire across your densest ranks or **lands**: the landing stomp flattens nearby troops, and for about 4 seconds it sits on the field breathing fire while your soldiers, archers and mages can attack it. Your spells also wound it whenever it is low (landing, grounded or diving). Slay it and the enemy's morale collapses, Vorgrath loses his Dragon's Breath for the rest of the battle, and the campaign rewards the **Wyrmheart** relic (+20% spell power, +10 HP, +1 spell charge).

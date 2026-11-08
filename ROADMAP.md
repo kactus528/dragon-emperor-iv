@@ -1,6 +1,7 @@
 # Dragon Emperor IV roadmap
 
 ## Done
+- Skirmish mode, 12 relics, five new troop types and six generals, castle sieges, weekly castle tasks with loyalty and wandering generals, the Ashen Wyrm boss and Ysolde's Eclipse, New Game+ Ages
 - Stereoscopic 400 vs 400 sprite battles with duels, morale, orders, capture and persuasion
 - Seven battlefield biomes with obstacles and flow-field pathfinding
 - Campaign map: 18 castles, roads, real-time armies, three nations (Aldmere, Ashen Legion, Duskmarch)
