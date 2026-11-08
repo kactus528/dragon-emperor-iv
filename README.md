@@ -72,7 +72,7 @@ Progress is saved in the browser: the title screen shows **Continue · Age N**, 
 - **The Ashen Wyrm.** In any battle where Vorgrath fights, his dragon is a boss with its own health bar. Every 7-11 seconds it either swoops with fire across your densest ranks or **lands**: the landing stomp flattens nearby troops, and for about 4 seconds it sits on the field breathing fire while your soldiers, archers and mages can attack it. Your spells also wound it whenever it is low (landing, grounded or diving). Slay it and the enemy's morale collapses, Vorgrath loses his Dragon's Breath for the rest of the battle, and the campaign rewards the **Wyrmheart** relic (+20% spell power, +10 HP, +1 spell charge).
 - **Queen Ysolde's Eclipse** (costs 2 charges): the sun goes dark for 7 seconds, your troops deal 30% less damage, your morale drops, and lightning strikes your thickest ranks.
 
-**Retreat** sends your general running for your own edge of the field. If he reaches it the round ends: he escapes with 60% of the troops still alive and can fight again in a later round. The enemy can escape the same way.
+**Retreat** scatters your soldiers toward the nearest edge of the field (any edge); everyone who gets off the field is saved. Your general runs for your own edge, and if he reaches it the round ends: he escapes with the soldiers who slipped away plus 60% of those still fighting, and can fight again in a later round. The enemy can escape the same way.
 
 ## Sieges
 
