@@ -500,7 +500,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 77';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 78';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1227,7 +1227,12 @@ const kCryst=CASTLES.map(c=>{const m=new THREE.Mesh(kCrystGeo,kCrystMat);m.scale
 const kCrystNat={};for(const k in NATIONS){const c=new THREE.Color(NATIONS[k].col);kCrystNat[k]=new THREE.MeshPhongMaterial({color:c,emissive:c.clone().multiplyScalar(0.45),specular:0xffffff,shininess:90,flatShading:true});}
 function campCrystals(now){CASTLES.forEach((c,i)=>{const m=kCryst[i];const ruler=state==='kingdom'&&GENS.find(r=>r.alive&&r.loc===c.id&&r.d.key===NATIONS[r.nat].ruler);m.visible=!!ruler;if(!m.visible)return;
   m.material=kCrystNat[ruler.nat]||kCrystMat;const s=0.42*(1+Math.sin(now*3+i)*0.06);m.scale.set(s,s,s);
-  m.position.set(c.x,c.y+(c.cap?6.4:5.6)+Math.sin(now*2+i)*0.15,c.z);m.rotation.y=now*1.4+i;});}
+  m.position.set(c.x,c.y+(c.cap?6.4:5.6)+Math.sin(now*2+i)*0.15,c.z);m.rotation.y=now*1.4+i;});
+  let n=0;if(state==='kingdom')for(const a of CAMP.armies){const ruler=a.gens.find(r=>r.alive&&r.d.key===NATIONS[r.nat].ruler);if(!ruler)continue;
+    let m=kArmyCryst[n];if(!m){m=new THREE.Mesh(kCrystGeo,kCrystMat);kingdom.add(m);kArmyCryst.push(m);}n++;m.visible=true;m.material=kCrystNat[ruler.nat]||kCrystMat;
+    const s=0.34*(1+Math.sin(now*3+a.id)*0.06);m.scale.set(s,s,s);m.position.set(a.x,Hk(a.x,a.z)+3.1+Math.sin(now*2.4+a.id)*0.12,a.z);m.rotation.y=now*1.6+a.id;}
+  for(let i=n;i<kArmyCryst.length;i++)kArmyCryst[i].visible=false;}
+const kArmyCryst=[];
 function campRings(now){campCrystals(now);updateCastBoard();const S=CAMP.sel,T=threats(),pulse=0.45+0.4*Math.abs(Math.sin(now*3)),R=new Set(ownReady());
   const cand=S&&S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size?new Set(S.castle.adj):S&&S.army&&S.army.nat==='aldmere'?new Set(CASTLES[S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]].adj.concat([S.army.path[Math.min(S.army.seg+1,S.army.path.length-1)]])):null;
   for(const c of CASTLES){const m=castleRing(c);let col=null,op=0.85;
