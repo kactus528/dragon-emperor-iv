@@ -500,7 +500,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 74';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 75';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1179,7 +1179,7 @@ const ROADS=[];
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));kingdom.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xc8b07a,side:THREE.DoubleSide})));}
 const roadNear=(x,z)=>ROADS.some(([i,j])=>segD(x,z,{x1:CASTLES[i].x,z1:CASTLES[i].z,x2:CASTLES[j].x,z2:CASTLES[j].z})<0.9);
 const pickables=[];const armyPickGeo=new THREE.CylinderGeometry(1.25,1.25,2.6,8),armyPickMat=new THREE.MeshBasicMaterial({visible:false});
-const pickFirst=hs=>{const a=hs.find(h=>h.object.userData.army);return a||hs[0]||null;};
+const pickFirst=hs=>{if(CAMP&&CAMP.sel&&CAMP.sel.army&&CAMP.sel.army.nat==='aldmere'){const c=hs.find(h=>h.object.userData.castle);if(c)return c;}const a=hs.find(h=>h.object.userData.army);return a||hs[0]||null;};
 CASTLES.forEach(c=>{c.sp=sprite(castleMats.grey,c.cap?3.7:3,c.cap?4.4:3.6);c.sp.position.set(c.x,c.y,c.z);c.sp.userData.castle=c;kingdom.add(c.sp);pickables.push(c.sp);});
 _s=133;for(let i=0;i<110;i++){const x=-19+srand()*38,z=-11+srand()*22;const y=Hk(x,z),rz=4*Math.sin(x*0.18)+3;if(Math.abs(z-rz)<1.6||y>1.5)continue;
   if(CASTLES.some(k=>Math.hypot(k.x-x,k.z-z)<2.2)||roadNear(x,z))continue;
@@ -1489,10 +1489,15 @@ function updateCampPanel(){
   on('cpMarch',()=>{CAMP.target=true;updateCampPanel();});on('cpRedirect',()=>{CAMP.target=true;updateCampPanel();});on('cpCancel',()=>{CAMP.target=false;updateCampPanel();});
   on('cpBack',()=>{const a=s.army;a.halt=false;redirect(a,a.from);});on('cpHalt',()=>{const a=s.army;a.halt=!a.halt;clog(a.halt?'Your army halts on the road.':'Your army marches on.');updateCampPanel();});on('cpClose',()=>{CAMP.sel=null;CAMP.target=false;updateCampPanel();});
 }
-function redirect(a,to){a.halt=false;a.retreat=false;const here=a.t>0.5?a.path[a.seg+1]:a.path[a.seg],p=bfs(here,to);if(!p)return;
-  if(p.length<2){if(CASTLES[to].o===a.nat){arrive(a,CASTLES[to]);}return;}
-  const cx=a.x,cz=a.z;a.path=p;a.seg=0;a.t=0;const A=CASTLES[p[0]],B=CASTLES[p[1]],L=Math.hypot(B.x-A.x,B.z-A.z);a.t=clamp(1-Math.hypot(B.x-cx,B.z-cz)/L,0,0.95);
-  CAMP.target=false;clog('Your army changes course for '+CASTLES[to].n+'.');updateCampPanel();}
+function plen(p){let d=0;for(let i=0;i+1<p.length;i++)d+=Math.hypot(CASTLES[p[i+1]].x-CASTLES[p[i]].x,CASTLES[p[i+1]].z-CASTLES[p[i]].z);return d;}
+function redirect(a,to){a.halt=false;a.retreat=false;const S0=a.path[a.seg],S1=a.path[a.seg+1]!==undefined?a.path[a.seg+1]:S0,t=S1===S0?0:clamp(a.t,0,1);
+  const L=S1===S0?0:Math.hypot(CASTLES[S1].x-CASTLES[S0].x,CASTLES[S1].z-CASTLES[S0].z),pF=bfs(S1,to),pB=bfs(S0,to);
+  const dF=pF?(1-t)*L+plen(pF):1e9,dB=pB?t*L+plen(pB):1e9;
+  if(dF>=1e9&&dB>=1e9){clog('No road leads there.');updateCampPanel();return;}
+  if(L===0){const p=pB;if(p.length<2){if(CASTLES[to].o===a.nat)arrive(a,CASTLES[to]);CAMP.target=false;updateCampPanel();return;}a.path=p;a.seg=0;a.t=0;}
+  else if(dF<=dB){a.path=[S0,...pF];a.seg=0;a.t=t;}
+  else{a.path=[S1,...pB];a.seg=0;a.t=1-t;}
+  CAMP.target=false;clog('Your army changes course for '+CASTLES[to].n+'.');sfx('lock');updateCampPanel();}
 const castC=cv(1024,640),castX=castC.getContext('2d'),castT=tex(castC,true);let castBoard=null,castHash='',castHover=-1,castRows=[];
 function updateCastBoard(){const S=CAMP.sel,c=S&&S.castle,show=xrActive&&state==='kingdom'&&!CAMP.over&&c&&c.o==='aldmere'&&garrison(c).length>0&&!storyVR&&!TUT.open;
   if(!show){if(castBoard)castBoard.visible=false;castHover=-1;return;}
@@ -1516,7 +1521,7 @@ function campClick(hit){
   const c=hit.userData.castle,a=hit.userData.army;
   const S=CAMP.sel,ownArmy=S&&S.army&&S.army.nat==='aldmere';
   const freshCastle=c&&c.o==='aldmere'&&garrison(c).some(r=>r.troops>0&&r.hp>0);
-  const canMarch=S&&((S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size)||(ownArmy&&(CAMP.target||!freshCastle)));
+  const canMarch=S&&((S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size)||ownArmy);
   if(c&&S&&(CAMP.target||canMarch)&&!(S.castle===c)){
     if(S.castle&&!CAMP.picked.size){clog(`No one at ${S.castle.n} can march. Tick a general first.`);updateCampPanel();return;}
     if(CAMP.sel.castle){const from=CAMP.sel.castle;
