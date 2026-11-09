@@ -501,7 +501,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 83';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 84';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2602,7 +2602,7 @@ function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' 
     for(const r of roster[1].filter(x=>x.captor===0&&!x.turned)){if(r.d.key===NATIONS[r.nat].ruler||r.d.key==='vorgrath'||r.d.boss)continue;
       const ch=clamp(DIFF.persuade*(tookCastle?1:0.85)+(r.tried>=0?-0.1:0),0.15,0.9);
       if(Math.random()<ch){r.turned=true;roster[0].push(turnRec(r,0,'aldmere'));recruits.push(r.d.short);}else{r.recLost=true;refused.push(r.d.short);}}
-    if(recruits.length||refused.length)DE4LOG.info('post-battle recruitment: joined '+(recruits.join(',')||'-')+' lost '+(refused.join(',')||'-'));}
+    if(recruits.length||refused.length)DE4LOG.info('post-battle recruitment: joined '+(recruits.join(',')||'-')+' executed '+(refused.join(',')||'-'));}
   const defected=[],perished=[];
   if(!win&&pendingBattle&&pendingBattle.ctx.kind!=='skirmish'){for(const r of roster[0].filter(x=>x.captor===1&&!x.turned)){if(r.d.key==='kaelen')continue;
       if(Math.random()<enemyRecruitCh())(r.enemyJoin=true,defected.push(r.d.short));else{r.recLost=true;perished.push(r.d.short);}}
@@ -2618,9 +2618,9 @@ function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' 
    const spoils=[];if(cst&&cst.o!==cBefore){if(cst.o==='aldmere')spoils.push(['big',cst.n+' raises the banner of Aldmere!']);else if(cBefore==='aldmere')spoils.push(['bad',cst.n+' has fallen to '+NATIONS[cst.o].name+'.']);}
    if(why==='surrender'){const t=roster[0].filter(r=>r.alive!==false&&!r.out).reduce((a,r)=>a+r.troops,0);spoils.push(['bad','You yielded the field. Your generals march home with '+t+' troops.']);}
    for(const n of recruits)spoils.push(['good','⚑ '+n+' swears loyalty and joins your army!']);
-   for(const n of refused)spoils.push(['bad',n+' refuses to serve you and is lost.']);
+   for(const n of refused)spoils.push(['bad',n+' refuses to serve you and is executed.']);
    for(const n of defected)spoils.push(['bad',n+' goes over to '+eName+'.']);
-   for(const n of perished)spoils.push(['bad',n+' refuses '+eName+' and is lost.']);
+   for(const n of perished)spoils.push(['bad',n+' refuses to serve '+eName+' and is executed.']);
    if(caps.length)spoils.push(['','Prisoners taken: '+caps.join(', ')]);
    const rows=gens.map(g=>{const r=g.r;let tag='',cls='';
      if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?'Rescued':'Captured';cls='bad';}
