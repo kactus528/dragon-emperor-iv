@@ -480,17 +480,18 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   window.addEventListener('unhandledrejection',ev=>{L.add('ERROR','unhandled promise: '+((ev.reason&&ev.reason.stack)||ev.reason));});
   const ow=console.warn,oe=console.error;console.warn=function(...a){try{L.add('warn',a.map(String).join(' '));}catch(e){}ow.apply(console,a);};console.error=function(...a){try{L.add('ERROR',a.map(x=>x&&x.stack||String(x)).join(' '));}catch(e){}oe.apply(console,a);};
   window.addEventListener('pagehide',flush);document.addEventListener('visibilitychange',()=>{L.add('info','page '+document.visibilityState);flush();if(document.visibilityState==='hidden'){try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:true}));}catch(e){}}});
-  let wdw=null;try{const src="let last=0,st='',on=false,done=false;onmessage=e=>{const d=e.data;if(d==='off'){on=false;return;}last=Date.now();st=d;on=true;done=false;};function put(v){try{const r=indexedDB.open('de4wd',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>{try{r.result.transaction('k','readwrite').objectStore('k').put(v,'f');}catch(e){}};}catch(e){}}setInterval(()=>{if(on&&!done&&Date.now()-last>3000){done=true;put({t:last,st:st,at:Date.now()});}},500);";
+  let trUntil=0,trBuf=[];let wdw=null;try{const src="let last=0,st='',on=false,done=false;onmessage=e=>{const d=e.data;if(d==='off'){on=false;return;}last=Date.now();st=d;on=true;done=false;};function put(v){try{const r=indexedDB.open('de4wd',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>{try{r.result.transaction('k','readwrite').objectStore('k').put(v,'f');}catch(e){}};}catch(e){}}setInterval(()=>{if(on&&!done&&Date.now()-last>3000){done=true;put({t:last,st:st,at:Date.now()});}},500);";
     wdw=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));}catch(e){wdw=null;}
-  L.beat=st=>{if(wdw)try{wdw.postMessage(st);}catch(e){}};
-  L.mark=st=>{try{localStorage.setItem('de4-mark',JSON.stringify({t:Date.now(),st:(L.ctx()+' '+st).slice(0,160)}));}catch(e){}};L.beatOff=()=>{if(wdw)try{wdw.postMessage('off');}catch(e){}};
+  L.beat=st=>{if(wdw)try{wdw.postMessage(st);}catch(e){}if(Date.now()<trUntil)L.mark(st);};
+  L.mark=st=>{try{const t=Date.now();if(t<trUntil){trBuf.push((t%100000)+' '+st);if(trBuf.length>14)trBuf.shift();}localStorage.setItem('de4-mark',JSON.stringify({t,st:(L.ctx()+' '+st).slice(0,160),tr:t<trUntil?trBuf.join(' > '):''}));}catch(e){}};
+  L.trace=(ms)=>{trUntil=Date.now()+ms;trBuf=[];};L.tracing=()=>Date.now()<trUntil;L.beatOff=()=>{if(wdw)try{wdw.postMessage('off');}catch(e){}};
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')L.beatOff();});
   let prevAlive=null;
   try{const a=JSON.parse(localStorage.getItem('de4-alive')||'null');prevAlive=a;if(a&&!a.clean&&Date.now()-a.t<15*60000){L.add('ERROR','Previous session ended without closing (tab crash, browser kill or freeze). Last seen '+Math.round((Date.now()-a.t)/1000)+'s before this load: '+a.s);}}catch(e){}
   try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:false,s:'page loading'}));}catch(e){}
   window.addEventListener('pagehide',()=>{try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:true}));}catch(e){}});
   L.add('info','page load');
-  try{const mk=JSON.parse(localStorage.getItem('de4-mark')||'null');if(mk&&prevAlive&&!prevAlive.clean&&mk.t>=prevAlive.t-1500&&Date.now()-mk.t<15*60000)L.add('ERROR','Last step before the crash: '+mk.st+' ('+((mk.t-prevAlive.t)/1000).toFixed(1)+'s after the last snapshot)');}catch(e){}
+  try{const mk=JSON.parse(localStorage.getItem('de4-mark')||'null');if(mk&&prevAlive&&!prevAlive.clean&&mk.t>=prevAlive.t-1500&&Date.now()-mk.t<15*60000)L.add('ERROR','Last step before the crash: '+mk.st+' ('+((mk.t-prevAlive.t)/1000).toFixed(1)+'s after the last snapshot)'+(mk.tr?' · trace: '+mk.tr:''));}catch(e){}
   try{const r=indexedDB.open('de4wd',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>{try{const os=r.result.transaction('k','readwrite').objectStore('k'),g=os.get('f');g.onsuccess=()=>{const f=g.result;
     if(f&&prevAlive&&!prevAlive.clean&&Math.abs(f.t-prevAlive.t)<4000)L.add('ERROR','Previous session froze: no frame for '+Math.round((f.at-f.t)/1000)+'s+ while running: '+f.st);os.delete('f');};}catch(e){}};}catch(e){}
 })();
@@ -500,7 +501,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 79';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 80';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1140,7 +1141,7 @@ const storm={on:false,left:0,t:0,gap:0,tot:0,kind:'thunder'};
 function barrage(x,z,V,side){const dir=side?-1:1,n=20;sfx('whoosh');spawn({x,y:Hb(x,z)+0.15,z,tex:T_RUNE,w:4.6,h:4.6,life:0.9,grow:0.2,blink:true});
   for(let i=0;i<n;i++)schedule(i*0.012,()=>{const a=R(0,6.283),r=2.3*Math.sqrt(Math.random());rainArrow(x+Math.cos(a)*r,z+Math.sin(a)*r,V,dir);});
   schedule(0.75,()=>{const eg=fg[V];if(eg.rec&&!eg.captured&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,4,null);});}
-function stormStrike(x,z){if(!storm.on||storm.left<=0||storm.gap>0)return false;storm.left--;storm.gap=storm.kind==='volley'?0.2:0.14;
+function stormStrike(x,z){DE4LOG.mark('stormStrike');if(!storm.on||storm.left<=0||storm.gap>0)return false;storm.left--;storm.gap=storm.kind==='volley'?0.2:0.14;
   const[cx,cz]=[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];if(storm.kind==='volley')barrage(cx,cz,1,0);else lightning(cx,cz,1,true);buzz(storm.kind==='volley'?0.35:0.6,90);hudAcc=1;
   if(storm.left<=0){storm.on=false;aim.mode=false;spellCD[0]=2.5;}return true;}
 function stormEnd(release){if(!storm.on)return;storm.on=false;aim.mode=false;spellCD[0]=2.5;
@@ -2150,7 +2151,7 @@ function updateGenerals(dt){
 
 /* ---------- spells ---------- */
 function densest(list){if(!list.length)return null;let best=list[0],bc=-1;const smp=list.length>18?Array.from({length:18},()=>list[(Math.random()*list.length)|0]):list;for(const u of smp){let c=0;for(const v of list)if(Math.abs(v.x-u.x)<3&&Math.abs(v.z-u.z)<3)c++;if(c>bc){bc=c;best=u;}}return best;}
-function castSpell(side,tgt){
+function castSpell(side,tgt){if(side===0)DE4LOG.mark('castSpell '+(active[0]&&active[0].d.spell));
   if(state!=='battle'||!castPhase(side)||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec||(side===0&&storm.on))return false;
   const g=fg[side],sp=g.rec.d.spell;if(sp==='breath'&&dragon.mode!=='idle')return false;
   mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;
@@ -2509,7 +2510,7 @@ function backToKingdom(){if(state==='title')return;if(skipResults())return;if(SK
   $('endp').hidden=true;$('selp').hidden=true;setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});buildLabels();updateModeUI();updateCampPanel();checkCampaignEnd();
 }
 function fightAgain(){if(SK){rematch();return;}if(CAMP.over&&CAMP.won){startNextAge();return;}if(CAMP.over&&AGE>1){beginAge(loadAge());return;}$('endp').hidden=true;RES=null;initCampaign();backToKingdom();}
-function setOrder(o){if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);if(o==='retreat'&&orders[0]!=='retreat'&&phase==='fight')showBanner(xrActive?'Retreat! Left stick steers you to any edge':'Retreat! WASD steers you to any edge');orders[0]=o;setOrderUI();}
+function setOrder(o){DE4LOG.mark("setOrder "+o);if(state!=='battle'||(phase!=='fight'&&phase!=='intro'))return;if(o==='hold'&&orders[0]!=='hold')holdStamp[0]++;if(o==='charge'&&orders[0]!=='charge'&&phase==='fight')battleCry(0,14,0.8);if(o==='retreat'&&orders[0]!=='retreat'&&phase==='fight')showBanner(xrActive?'Retreat! Left stick steers you to any edge':'Retreat! WASD steers you to any edge');orders[0]=o;setOrderUI();}
 function cycleOrder(){setOrder(ORDERS[(ORDERS.indexOf(orders[0])+1)%ORDERS.length]);}
 function setOrderUI(){document.querySelectorAll('[data-ord]').forEach(b=>b.classList.toggle('on',b.dataset.ord===orders[0]));$('ordLbl').textContent=orders[0].toUpperCase();}
 function withdraw(){
@@ -2823,7 +2824,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();
     else if(k===' '){e.preventDefault();spellPress();}else if(k==='escape'){if(storm.on)stormEnd(true);aim.mode=false;hudAcc=1;}
   }else if(state==='kingdom'){if(CAMP.over&&k==='enter'){fightAgain();return;}if(k===' '){e.preventDefault();togglePause();}else if(k==='escape'){CAMP.sel=null;CAMP.target=false;updateCampPanel();}}
   else if(k==='enter'&&state==='title')startGame();});
-function xrSelect(hand){DE4LOG.mark('trigger '+hand);audioInit();
+function xrSelect(hand){DE4LOG.trace(2500);DE4LOG.mark('trigger '+hand+' '+state+'/'+phase+(storm.on?' storm':'')+' mp'+(mp[0]||0).toFixed(1));audioInit();
   if(TUT.open){tutGo(hand==='left'?-1:1);return;}
   if(storyVR&&storyVR!=='sticky'){closeStoryBoard();return;}
   if(state==='title'){if(hand==='left'){const K=Object.keys(DIFFS);setDiff(K[(K.indexOf(diffKey)+1)%K.length]);drawVrHud();}else startGame();}else if(state==='kingdom'){if(CAMP.over){if(!CAMP.won&&hand!=='left'&&performance.now()-(CAMP.endAt||0)>2500){closeStoryBoard();fightAgain();}return;}if(hand==='left')togglePause();else if(castHover>=0)castToggle(castHover);else campClick(vrHover);drawVrHud();}
@@ -2836,7 +2837,7 @@ function xrSelect(hand){DE4LOG.mark('trigger '+hand);audioInit();
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1&&orders[0]!=='retreat')setOrder('charge');else if(orders[0]==='retreat')showBanner(mp[0]<1?'No magic yet':'Spell recharging');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
-function xrFace(hand){
+function xrFace(hand){DE4LOG.trace(2500);DE4LOG.mark('button '+hand+' '+state+'/'+phase);
   if(TUT.open){closeTut();return;}
   if(state==='kingdom'&&CAMP.over&&CAMP.won){if(performance.now()-(CAMP.endAt||0)>2500){if(hand==='left')restartAgeOne();else startNextAge();}return;}
   if(state==='kingdom'){const A=CAMP.sel&&CAMP.sel.army;if(A&&A.nat==='aldmere'&&!CAMP.target){if(hand==='left'){A.halt=!A.halt;clog(A.halt?'Your army halts on the road.':'Your army marches on.');}else{CAMP.target=true;clog('Pick any castle for the new course.');}updateCampPanel();drawVrHud();return;}
@@ -2951,11 +2952,12 @@ let fpsN=0,fpsT=0,hbT=0,aliveT=0,lastReal=performance.now();const RECENT=[];
 function recentEv(t){RECENT.push((engT||0).toFixed(1)+' '+t);if(RECENT.length>10)RECENT.shift();}
 let maxF=0;const T0=Date.now();
 function gpuStat(){try{const m=renderer.info.memory;return `gl ${m.geometries}g/${m.textures}t/${(renderer.info.programs||[]).length}p snd ${AV} up ${Math.round((Date.now()-T0)/60000)}m maxframe ${Math.round(maxF)}ms`;}catch(e){return '';}}
+function particleCount(){return pool.filter(p=>p.active).length;}
 function aliveSnap(){try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:false,s:`${DE4LOG.ctx()} ${gpuStat()} units ${alive[0].length}/${alive[1].length} particles ${pool.filter(p=>p.active).length} pups ${pups.length} storm ${storm.on} boss ${BOSS.on?Math.round(BOSS.hp):'-'} gore ${goreX} blood ${blood} xr ${xrActive} recent: ${RECENT.join(' | ')} || log: ${DE4LOG.tail(4)}`}));}catch(e){}}
 function loop(tms){try{loopInner(tms);}catch(e){DE4LOG.err(e,'frame');}}
 function loopInner(tms){
   const now=tms/1000;const dt=Math.min(0.05,Math.max(0,now-last));last=now;
-  {const rn=performance.now(),fd=rn-lastReal;if(fd>1500&&state!=='title')DE4LOG.add('warn','stall: frame took '+Math.round(fd)+'ms');if(fd<1500&&fd>maxF)maxF=fd;lastReal=rn;}DE4LOG.beat('frame');
+  {const rn=performance.now(),fd=rn-lastReal;if(fd>1500&&state!=='title')DE4LOG.add('warn','stall: frame took '+Math.round(fd)+'ms');if(fd<1500&&fd>maxF)maxF=fd;lastReal=rn;}DE4LOG.beat('frame');if(DE4LOG.tracing())DE4LOG.mark('frame start');
   aliveT+=dt;if(aliveT>1){aliveT=0;aliveSnap();}
   fpsN++;fpsT+=dt;hbT+=dt;if(hbT>30){hbT=0;const mem=performance.memory?' heap '+Math.round(performance.memory.usedJSHeapSize/1048576)+'MB':'';DE4LOG.info(`heartbeat fps ${Math.round(fpsN/Math.max(0.001,fpsT))} units ${alive[0].length}/${alive[1].length} particles ${pool.filter(p=>p.active).length} xr ${xrActive}${mem} ${gpuStat()}`);fpsN=0;fpsT=0;maxF=0;}
   let bdt=dt;if(battle.visible&&state==='battle'){if(hitStop>0){hitStop-=dt;bdt=0;}else if(slowT>0){slowT-=dt;bdt=dt*0.35;}}
@@ -3001,7 +3003,7 @@ function loopInner(tms){
   }
   DE4LOG.beat('hud');updateHud(dt);updateDin(dt);
   // XR sticks
-  if(xrActive){if(vrTw||vrSaved)vrTweenStep(dt);else vrInput(dt);applyWorldXform();vrAim(now);if(vrMsgT>0||Math.random()<0.05)drawVrHud();DE4LOG.beat('render xr');renderer.render(scene,camera);DE4LOG.beat('frame end');return;}
+  if(xrActive){if(vrTw||vrSaved)vrTweenStep(dt);else vrInput(dt);applyWorldXform();vrAim(now);if(vrMsgT>0||Math.random()<0.05)drawVrHud();DE4LOG.beat('render xr');if(DE4LOG.tracing())DE4LOG.mark('draw '+particleCount()+'p');renderer.render(scene,camera);if(DE4LOG.tracing())DE4LOG.mark('drawn');DE4LOG.beat('frame end');return;}
   // desktop camera
   if(state==='title')orbit.theta=0.4*Math.sin(now*0.12);
   if(orbit.g){const k=1-Math.pow(0.04,dt/orbit.gs);let done=true;for(const key of Object.keys(orbit.g)){orbit[key]+=(orbit.g[key]-orbit[key])*k;if(Math.abs(orbit.g[key]-orbit[key])>0.01)done=false;}if(done)orbit.g=null;}
