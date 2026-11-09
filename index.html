@@ -500,7 +500,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 73';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 74';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1308,15 +1308,16 @@ function campTick(dt,now){
     const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]];if(!A||!B){DE4LOG.info('army '+a.id+' had no road left; arriving');if(A)arrive(a,A);else removeArmy(a);if(state!=='kingdom')return;continue;}const L=Math.hypot(B.x-A.x,B.z-A.z);
     if(!a.halt)a.t+=sdt*0.9/L;a.x=A.x+(B.x-A.x)*Math.min(1,a.t);a.z=A.z+(B.z-A.z)*Math.min(1,a.t);a.dir=B.x>=A.x?0:1;
     if(a.t>=1){a.seg++;a.t=0;const c=B;
-      if(a.seg>=a.path.length-1||c.o!==a.nat){arrive(a,c);if(state!=='kingdom')return;}}
+      if(a.seg>=a.path.length-1||(c.o!==a.nat&&!a.retreat)){arrive(a,c);if(state!=='kingdom')return;}}
   }
   for(let i=0;i<CAMP.armies.length;i++)for(let j=i+1;j<CAMP.armies.length;j++){const a=CAMP.armies[i],b=CAMP.armies[j];
-    if(!hostile(a.nat,b.nat))continue;const ea=[a.path[a.seg],a.path[a.seg+1]],eb=[b.path[b.seg],b.path[b.seg+1]];
+    if(!hostile(a.nat,b.nat)||a.retreat||b.retreat)continue;const ea=[a.path[a.seg],a.path[a.seg+1]],eb=[b.path[b.seg],b.path[b.seg+1]];
     if(!((ea[0]===eb[1]&&ea[1]===eb[0])||(ea[0]===eb[0]&&ea[1]===eb[1])))continue;
     if(Math.hypot(a.x-b.x,a.z-b.z)<0.9){clash({kind:'road',att:a,defArmy:b,x:(a.x+b.x)/2,z:(a.z+b.z)/2,b:CASTLES[ea[1]].b});if(state!=='kingdom')return;}}
   CAMP.aiT+=sdt;if(CAMP.aiT>DIFF.aiT){CAMP.aiT=0;aiCampaign('ashen');aiCampaign('dusk');}
 }
 function arrive(a,c){
+  if(a.retreat&&c.o!==a.nat){const h=nearestOwned(a.nat,c.id),p=h===null?null:bfs(c.id,h);if(p&&p.length>1){a.path=p;a.seg=0;a.t=0;a.from=c.id;if(a.nat==='aldmere')clog(`${a.gens[0].d.short} finds ${c.n} lost and turns toward ${CASTLES[h].n}.`);return;}}
   if(c.o===a.nat){a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);updateCampPanel();return;}
   const def=garrison(c).filter(r=>r.troops>0||r.hp>0);
   if(!def.length){const was=c.o;c.o=a.nat;
@@ -1338,14 +1339,17 @@ function clash(ctx){
 }
 function resolveOutcome(ctx,attWon){
   const A=ctx.A.filter(r=>r.alive),D=ctx.D.filter(r=>r.alive).concat(ctx.extraD||[]),Ax=A.concat(ctx.extraA||[]);
-  const home=(list,nat,from)=>{const h=nearestOwned(nat,from);list.forEach(r=>{if(h===null){r.alive=false;}else r.loc=h;});if(h!==null)refreshCastle(CASTLES[h]);};
+  const home=(list,nat,from)=>{if(!list.length)return;if(CASTLES[from]&&CASTLES[from].o===nat){list.forEach(r=>r.loc=from);refreshCastle(CASTLES[from]);return;}
+    const h=nearestOwned(nat,from);if(h===null){list.forEach(r=>r.alive=false);return;}
+    const path=bfs(from,h);if(!path||path.length<2){list.forEach(r=>r.loc=h);refreshCastle(CASTLES[h]);return;}
+    const a=makeArmy(nat,list,path);a.retreat=true;if(nat==='aldmere')clog(`${list[0].d.short}${list.length>1?' and '+(list.length-1)+' more':''} fall back toward ${CASTLES[h].n}.`);};
   if(ctx.kind==='castle'){const c=ctx.castle,was=c.o;
     if(attWon&&Ax.length){c.o=ctx.attN;Ax.forEach(r=>r.loc=c.id);home(D,was,c.id);if(ctx.attN==='aldmere'||was==='aldmere')clog(`${NATIONS[ctx.attN].name} storms ${c.n}.`);}
-    else{home(Ax,ctx.attN,ctx.att.from);D.forEach(r=>r.loc=c.id);if(ctx.attN==='aldmere'||was==='aldmere')clog(`${c.n} holds against ${NATIONS[ctx.attN].name}.`);}
+    else{home(Ax,ctx.attN,c.id);D.forEach(r=>r.loc=c.id);if(ctx.attN==='aldmere'||was==='aldmere')clog(`${c.n} holds against ${NATIONS[ctx.attN].name}.`);}
     removeArmy(ctx.att);refreshCastle(c);}
   else{const a=ctx.att,b=ctx.defArmy,winA=attWon,W=winA?a:b,Lr=winA?b:a,Wl=winA?Ax:D,Ll=winA?D:Ax;
     if(Wl.length){W.gens=Wl;Wl.forEach(r=>r.loc='army'+W.id);refreshArmy(W);}else removeArmy(W);
-    home(Ll,Lr.nat,Lr.from);removeArmy(Lr);if(a.nat==='aldmere'||b.nat==='aldmere')clog(`${NATIONS[W.nat].name} wins the clash on the road.`);}
+    home(Ll,Lr.nat,Lr.path&&Lr.path[Lr.seg]!==undefined?Lr.path[Lr.seg]:Lr.from);removeArmy(Lr);if(a.nat==='aldmere'||b.nat==='aldmere')clog(`${NATIONS[W.nat].name} wins the clash on the road.`);}
   for(const n of['ashen','dusk','aldmere']){const ru=GENS.find(r=>r.d.key===NATIONS[n].ruler&&r.nat===n);if(ru&&!ru.alive&&CASTLES.some(c=>c.o===n))collapse(n);}
   checkCampaignEnd();updateCampPanel();
 }
@@ -1485,7 +1489,7 @@ function updateCampPanel(){
   on('cpMarch',()=>{CAMP.target=true;updateCampPanel();});on('cpRedirect',()=>{CAMP.target=true;updateCampPanel();});on('cpCancel',()=>{CAMP.target=false;updateCampPanel();});
   on('cpBack',()=>{const a=s.army;a.halt=false;redirect(a,a.from);});on('cpHalt',()=>{const a=s.army;a.halt=!a.halt;clog(a.halt?'Your army halts on the road.':'Your army marches on.');updateCampPanel();});on('cpClose',()=>{CAMP.sel=null;CAMP.target=false;updateCampPanel();});
 }
-function redirect(a,to){a.halt=false;const here=a.t>0.5?a.path[a.seg+1]:a.path[a.seg],p=bfs(here,to);if(!p)return;
+function redirect(a,to){a.halt=false;a.retreat=false;const here=a.t>0.5?a.path[a.seg+1]:a.path[a.seg],p=bfs(here,to);if(!p)return;
   if(p.length<2){if(CASTLES[to].o===a.nat){arrive(a,CASTLES[to]);}return;}
   const cx=a.x,cz=a.z;a.path=p;a.seg=0;a.t=0;const A=CASTLES[p[0]],B=CASTLES[p[1]],L=Math.hypot(B.x-A.x,B.z-A.z);a.t=clamp(1-Math.hypot(B.x-cx,B.z-cz)/L,0,0.95);
   CAMP.target=false;clog('Your army changes course for '+CASTLES[to].n+'.');updateCampPanel();}
@@ -2495,7 +2499,7 @@ const BV={theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0};
 function selItems(){return avail(0).map(r=>({k:'gen',r})).concat(roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>({k:'cap',r}))).concat([{k:'sur',r:null}]);}
 let surArm=0;
 function surLabel(){const B=pendingBattle;if(SK||!B||B.ctx.kind==='skirmish')return 'Concede the battle';if(B.ctx.kind==='castle')return B.ctx.attN==='aldmere'?'Abandon the siege':'Surrender the castle';return 'Withdraw from the field';}
-function surBlurb(){const t=avail(0).reduce((a,r)=>a+r.troops,0),L=surLabel();return L==='Surrender the castle'?`Give up ${pendingBattle.ctx.castle.n}. Your generals march to your nearest castle with ${t} troops.`:L==='Abandon the siege'?`Call off the attack. Your generals march home with ${t} troops.`:L==='Withdraw from the field'?`Leave the field to the enemy. Your generals march home with ${t} troops.`:'End this battle as a defeat.';}
+function surBlurb(){const t=avail(0).reduce((a,r)=>a+r.troops,0),L=surLabel();return L==='Surrender the castle'?`Give up ${pendingBattle.ctx.castle.n}. Your generals march back to your nearest castle with ${t} troops.`:L==='Abandon the siege'?`Call off the attack. Your generals march home with ${t} troops.`:L==='Withdraw from the field'?`Leave the field to the enemy. Your generals march home with ${t} troops.`:'End this battle as a defeat.';}
 function surrender(){DE4LOG.mark('surrender');DE4LOG.info('surrender: '+surLabel());surArm=0;endBattle(false,'surrender');}
 function selAct(x){if(!x)return;if(x.k==='gen')chooseGeneral(x.r);else if(x.k==='sur'){if(phase!=='select')return;if(performance.now()<surArm)surrender();else{surArm=performance.now()+4000;showBanner('Press again to '+surLabel().toLowerCase(),true);sfx('lock');renderSelect();hudAcc=1;}}else persuade(x.r);}
 function startSelect(){DE4LOG.mark('startSelect');
@@ -2577,7 +2581,7 @@ function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' 
   {const K=BST.kills[0],Lo=BST.kills[1],ratio=K/Math.max(1,Lo),lostG=gens.some(g=>g.cap||g.def);
    const grade=why==='tyrant'?'S':!win?'D':ratio>=2.5&&!lostG?'S':ratio>=1.5?'A':ratio>=0.9?'B':'C';
    const spoils=[];if(cst&&cst.o!==cBefore){if(cst.o==='aldmere')spoils.push(['big',cst.n+' raises the banner of Aldmere!']);else if(cBefore==='aldmere')spoils.push(['bad',cst.n+' has fallen to '+NATIONS[cst.o].name+'.']);}
-   if(why==='surrender'){const t=roster[0].filter(r=>r.alive!==false&&!r.out).reduce((a,r)=>a+r.troops,0);spoils.push(['bad','You yielded the field. Your generals marched home with '+t+' troops.']);}
+   if(why==='surrender'){const t=roster[0].filter(r=>r.alive!==false&&!r.out).reduce((a,r)=>a+r.troops,0);spoils.push(['bad','You yielded the field. Your generals march home with '+t+' troops.']);}
    if(caps.length)spoils.push(['','Prisoners taken: '+caps.join(', ')]);
    const rows=gens.map(g=>{const r=g.r;let tag='',cls='';
      if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?'Rescued':'Captured';cls='bad';}
