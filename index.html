@@ -498,7 +498,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 70';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 71';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1745,7 +1745,7 @@ function spawnPU(){if(pups.length>=3)return;const c0=centroid(alive[0],fg[0]),c1
     const L=puLights.find(l=>!pups.some(p=>p.L===l));if(L){L.color.set(PU[k].col);}
     pups.push({k,x,z,sp:G,pad,L,t:0});sfx('lock');for(let i=0;i<10;i++)spawn({x:x+R(-1,1),y:Hb(x,z)+R(0.5,2.5),z:z+R(-1,1),vy:R(2,5),tex:T_SPARK,w:0.4,h:0.4,life:R(0.5,1),blink:true});return;}}
 function freeOrb(p){p.sp.traverse(n=>{if(n.material)n.material.dispose();});if(p.pad&&p.pad.material)p.pad.material.dispose();}
-function clearPU(){for(const p of pups){battle.remove(p.sp);battle.remove(p.pad);freeOrb(p);}pups.length=0;clearSpectacles();tcloud[0].t=tcloud[1].t=0;cloudSp[0].visible=cloudSp[1].visible=false;for(const L of puLights)L.intensity=0;fury[0]=fury[1]=0;}
+function clearPU(){for(const p of pups){battle.remove(p.sp);battle.remove(p.pad);freeOrb(p);}pups.length=0;clearSpectacles();ecl[0]=ecl[1]=0;eclZ[0]=eclZ[1]=null;if(eclSp)eclSp.visible=false;tcloud[0].t=tcloud[1].t=0;cloudSp[0].visible=cloudSp[1].visible=false;for(const L of puLights)L.intensity=0;fury[0]=fury[1]=0;}
 function claimPU(p,s){battle.remove(p.sp);battle.remove(p.pad);if(p.sp.traverse)freeOrb(p);if(p.L)p.L.intensity=0;spawn({x:p.x,y:Hb(p.x,p.z)+1.5,z:p.z,frames:EXPLO,w:3.5,h:3.5,life:0.5,grow:0.6});pups.splice(pups.indexOf(p),1);const g=fg[s],r=active[s],o=1-s,who=s?r.d.short+"'s troops grab":'Your troops seize';
   for(let i=0;i<16;i++)spawn({x:p.x+R(-1,1),y:Hb(p.x,p.z)+R(0.5,2),z:p.z+R(-1,1),vy:R(3,7),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.2),blink:true});
   puJuice(p,s);
@@ -1792,6 +1792,18 @@ function reinforce(s,N){const r=active[s],g=fg[s];if(!r)return;let n=0;const ex=
   battleCry(s,24,1.2);sfx('horn');morale[s]=clamp(morale[s]+0.1,0,1);showBanner(n?n+' reinforcements charge in!':'No reserves left...',s===1);}
 function dragonWrath(s){const o=1-s,c=centroid(alive[o],fg[o]),dir=s?-1:1;if(!wr[s].sp){wr[s].sp=card(new THREE.MeshBasicMaterial({map:DRAG.r[0],alphaTest:0.5,side:THREE.DoubleSide}),0.5,0.5,0);battle.add(wr[s].sp);}
   Object.assign(wr[s],{t:5.6,x:-dir*(FW/2+14),z:c.z,dir,n:0,k:0});wr[s].sp.visible=true;wr[s].sp.scale.set(9*dir,5.8,1);sfx('roar');schedule(0.3,()=>sfx('horn'));showBanner(s?'A dragon answers the enemy!':"Dragon's Wrath! The wyrm answers!",s===1);}
+const eclZ=[null,null];let eclSp=null;
+function eclSun(){if(eclSp)return eclSp;const c=cv(128,128),x=c.getContext('2d'),g=x.createRadialGradient(64,64,18,64,64,62);g.addColorStop(0,'rgba(220,180,255,1)');g.addColorStop(0.42,'rgba(170,110,255,0.9)');g.addColorStop(0.7,'rgba(90,40,170,0.45)');g.addColorStop(1,'rgba(40,10,80,0)');
+  x.fillStyle=g;x.fillRect(0,0,128,128);x.fillStyle='#07040c';x.beginPath();x.arc(64,64,25,0,7);x.fill();
+  eclSp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(c,true),transparent:true,depthWrite:false}));eclSp.visible=false;eclSp.renderOrder=6;battle.add(eclSp);return eclSp;}
+function darkBolt(x,z,V){const y=Hb(x,z);spawn({x,y:y+9,z,tex:T_BOLT,w:2.6,h:18,life:0.3,blink:true});spawn({x,y:y+0.2,z,tex:T_RUNE,w:3,h:3,life:0.6,grow:1.2,blink:true});
+  for(let i=0;i<10;i++)spawn({x:x+R(-1.2,1.2),y:y+R(0.3,2),z:z+R(-1.2,1.2),vy:R(2,5),tex:glowTex,w:0.6,h:0.6,life:R(0.4,0.8),blink:true});sfx('zap');impact(x,z,V,true,false);}
+function tickEclipse(dt){let any=false;for(let s=0;s<2;s++){const Z=eclZ[s];if(!Z||ecl[s]<=0||!(phase==='fight'||phase==='pursuit')){if(Z&&ecl[s]<=0){eclZ[s]=null;showBanner('The eclipse passes · '+Z.k+' struck down',s===1);}continue;}any=true;const V=1-s;
+    let n=0,sx=0,sz=0;for(const u of alive[V]){if(Math.hypot(u.x-Z.x,u.z-Z.z)<14){sx+=u.x;sz+=u.z;n++;}}if(n){Z.x+=(sx/n-Z.x)*Math.min(1,dt*0.6);Z.z+=(sz/n-Z.z)*Math.min(1,dt*0.6);}
+    if(eclSp){eclSp.position.x+=(Z.x-eclSp.position.x)*Math.min(1,dt*2);eclSp.position.z+=(Z.z-eclSp.position.z)*Math.min(1,dt*2);eclSp.position.y=Hb(eclSp.position.x,eclSp.position.z)+18;const k=Math.min(1,(7.5-ecl[s])*3,ecl[s]*2);eclSp.scale.setScalar(Math.max(0.01,k)*(10+Math.sin(ecl[s]*6)*0.6));}
+    if(Math.random()<dt*20)spawn({x:Z.x+R(-9,9),y:Hb(Z.x,Z.z)+R(0.5,1.5),z:Z.z+R(-9,9),vy:R(0.5,2),tex:glowTex,w:0.5,h:0.5,life:R(0.8,1.4),blink:true});
+    Z.n-=dt;if(Z.n<=0){Z.n=R(0.45,0.65);const C=alive[V].filter(u=>u.state==='alive'&&Math.hypot(u.x-Z.x,u.z-Z.z)<10);if(C.length){const u=C[(Math.random()*C.length)|0],k0=BST.kills[s];darkBolt(u.x,u.z,V);Z.k+=BST.kills[s]-k0;}}}
+  if(!any&&eclSp)eclSp.visible=false;}
 function tickSpectacles(dt){
   for(let s=0;s<2;s++){const o=1-s;
     if(fury[s]>0){for(let i=0;i<Math.min(2,Math.ceil(dt*60));i++){const u=alive[s][(Math.random()*alive[s].length)|0];if(u)spawn({x:u.x,y:Hb(u.x,u.z)+R(0.8,1.6),z:u.z,vy:R(1,3),tex:T_SPARK,w:0.35,h:0.35,life:0.4,blink:true,frames:FLAME});}
@@ -1881,7 +1893,7 @@ function clearField(){
   if(dragon.mode!=='gone'){dragon.mode='idle';}dragon.t=0;dragon.sp.rotation.z=0;timers=[];
 }
 function deploy(){DE4LOG.beat('deploy');try{DE4LOG.info('deploy round '+(round+1)+': '+active[0].d.key+'('+active[0].d.troop+') vs '+active[1].d.key+'('+active[1].d.troop+') map '+lastType+(SIEGE?' siege':'')+(BOSS.on?' boss':''));}catch(e){}
-  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;for(const u of units)u.sq=null;form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
+  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;ecl[0]=ecl[1]=0;eclZ[0]=eclZ[1]=null;if(eclSp)eclSp.visible=false;for(const u of units)u.sq=null;form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-28;anchor[1]=28;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf,pe=r.relic==='pearl';mpMax[s]=pf.max+(pe||r.relic==='wyrm'?1:0);mp[s]=pe?mpMax[s]:pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp)+(r.relic==='lion'?0.15:0);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
@@ -2124,7 +2136,10 @@ function castSpell(side,tgt){
   else if(sp==='thunder'){for(let i=0;i<Math.round(8*pw);i++)schedule(0.5+i*0.22,()=>{const[x,z]=cl(cx+R(-4,4),cz+R(-4,4));lightning(x,z,V,true);});}
   else if(sp==='volley'){const dir=side?-1:1;sfx('whoosh');for(let i=0;i<Math.round(170*pw);i++)schedule(0.35+i*0.009,()=>{const[x,z]=cl(cx+R(-7,7),cz+R(-7,7));rainArrow(x,z,V,dir);});}
   else if(sp==='breath')castBreathAt(cx,cz);
-  else if(sp==='eclipse'){ecl[side]=7;flash(0.2);sfx('roar');morale[V]=clamp(morale[V]-0.15,0,1);morale[side]=clamp(morale[side]+0.1,0,1);showBanner('The sun goes dark!',side===1);for(let i=0;i<3;i++)schedule(0.4+i*0.6,()=>{const c=densest(alive[V]);if(c)lightning(c.x+R(-4,4),c.z+R(-4,4),V,false);});}
+  else if(sp==='eclipse'){ecl[side]=7.5;eclZ[side]={x:cx,z:cz,n:0.5,k:0};flash(0.3);sfx('roar');schedule(0.3,()=>sfx('horn'));shake=Math.max(shake,0.8);slowMo(0.35);
+    morale[V]=clamp(morale[V]-0.2,0,1);morale[side]=clamp(morale[side]+0.12,0,1);showBanner(side?'The sun goes dark! Your army falters':'Eclipse! The enemy falters in the dark',side===1);
+    const sp2=eclSun();sp2.visible=true;sp2.position.set(cx,Hb(cx,cz)+18,cz);sp2.scale.set(1,1,1);
+    for(let i=0;i<3;i++)schedule(0.35+i*0.3,()=>{const[x,z]=cl(cx+R(-2.5,2.5),cz+R(-2.5,2.5));darkBolt(x,z,V);});}
   else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
       Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});u.x=clamp(g.x+R(-3,3),-FW/2+1,FW/2-1);u.z=clamp(g.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(navAt(u.x,u.z)===1){u.x=g.x;u.z=g.z;}n++;}
     morale[side]=clamp(morale[side]+0.12,0,1);for(let i=0;i<30;i++)spawn({x:g.x+R(-5,5),y:Hb(g.x,g.z)+R(0,1),z:g.z+R(-5,5),vy:R(2,5),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.3),blink:true});
@@ -2534,7 +2549,7 @@ function endEngagement(w,reason){DE4LOG.info('engagement end: winner side '+w+' 
   if(L===0)schedule(1.9,()=>showBanner(xrActive?'Left stick steers · R trigger sprints':'WASD steers · Space sprints',true));
   setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(fg[L].x,-50,50),tz:clamp(fg[L].z,-34,34)},0.9);
 }
-function updatePursuit(dt){
+function updatePursuit(dt){ecl[0]=Math.max(0,ecl[0]-dt);ecl[1]=Math.max(0,ecl[1]-dt);tickEclipse(dt);
   if(storm.on){storm.gap=Math.max(0,storm.gap-dt);storm.t-=dt;aim.mode=true;if(storm.t<=0)stormEnd(false);}
   for(let s=0;s<2;s++)spellCD[s]=Math.max(0,spellCD[s]-dt);
   const P=pursuit;P.t+=dt;const g=fg[P.L];if(g.captured)return;
@@ -2593,7 +2608,7 @@ function fightTick(dt){
       const o=c0>=5&&c0>c1*1.5?0:c1>=5&&c1>c0*1.5?1:-1;if(o!==shrine.own){shrine.own=o;shrRing.material.color.setHex(o===0?0x5b8cff:o===1?0xff5a3a:0xd8d0e8);if(o>=0){showBanner(o?active[1].d.short+' takes the shrine!':'Shrine taken!',o===1);sfx('lock');}}}
     if(shrine.own>=0){const so=shrine.own;shrine.hold[so]+=dt;mp[so]=Math.min(mpMax[so],mp[so]+dt/14);morale[so]=clamp(morale[so]+dt*0.004,0,1);
       if(shrine.hold[so]>=45&&!shrine.won){shrine.won=true;morale[1-so]=0.12;showBanner(so?'The shrine falls to '+active[1].d.short+'! Your army wavers!':'You hold the shrine! The enemy breaks!',so===1);sfx(so?'defeat':'fanfare');slowMo(0.8);}}}
-  tickPU(dt);tickClouds(dt);tickSpectacles(dt);monkTick(dt);bossThink(dt);ecl[0]=Math.max(0,ecl[0]-dt);ecl[1]=Math.max(0,ecl[1]-dt);
+  tickPU(dt);tickClouds(dt);tickSpectacles(dt);tickEclipse(dt);monkTick(dt);bossThink(dt);ecl[0]=Math.max(0,ecl[0]-dt);ecl[1]=Math.max(0,ecl[1]-dt);
   if(MOD==='storm'){modT-=dt;if(modT<=0){modT=R(8,14);randomStrike();}}
   if(((engT*4)|0)!==(((engT-dt)*4)|0))updTags();
   duel.cd=Math.max(0,duel.cd-dt);withdrawArm=Math.max(0,withdrawArm-dt);
@@ -2649,7 +2664,7 @@ function updateHud(dt){
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';$('sta'+k).style.width=((fg[s].sta??1)*100)+'%';$('sta'+k).parentNode.classList.toggle('burst',fg[s].burst>0);}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     {const bb=$('bossbar'),on=bossActive();bb.hidden=!on||xrActive;if(on)$('bossHp').style.width=(100*BOSS.hp/BOSS.max)+'%';}
-    $('objLbl').textContent=(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BERSERK '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
+    $('objLbl').textContent=(ecl[0]>0?'YOUR ECLIPSE '+Math.ceil(ecl[0])+' · ':'')+(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BERSERK '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
     {const qb=$('squadBtn');qb.disabled=phase!=='fight'||squadCD>0;qb.textContent=squadAim?'Click a spot':'G Send squad'+(squadCD>0?' '+Math.ceil(squadCD):'');}
     {const ab=$('abilBtn'),A=abil[0],AB=ABIL[active[0].d.troop];ab.textContent='R '+AB.n+(A.t>0?' ON':A.cd>0?' '+Math.ceil(A.cd):'');ab.disabled=phase!=='fight'||A.cd>0;ab.classList.toggle('ready',phase==='fight'&&A.cd<=0);}
     const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&castPhase(0)&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
@@ -2927,7 +2942,7 @@ function loopInner(tms){
     if(pups.length){const ws=battle.getWorldScale(_fv).x;for(const p of pups){const y=Hb(p.x,p.z)+1.6+Math.sin(now*2.4+p.x)*0.25,U=p.sp.userData;p.sp.position.set(p.x,y,p.z);
       U.ring.rotation.y=now*1.6+p.x;if(PU[p.k].legend&&Math.random()<dt*14)spawn({x:p.x+R(-0.4,0.4),y:y+R(0,1),z:p.z+R(-0.4,0.4),vy:R(6,11),tex:glowTex,w:0.7,h:0.7,life:R(0.8,1.3),blink:true});U.ring.rotation.z=Math.sin(now*1.1+p.z)*0.12;if(Math.random()<dt*3)spawn({x:p.x+R(-0.6,0.6),y:y+R(-0.8,0.8),z:p.z+0.4,tex:T_SPARK,w:0.3,h:0.3,life:0.3,blink:true});const pl=1+Math.sin(now*5+p.x)*0.12;U.halo.scale.set(4.2*pl,4.2*pl,1);p.pad.scale.set(5*pl,5*pl,1);
       if(p.L){p.L.position.set(p.x,y+0.5,p.z);p.L.intensity=1.4*pl;p.L.distance=9*ws;}}}
-    {const dk=(ecl[0]>0||ecl[1]>0)?0.45:1;ambLight.intensity+=((MOD==='night'?0.3:MOD==='storm'?0.44:MOD==='bloodmoon'?0.4:0.62)*dk-ambLight.intensity)*Math.min(1,dt*3);}
+    {const dk=(ecl[0]>0||ecl[1]>0)?0.3:1,k3=Math.min(1,dt*3);ambLight.intensity+=((MOD==='night'?0.3:MOD==='storm'?0.44:MOD==='bloodmoon'?0.4:0.62)*dk-ambLight.intensity)*k3;sun.intensity+=((MOD==='night'?0.3:MOD==='storm'?0.46:MOD==='bloodmoon'?0.5:0.78)*dk-sun.intensity)*k3;}
     if(shrine.on){shrRune.position.set(shrine.x,Hb(shrine.x,shrine.z)+2.4+Math.sin(now*2)*0.3,shrine.z);shrRune.material.rotation=now*0.6;}
     if(scene.fog){const bc=battle.getWorldPosition(_fv),d=camera.position.distanceTo(bc);scene.fog.near=d*0.55;scene.fog.far=d*2.1;}
     clouds.forEach(c=>{c.position.x+=dt*0.6;if(c.position.x>100)c.position.x=-100;});
