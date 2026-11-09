@@ -500,7 +500,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 78';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 79';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1267,7 +1267,9 @@ function turnRec(r,side,nat){return Object.assign({},r,{d:Object.assign({},r.d,{
 function gainXP(r,n){if(!r||r.lvl===undefined||!r.alive)return;r.xp+=n*(r.nat==='aldmere'?DIFF.xp:1);
   while(r.lvl<10&&r.xp>=xpNeed(r.lvl)){r.xp-=xpNeed(r.lvl);r.lvl++;r.d.hp+=5;r.hp=Math.min(r.d.hp,r.hp+5);r.d.atk+=0.7;r.d.def+=0.5;r.troopsMax=capOf(r);levelUps.push(r);}}
 const power=r=>r.troops*(1+r.lvl*0.08)+Math.max(0,r.hp)*r.d.atk*0.8;
-const ready=r=>r.alive&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
+const ready=r=>r.alive&&!(r.rest>0)&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
+const canMarchGen=r=>r.alive&&!(r.rest>0)&&r.troops>0&&r.hp>0;
+const restTxt=r=>r.rest>0?`Resting · ${r.rest} wk`:'';
 
 /* ---------- campaign state ---------- */
 const WEEK=18;
@@ -1313,7 +1315,8 @@ function campTick(dt,now){
   flashT=Math.max(0,flashT-dt);const sdt=dt*effSpeed();
   CAMP.t+=sdt;if(CAMP.t>=WEEK){CAMP.t-=WEEK;CAMP.week++;
     for(const r of GENS)if(r.alive&&typeof r.loc==='number'){const pl=r.nat==='aldmere',c=CASTLES[r.loc],tk=pl?c.task:'rest',m=tk==='rest'?1.5:tk==='fortify'?0.6:1;r.hp=Math.min(r.d.hp,r.hp+r.d.hp*(pl?DIFF.recHP:0.3)*m);r.troops=Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*(pl?DIFF.recTr:0.4)*m));}
-    clog('Week '+CAMP.week+'. Garrisons rest and muster fresh troops.');weekTasks();marchBeat();updateCampPanel();}
+    let woke=[];for(const r of GENS)if(r.alive&&r.rest>0&&typeof r.loc==='number'){r.rest--;if(!r.rest&&r.nat==='aldmere')woke.push(r.d.short);}
+    clog('Week '+CAMP.week+'. Garrisons rest and muster fresh troops.'+(woke.length?' '+woke.join(', ')+(woke.length>1?' are':' is')+' rested and ready to march.':''));weekTasks();marchBeat();updateCampPanel();}
   for(const a of CAMP.armies.slice()){
     const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]];if(!A||!B){DE4LOG.info('army '+a.id+' had no road left; arriving');if(A)arrive(a,A);else removeArmy(a);if(state!=='kingdom')return;continue;}const L=Math.hypot(B.x-A.x,B.z-A.z);
     if(!a.halt)a.t+=sdt*0.9/L;a.x=A.x+(B.x-A.x)*Math.min(1,a.t);a.z=A.z+(B.z-A.z)*Math.min(1,a.t);a.dir=B.x>=A.x?0:1;
@@ -1328,11 +1331,11 @@ function campTick(dt,now){
 }
 function arrive(a,c){
   if(a.retreat&&c.o!==a.nat){const h=nearestOwned(a.nat,c.id),p=h===null?null:bfs(c.id,h);if(p&&p.length>1){a.path=p;a.seg=0;a.t=0;a.from=c.id;if(a.nat==='aldmere')clog(`${a.gens[0].d.short} finds ${c.n} lost and turns toward ${CASTLES[h].n}.`);return;}}
-  if(c.o===a.nat){a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);updateCampPanel();return;}
+  if(c.o===a.nat){a.gens.forEach(r=>{r.loc=c.id;r.rest=Math.max(r.rest||0,a.retreat?2:1);});removeArmy(a);refreshCastle(c);updateCampPanel();return;}
   const def=garrison(c).filter(r=>r.troops>0||r.hp>0);
   if(!def.length){const was=c.o;c.o=a.nat;
     if(a.seg<a.path.length-1){refreshCastle(c);if(a.nat==='aldmere'||was==='aldmere')clog(`${NATIONS[a.nat].name} claims ${c.n} on the march.`);checkCampaignEnd();updateCampPanel();return;}
-    a.gens.forEach(r=>r.loc=c.id);removeArmy(a);refreshCastle(c);
+    a.gens.forEach(r=>{r.loc=c.id;r.rest=Math.max(r.rest||0,1);});removeArmy(a);refreshCastle(c);
     if(a.nat==='aldmere'||was==='aldmere')clog(`${NATIONS[a.nat].name} takes ${c.n}${was!=='none'?' from '+NATIONS[was].name:''}.`);checkCampaignEnd();updateCampPanel();return;}
   clash({kind:'castle',att:a,castle:c,x:c.x,z:c.z,b:c.b});
 }
@@ -1343,7 +1346,7 @@ function clash(ctx){
   if(attN==='aldmere'||defN==='aldmere'){startCampaignBattle(ctx);return;}
   const sA=A.reduce((s,r)=>s+power(r),0)*R(0.75,1.25),sD=D.reduce((s,r)=>s+power(r),0)*R(0.75,1.25)*(ctx.kind==='castle'?1.15:1);
   const aw=sA>=sD,W=aw?A:D,L=aw?D:A,ratio=Math.min(1,(aw?sD:sA)/Math.max(1,aw?sA:sD)),wn=aw?attN:defN;
-  W.forEach(r=>{r.troops=Math.max(5,Math.round(r.troops*(1-0.6*ratio)));gainXP(r,30);});
+  W.forEach(r=>{r.troops=Math.max(5,Math.round(r.troops*(1-0.6*ratio)));gainXP(r,30);r.rest=2;});L.forEach(r=>r.rest=2);
   const turned=[];
   L.forEach(r=>{if(Math.random()<(r.d.key===NATIONS[r.nat].ruler?0.08:0.22)){r.alive=false;if(r.d.key!==NATIONS[r.nat].ruler&&Math.random()<0.4)turned.push(r);else r.prisonerOf=wn;}else{r.troops=Math.round(r.troops*0.15);r.hp=Math.max(5,r.hp*0.6);}});
   resolveOutcome(ctx,aw);
@@ -1470,6 +1473,7 @@ function applyCampaignBattle(win){
   B.e.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0){r.alive=false;r.prisonerOf='aldmere';}});
   [...B.p,...B.e,...newP,...newE].forEach(r=>{r.out=false;r.captor=null;r.turned=false;});
   if(pAtt){ctx.extraA=newP;ctx.extraD=newE;}else{ctx.extraA=newE;ctx.extraD=newP;}
+  for(const r of [...B.p,...B.e,...newP,...newE])if(r.alive)r.rest=Math.max(r.rest||0,2);
   resolveOutcome(ctx,pAtt?win:!win);
   {const anchor=B.e.find(x=>x.alive&&x.loc!=null);for(const r of defectors){const nr=turnRec(r,1,B.eNat);nr.loy=50;GENS.push(nr);joinWith(nr,anchor,B.eNat);clog(`${r.d.short} has gone over to ${NATIONS[B.eNat].name}.`);}}
   for(const r of B.e)if(r.recLost){delete r.recLost;}
@@ -1478,8 +1482,8 @@ function applyCampaignBattle(win){
 /* ---------- campaign UI ---------- */
 function genRow(r,own,checked){
   const bar=(f,c)=>`<span class="cb"><i style="width:${clamp(f*100,0,100)}%;background:${c}"></i></span>`;
-  return `<label class="grow${own?'':' ro'}">${own?`<input type="checkbox" data-g="${GENS.indexOf(r)}"${checked?' checked':''}>`:''}<img src="${portrait(r.d.key)}" alt="">
-  <span class="gi"><span class="gn">${r.d.short} <em>${rankOf(r.lvl)} · Lv ${r.lvl}</em></span><span class="gt">${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} · ${SPELL[r.d.spell]}${r.relic?` · <b class="relic">${RELICS[r.relic].n}</b>`:""}${r.loy!==undefined&&r.nat==='aldmere'&&r.d.key!=='kaelen'?` · <span style="color:${r.loy<30?'#ff7a5a':r.loy<50?'#ffb347':'#7fe39a'}">♥${Math.round(r.loy)}</span>`:''}</span>
+  return `<label class="grow${own?'':' ro'}">${own?`<input type="checkbox" data-g="${GENS.indexOf(r)}"${checked?' checked':''}${r.rest>0?' disabled':''}>`:''}<img src="${portrait(r.d.key)}" alt="">
+  <span class="gi"><span class="gn">${r.d.short} <em>${rankOf(r.lvl)} · Lv ${r.lvl}</em>${r.rest>0?` <em style="color:#ffb347">· Resting ${r.rest} wk</em>`:''}</span><span class="gt">${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} · ${SPELL[r.d.spell]}${r.relic?` · <b class="relic">${RELICS[r.relic].n}</b>`:""}${r.loy!==undefined&&r.nat==='aldmere'&&r.d.key!=='kaelen'?` · <span style="color:${r.loy<30?'#ff7a5a':r.loy<50?'#ffb347':'#7fe39a'}">♥${Math.round(r.loy)}</span>`:''}</span>
   <span class="gbars">${bar(r.troops/r.troopsMax,'#5b8cff')}${bar(r.hp/r.d.hp,'#7fe39a')}${bar(r.xp/xpNeed(r.lvl),'#f0c055')}</span><span class="gb">${r.d.bio}</span></span></label>`;}
 function updateCampPanel(){
   const P=$('campPanel');const s=CAMP.sel;if(!s||state!=='kingdom'){P.hidden=true;selRing.visible=false;return;}
@@ -1496,7 +1500,7 @@ function updateCampPanel(){
     html=a.gens.map(r=>genRow(r,false,false)).join('');
     if(own)btns=CAMP.target?'<span class="cpnote">Click the castle to march to instead.</span><button id="cpCancel">Cancel</button>':`<span class="cpnote">${a.halt?'Halted on the road. ':''}Click an enemy castle to redirect, or Change course for any castle.</span><button id="cpRedirect">Change course</button><button id="cpHalt">${a.halt?'March on':'Halt'}</button><button id="cpBack">Turn back</button>`;}
   $('cpList').innerHTML=html;$('cpBtns').innerHTML=btns+'<button id="cpClose">Close</button>';
-  $('cpList').querySelectorAll('input[data-g]').forEach(i=>i.addEventListener('change',e=>{const r=GENS[+e.target.dataset.g];if(e.target.checked){if(CAMP.picked.size>=5){e.target.checked=false;return;}CAMP.picked.add(r);}else CAMP.picked.delete(r);updateCampPanel();}));
+  $('cpList').querySelectorAll('input[data-g]').forEach(i=>i.addEventListener('change',e=>{const r=GENS[+e.target.dataset.g];if(e.target.checked){if(CAMP.picked.size>=5||r.rest>0){e.target.checked=false;if(r.rest>0)clog(r.d.short+' is resting for '+r.rest+' more week'+(r.rest>1?'s':'')+'.');return;}CAMP.picked.add(r);}else CAMP.picked.delete(r);updateCampPanel();}));
   $('cpList').querySelectorAll('[data-task]').forEach(b=>b.addEventListener('click',()=>{s.castle.task=b.dataset.task;sfx('blip',400);updateCampPanel();}));
   $('cpList').querySelectorAll('[data-vault]').forEach(b=>b.addEventListener('click',()=>{const V=CAMP.vault,i=+b.dataset.vault,G=s.castle?garrison(s.castle):[];const r=[...CAMP.picked].find(x=>!x.relic&&G.includes(x))||G.find(x=>!x.relic);
     if(!r){clog('Every general here already carries a relic.');return;}const k=V.splice(i,1)[0];giveRelic(r,k);clog(`${r.d.short} takes up the ${RELICS[k].n}: ${RELICS[k].d}.`);sfx('lvlup');updateCampPanel();}));
@@ -1518,7 +1522,7 @@ function updateCastBoard(){const S=CAMP.sel,c=S&&S.castle,show=xrActive&&state==
   if(!show){if(castBoard)castBoard.visible=false;castHover=-1;return;}
   if(!castBoard){castBoard=new THREE.Mesh(new THREE.PlaneGeometry(56,35),new THREE.MeshBasicMaterial({map:castT,transparent:true,depthTest:false}));castBoard.renderOrder=13;world.add(castBoard);}
   castBoard.visible=true;castBoard.position.set(-60,20,-18);castBoard.rotation.set(0,0.75,0);
-  const G=garrison(c).slice(0,8);castRows=G;const h=c.id+'|'+G.map(r=>r.d.key+(CAMP.picked.has(r)?1:0)+r.troops).join(',')+'|'+castHover+'|'+(c.task||'');if(h===castHash)return;castHash=h;
+  const G=garrison(c).slice(0,8);castRows=G;const h=c.id+'|'+G.map(r=>r.d.key+(CAMP.picked.has(r)?1:0)+r.troops+'r'+(r.rest||0)).join(',')+'|'+castHover+'|'+(c.task||'');if(h===castHash)return;castHash=h;
   const x=castX,W=1024,H=640;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.94)';x.fillRect(0,0,W,H);x.strokeStyle='#4a3d63';x.lineWidth=4;x.strokeRect(2,2,W-4,H-4);
   x.textBaseline='top';x.textAlign='left';x.font='900 38px Silkscreen, monospace';x.fillStyle='#5b8cff';x.fillText(c.n.toUpperCase(),32,24);
   x.font='700 20px Silkscreen, monospace';x.fillStyle='#f0c055';x.textAlign='right';x.fillText('PARTY '+CAMP.picked.size+'/5',W-32,34);x.textAlign='left';
@@ -1528,24 +1532,24 @@ function updateCastBoard(){const S=CAMP.sel,c=S&&S.castle,show=xrActive&&state==
     x.imageSmoothingEnabled=false;x.drawImage(GCV[r.d.key][0],84,y,34,46);
     x.font='700 22px Silkscreen, monospace';x.fillStyle=on?'#ffffff':'#d8d0e8';x.fillText(r.d.short,134,y+2);
     x.font='15px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(`${rankOf(r.lvl)} Lv ${r.lvl} · ${TROOP[r.d.troop]} · ${r.troops}/${r.troopsMax} troops · HP ${Math.ceil(r.hp)}${r.relic?' · '+RELICS[r.relic].n:''}`,134,y+28);
-    const rdy=r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;x.textAlign='right';x.font='700 15px Silkscreen, monospace';x.fillStyle=rdy?'#7fe39a':'#ffb347';x.fillText(rdy?'READY':'RESTING',W-36,y+12);x.textAlign='left';});
+    const rdy=ready(r);x.textAlign='right';x.font='700 15px Silkscreen, monospace';x.fillStyle=r.rest>0?'#ff7a5a':rdy?'#7fe39a':'#ffb347';x.fillText(r.rest>0?'RESTING '+r.rest+' WK':rdy?'READY':'RECOVERING',W-36,y+12);x.textAlign='left';});
   x.textAlign='center';x.font='700 17px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText('POINT + TRIGGER: TICK GENERALS · THEN TRIGGER ANY CASTLE TO MARCH',W/2,604);castT.needsUpdate=true;}
-function castToggle(i){const r=castRows[i];if(!r)return;if(CAMP.picked.has(r))CAMP.picked.delete(r);else{if(CAMP.picked.size>=5){clog('A party can take at most 5 generals.');return;}if(r.troops<=0){clog(r.d.short+' has no troops to march with.');return;}CAMP.picked.add(r);}sfx('blip',CAMP.picked.has(r)?500:300);castHash='';updateCampPanel();}
+function castToggle(i){const r=castRows[i];if(!r)return;if(CAMP.picked.has(r))CAMP.picked.delete(r);else{if(CAMP.picked.size>=5){clog('A party can take at most 5 generals.');return;}if(r.rest>0){clog(r.d.short+' is resting for '+r.rest+' more week'+(r.rest>1?'s':'')+'.');sfx('blip',200);return;}if(r.troops<=0){clog(r.d.short+' has no troops to march with.');return;}CAMP.picked.add(r);}sfx('blip',CAMP.picked.has(r)?500:300);castHash='';updateCampPanel();}
 function campClick(hit){
   if(!hit){if(!CAMP.target){CAMP.sel=null;updateCampPanel();}return;}
   const c=hit.userData.castle,a=hit.userData.army;
   const S=CAMP.sel,ownArmy=S&&S.army&&S.army.nat==='aldmere';
-  const freshCastle=c&&c.o==='aldmere'&&garrison(c).some(r=>r.troops>0&&r.hp>0);
+  const freshCastle=c&&c.o==='aldmere'&&garrison(c).some(canMarchGen);
   const canMarch=S&&((S.castle&&S.castle.o==='aldmere'&&CAMP.picked.size)||ownArmy);
   if(c&&S&&(CAMP.target||canMarch)&&!(S.castle===c)){
     if(S.castle&&!CAMP.picked.size){clog(`No one at ${S.castle.n} can march. Tick a general first.`);updateCampPanel();return;}
     if(CAMP.sel.castle){const from=CAMP.sel.castle;
-      const gens=[...CAMP.picked].filter(r=>r.alive&&r.loc===from.id);const army=dispatch('aldmere',gens,from.id,c.id);
+      const gens=[...CAMP.picked].filter(r=>canMarchGen(r)&&r.loc===from.id);const army=dispatch('aldmere',gens,from.id,c.id);
       if(army){const more=ownReady().filter(o=>o!==from).length;clog(`Your army marches from ${from.n} to ${c.n}.`+(more?' Select another castle to send more.':''));sfx('fanfare');CAMP.picked.clear();CAMP.sel=null;CAMP.target=false;flashArmy=army;flashT=1.2;}else clog('No road leads there.');}
     else if(CAMP.sel.army)redirect(CAMP.sel.army,c.id);
     updateCampPanel();return;}
   CAMP.target=false;CAMP.picked.clear();
-  if(c){CAMP.sel={castle:c};if(c.o==='aldmere'){const G=garrison(c),able=G.filter(r=>r.troops>0&&r.hp>0).sort((x,y)=>power(y)-power(x));able.slice(0,3).forEach(r=>CAMP.picked.add(r));
+  if(c){CAMP.sel={castle:c};if(c.o==='aldmere'){const G=garrison(c),able=G.filter(canMarchGen).sort((x,y)=>power(y)-power(x));able.slice(0,3).forEach(r=>CAMP.picked.add(r));
     clog(!G.length?`${c.n} has no generals.`:!able.length?`The generals at ${c.n} have no troops left. They recover each week.`:`${able.slice(0,3).map(r=>r.d.short).join(', ')} ready at ${c.n}. Click a castle to march.`);}}
   else if(a)CAMP.sel={army:a};
   updateCampPanel();
