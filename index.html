@@ -111,7 +111,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .gcard .gn{font-weight:700;font-size:13px;color:var(--ink)}
 .gcard .gt,.gcard .gh{font-size:10px;color:var(--dim)}
 .gcard.on{border-color:var(--gold)}
-.gcard.cap{border-style:dashed}.gcard.cap .gt{color:var(--ember)}
+.gcard.cap{border-style:dashed}.gcard.cap .gt{color:var(--ember)}.gcard.sur{grid-column:1/-1;opacity:.85}.gcard.sur .gn{color:#ffb09a}
 .gm{font-size:10px;font-weight:700}.gm.strong{color:#7fe39a}.gm.weak{color:var(--ember)}.gm.even{color:var(--dim)}
 /* duel */
 #duelp{position:fixed;inset:0;z-index:7;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;
@@ -500,7 +500,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 72';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 73';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2464,7 +2464,7 @@ function updateResults(dt){const Q=RES;if(!Q||!Q.live)return;const pt=Q.t;Q.t=Ma
 let resLast=0;
 function skipResults(){if(!RES||!RES.live||RES.t>=RES.T)return false;updateResults(RES.T);return true;}
 function drawResBoard(){const Q=RES,x=resX,W=1024,H=640;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.92)';x.fillRect(0,0,W,H);x.strokeStyle='#f0c055';x.lineWidth=6;x.strokeRect(6,6,W-12,H-12);
-  x.textBaseline='top';x.textAlign='center';x.font='900 64px Silkscreen, monospace';x.fillStyle=Q.win?'#f0c055':'#ff5a3a';x.fillText(Q.why==='tyrant'?'THE TYRANT FALLS':Q.win?'VICTORY':'DEFEAT',W/2,24);
+  x.textBaseline='top';x.textAlign='center';x.font='900 64px Silkscreen, monospace';x.fillStyle=Q.win?'#f0c055':'#ff5a3a';x.fillText(Q.why==='tyrant'?'THE TYRANT FALLS':Q.why==='surrender'?'SURRENDER':Q.win?'VICTORY':'DEFEAT',W/2,24);
   x.font='20px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText((Q.win?'Won':'Lost')+' at '+Q.where+' vs '+Q.eName,W/2,96);
   const st=[[$('esK').textContent,'ENEMY SLAIN'],[$('esL').textContent,'SOLDIERS LOST'],[Q.R[0]+'-'+Q.R[1],'ROUNDS WON']];
   st.forEach(([v,l],i)=>{const cx=W/2+(i-1)*230;x.fillStyle='rgba(11,9,18,0.8)';x.fillRect(cx-100,130,200,96);x.font='900 42px Silkscreen, monospace';x.fillStyle='#fff';x.fillText(v,cx,140);x.font='14px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(l,cx,196);});
@@ -2492,12 +2492,16 @@ function withdraw(){
 function matchup(a,b){const v=adv(a,b);return v>1.25?'Strong':v<0.8?'Weak':'Even';}
 const PORT={};function portrait(k){return PORT[k]||(PORT[k]=GCV[k][0].toDataURL());}
 const BV={theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0};
-function selItems(){return avail(0).map(r=>({k:'gen',r})).concat(roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>({k:'cap',r})));}
-function selAct(x){if(!x)return;if(x.k==='gen')chooseGeneral(x.r);else persuade(x.r);}
+function selItems(){return avail(0).map(r=>({k:'gen',r})).concat(roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>({k:'cap',r}))).concat([{k:'sur',r:null}]);}
+let surArm=0;
+function surLabel(){const B=pendingBattle;if(SK||!B||B.ctx.kind==='skirmish')return 'Concede the battle';if(B.ctx.kind==='castle')return B.ctx.attN==='aldmere'?'Abandon the siege':'Surrender the castle';return 'Withdraw from the field';}
+function surBlurb(){const t=avail(0).reduce((a,r)=>a+r.troops,0),L=surLabel();return L==='Surrender the castle'?`Give up ${pendingBattle.ctx.castle.n}. Your generals march to your nearest castle with ${t} troops.`:L==='Abandon the siege'?`Call off the attack. Your generals march home with ${t} troops.`:L==='Withdraw from the field'?`Leave the field to the enemy. Your generals march home with ${t} troops.`:'End this battle as a defeat.';}
+function surrender(){DE4LOG.mark('surrender');DE4LOG.info('surrender: '+surLabel());surArm=0;endBattle(false,'surrender');}
+function selAct(x){if(!x)return;if(x.k==='gen')chooseGeneral(x.r);else if(x.k==='sur'){if(phase!=='select')return;if(performance.now()<surArm)surrender();else{surArm=performance.now()+4000;showBanner('Press again to '+surLabel().toLowerCase(),true);sfx('lock');renderSelect();hudAcc=1;}}else persuade(x.r);}
 function startSelect(){DE4LOG.mark('startSelect');
   phase='select';const it=selItems();
   const e=active[1];selEnemyHint=e&&!e.out&&e.troops>=NPS*0.35&&e.hp>0?e:null;
-  selIdx=Math.max(0,it.findIndex(x=>x.r===active[0]));
+  selIdx=Math.max(0,it.findIndex(x=>x.k!=='sur'&&x.r===active[0]));
   renderSelect();updateModeUI();hudAcc=1;
   setOrbitGoal({theta:0,phi:0.95,r:118,ty:0,tx:0,tz:0},1);
 }
@@ -2508,7 +2512,8 @@ function renderSelect(){
   $('selRound').textContent='Round '+(round+1)+' · Your generals '+avail(0).length+' · Theirs '+avail(1).length;
   $('selSub').textContent=(e?`${e.d.short} holds the field with ${e.troops} ${TROOP[e.d.troop].toLowerCase()} and ${Math.ceil(e.hp)} HP.`:'The Ashen Legion picks after you, and it will try to counter you.')+(held.length?` The enemy holds ${held.join(' and ')} prisoner.`:'');
   it.forEach((x,i)=>{const r=x.r,b=document.createElement('button');b.type='button';
-    if(x.k==='gen'){const m=e?matchup(r.d.troop,e.d.troop):'';b.className='gcard'+(i===selIdx?' on':'');
+    if(x.k==='sur'){const armed=performance.now()<surArm;b.className='gcard cap sur'+(i===selIdx?' on':'');b.innerHTML=`<span class="gn">${i+1}. ⚐ ${surLabel()}</span><span class="gt">${armed?'Click again to confirm':'Ends the battle as a defeat'}</span><span class="gh">${surBlurb()}</span>`;}
+    else if(x.k==='gen'){const m=e?matchup(r.d.troop,e.d.troop):'';b.className='gcard'+(i===selIdx?' on':'');
       b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">${rankOf(r.lvl||1)} Lv ${r.lvl||1} · ${TROOP[r.d.troop]} · ${r.troops}</span><span class="gh">${r.relic?`<b class="relic">${RELICS[r.relic].n}</b> · `:""}HP ${Math.ceil(r.hp)}/${r.d.hp} · ${SPELL[r.d.spell]} ×${(MPPROF[r.d.troop]||MPPROF.inf).max}</span>${m?`<span class="gm ${m.toLowerCase()}">${m} vs ${e.d.short}</span>`:''}`;}
     else{const tried=r.tried===round;b.className='gcard cap'+(i===selIdx?' on':'');b.disabled=tried;
       b.innerHTML=`<img src="${portrait(r.d.key)}" alt=""><span class="gn">${i+1}. ${r.d.short}</span><span class="gt">Prisoner · ${TROOP[r.d.troop]}</span><span class="gh">${tried?'Refused you this round':'Persuade to join · ${Math.round(DIFF.persuade*100)}%'}</span><span class="gm even">Joins with ${Math.round((r.troopsMax||NPS)*0.6)} troops</span>`;}
@@ -2562,7 +2567,7 @@ function updatePursuit(dt){ecl[0]=Math.max(0,ecl[0]-dt);ecl[1]=Math.max(0,ecl[1]
 function pursuitEnd(d){stormEnd(false);aim.mode=false;phase='between';pursuit=null;setOrbitGoal(BV,0.9);schedule(d,nextRound);updateModeUI();}
 function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' '+why:''));
   if(state!=='battle')return;state='end';phase='over';result=win;endT=0;$('selp').hidden=true;pursuit=null;
-  showBanner(why==='tyrant'?'The Tyrant is taken!':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();if(win){cheer(0,1.6);warDrums(0,3,120);}else cheer(1,1.4);
+  showBanner(why==='tyrant'?'The Tyrant is taken!':why==='surrender'?surLabel()+'...':win?'Victory':'Defeat',!win);sfx(win?'fanfare':'defeat');updateModeUI();if(win){cheer(0,1.6);warDrums(0,3,120);}else cheer(1,1.4);
   const caps=roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
   const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:SK?BIOMES[lastType].name:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
   const eName=pendingBattle?NATIONS[pendingBattle.eNat].name:'the enemy';
@@ -2572,6 +2577,7 @@ function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' 
   {const K=BST.kills[0],Lo=BST.kills[1],ratio=K/Math.max(1,Lo),lostG=gens.some(g=>g.cap||g.def);
    const grade=why==='tyrant'?'S':!win?'D':ratio>=2.5&&!lostG?'S':ratio>=1.5?'A':ratio>=0.9?'B':'C';
    const spoils=[];if(cst&&cst.o!==cBefore){if(cst.o==='aldmere')spoils.push(['big',cst.n+' raises the banner of Aldmere!']);else if(cBefore==='aldmere')spoils.push(['bad',cst.n+' has fallen to '+NATIONS[cst.o].name+'.']);}
+   if(why==='surrender'){const t=roster[0].filter(r=>r.alive!==false&&!r.out).reduce((a,r)=>a+r.troops,0);spoils.push(['bad','You yielded the field. Your generals marched home with '+t+' troops.']);}
    if(caps.length)spoils.push(['','Prisoners taken: '+caps.join(', ')]);
    const rows=gens.map(g=>{const r=g.r;let tag='',cls='';
      if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?'Rescued':'Captured';cls='bad';}
@@ -2584,7 +2590,7 @@ function endBattle(win,why){DE4LOG.info('battle end '+(win?'win':'loss')+(why?' 
      if(cand){giveRelic(cand.r,k);spoils.push(['big','Relic found: '+RELICS[k].n+' → '+cand.r.d.short+' ('+RELICS[k].d+')']);}else{CAMP.vault=(CAMP.vault||[]);CAMP.vault.push(k);spoils.push(['big','Relic found: '+RELICS[k].n+' (stored in the vault)']);}}
    RES={t:0,T:4.2,win,K,Lo,R:[...BST.rounds],grade,rows,spoils,stamped:false,spoiled:0,lastBlip:0,where,eName,why};}
   if(CAMP.over&&!SK&&RES){RES.spoils.unshift([CAMP.won?'big':'bad',CAMP.won?'The war is won! Every castle will fly the banner of Aldmere.':'Aldmere has fallen.']);DE4LOG.info('campaign over: '+(CAMP.won?'won':'lost')+' age '+AGE);}
-  schedule(1.8,()=>{$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':win?'Victory':'Defeat';
+  schedule(1.8,()=>{$('endTitle').textContent=why==='tyrant'?'The Tyrant Falls':why==='surrender'?'Surrender':win?'Victory':'Defeat';
     $('endText').textContent=(why==='tyrant'?'Vorgrath is taken in chains and the Ashen Legion breaks apart.':win?`You win the battle at ${where} against ${eName}.`:`${eName} wins the battle at ${where}. Your survivors fall back.`)
     ;
     $('againBtn').hidden=!SK;$('againBtn').textContent='Rematch';$('mapBtn').hidden=false;$('mapBtn').textContent=SK?'Back to title':'Return to the war table';
@@ -2703,7 +2709,7 @@ function drawVrHud(){const hn=performance.now();if(hn-hudLast<66)return;hudLast=
     {const A=advise(),ws=A.t.split(' ');let l1='',l2='';for(const w of ws){if((l1+w).length<58&&!l2)l1+=w+' ';else l2+=w+' ';}line(l1,138,A.warn?'#ffb09a':'#f0c055','14px');line(l2.slice(0,60),158,A.warn?'#ffb09a':'#f0c055','14px');}
     line(((CAMP.feed||[])[0]||'').slice(0,62),180,'#857aa0','13px');line('R trig select/march · L trig pause · A cancel',204,'#857aa0','13px');}
   else if(phase==='select'){x.fillText('CHOOSE YOUR GENERAL',24,16);const it=selItems(),si=selIdx%Math.max(1,it.length),e=selEnemyHint,st=Math.max(0,Math.min(si-1,it.length-4));
-    it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
+    it.slice(st,st+4).forEach((o,j)=>{const i=st+j,r=o.r;line(o.k==='sur'?`${i===si?'>':' '} ${surLabel().toUpperCase()}${performance.now()<surArm?' - PRESS AGAIN':''}`:o.k==='gen'?`${i===si?'>':' '} ${r.d.short} · ${TROOP[r.d.troop]} ${r.troops} · HP ${Math.ceil(r.hp)}${e?' · '+matchup(r.d.troop,e.d.troop):''}`:`${i===si?'>':' '} PERSUADE ${r.d.short} (prisoner)${r.tried===round?' - refused':''}`,56+j*26,i===si?'#f0c055':'#a99fb8','16px');});
     line(e?`${e.d.short} holds the field (${TROOP[e.d.troop]})`:'The enemy picks after you',166,'#ffb09a','16px');line('L trig: next · R trig: choose',200,'#857aa0','16px');}
   else if(active[0]&&active[1]){
     const A=active[0],B=active[1],a=alive[0].length,b=alive[1].length;
