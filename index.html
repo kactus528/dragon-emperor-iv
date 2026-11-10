@@ -502,7 +502,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 86';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 87';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1105,14 +1105,14 @@ for(let i=0;i<PMAX;i++){const s=card(new THREE.MeshBasicMaterial({map:T_SPARK,al
 function spawn(o){
   let p=null;for(let k=0;k<PMAX;k++){const c=pool[(pIdx+k)%PMAX];if(!c.active){p=c;pIdx=(pIdx+k+1)%PMAX;break;}}
   if(!p){p=pool[pIdx];pIdx=(pIdx+1)%PMAX;}
-  Object.assign(p,{active:true,x:0,y:0,z:0,vx:0,vy:0,vz:0,g:0,life:1,age:0,frames:null,tex:T_SPARK,w:0.3,h:0.3,grow:0,update:null,onEnd:null,ground:false,blink:false,rot:0},o);
+  Object.assign(p,{active:true,x:0,y:0,z:0,vx:0,vy:0,vz:0,g:0,life:1,age:0,frames:null,tex:T_SPARK,w:0.3,h:0.3,grow:0,update:null,onEnd:null,ground:false,splat:false,blink:false,rot:0},o);
   p.s.material.map=p.frames?p.frames[0]:p.tex;p.s.rotation.z=p.rot;p.s.visible=true;return p;
 }
 function updateParticles(dt){
   for(const p of pool){if(!p.active)continue;p.age+=dt;
     if(p.age>=p.life){p.active=false;p.s.visible=false;if(p.onEnd)p.onEnd(p);continue;}
     if(p.update)p.update(p,dt);else{p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
-      if(p.ground){const gy=Hb(p.x,p.z);if(p.y<gy){p.y=gy;p.vy*=-0.3;p.vx*=0.55;p.vz*=0.55;}}}
+      if(p.ground){const gy=Hb(p.x,p.z);if(p.y<gy){if(p.splat&&p.vy<0){addSplat(p.x,p.z,R(0.9,1.8));p.life=Math.min(p.life,p.age+0.05);p.splat=false;}p.y=gy;p.vy*=-0.3;p.vx*=0.55;p.vz*=0.55;}}}
     if(p.frames){p.s.material.map=p.frames[Math.min(p.frames.length-1,Math.floor(p.age/p.life*p.frames.length))];}
     const k=1+p.grow*(p.age/p.life);p.s.scale.set(p.w*k,p.h*k,1);p.s.position.set(p.x,p.y,p.z);
     if(p.blink&&p.age>p.life*0.65)p.s.visible=((p.age*18)|0)%2===0;
@@ -1738,7 +1738,7 @@ const DEC_N=420,decals=BLOODT.map(t=>{const m=new THREE.InstancedMesh(new THREE.
   m.count=0;m.frustumCulled=false;m.renderOrder=1;battle.add(m);return{m,i:0,n:0};});
 const _dm=new THREE.Matrix4(),_dq=new THREE.Quaternion(),_dp=new THREE.Vector3(),_ds=new THREE.Vector3(),_de=new THREE.Euler();
 let lastBurst=0;
-function bloodBurst(x,z){const bn=performance.now();if(bn-lastBurst<320)return;lastBurst=bn;const y=Hb(x,z);sfx('boom');shake=Math.max(shake,0.7);for(let i=0;i<5;i++)spawn({x:x+R(-1,1),y:y+R(0.5,2.5),z:z+R(-1,1),tex:T_BPUFF,w:R(2.5,4.5),h:R(2.5,4.5),life:R(0.4,0.8),grow:1.6,vy:R(1,3)});
+function bloodBurst(x,z){const bn=performance.now();if(bn-lastBurst<320)return;lastBurst=bn;const y=Hb(x,z);sfx('boom');shake=Math.max(shake,0.7);{const nb=8+((Math.random()*5)|0);for(let i=0;i<nb;i++){const a=R(0,6.28),v=R(2.5,7.5),sz=R(0.7,1.3);spawn({x:x+R(-0.4,0.4),y:y+R(0.6,1.4),z:z+R(-0.4,0.4),vx:Math.cos(a)*v,vy:R(8,15),vz:Math.sin(a)*v,g:-20,tex:T_BPUFF,w:sz,h:sz,life:R(1.1,1.6),ground:true,splat:true});}}
   for(let i=0;i<45;i++){const a=R(0,6.28),v=R(5,16);spawn({x,y:y+0.8,z,vx:Math.cos(a)*v,vy:R(5,14),vz:Math.sin(a)*v,g:-22,life:R(0.7,1.4),tex:T_DROP,w:R(0.2,0.45),h:R(0.2,0.45),ground:true});}
   for(let i=0;i<9;i++){const a=R(0,6.28),r=R(0,7);addSplat(x+Math.cos(a)*r,z+Math.sin(a)*r,R(1.5,4.5));}}
 function addSplat(x,z,sc){const D=decals[(Math.random()*decals.length)|0];_de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x,Hb(x,z)+0.07,z);_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
