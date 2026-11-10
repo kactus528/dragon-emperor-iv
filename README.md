@@ -88,6 +88,8 @@ Every battle for a castle is a siege. A stone wall with towers runs the full wid
 
 **Skirmish** on the title screen sets up a one-off battle: pick up to three generals for each side from all fourteen, the battlefield, the conditions (clear, fog, night, storm or random), a level (as written, all Lv 5 or all Lv 10) and whether generals carry random relics. Nothing carries over to the campaign. Afterwards you can take a rematch with the same setup or go back to the title.
 
+**Flying troops** (harpies and dragons) climb over obstacles instead of passing through them: rocks, desert stone walls, forests, siege walls and gate towers all have a height, and flyers look ahead and rise smoothly above whatever is in front of them (and over rising ground), then settle back down once past.
+
 **Rapid fire:** with Thunder Lance or Arrow Storm charged, hold the right trigger (or hold the mouse button) and bolts or volleys keep firing at the aim point as fast as they recharge (about 4–5 a second). Enemy generals now cast the same way: a run of aimed strikes, each at one of your soldiers (or now and then at your general), instead of one big swarm.
 
 ## Relics

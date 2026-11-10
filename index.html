@@ -502,7 +502,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 87';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 88';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1000,7 +1000,7 @@ function buildBattlefield(type){efOk=false;DE4LOG.trace(6000);DE4LOG.beat('build
   if(MAP.rocks.length){const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshPhongMaterial({color:BIO.rock,flatShading:true,shininess:4}),MAP.rocks.length);
     MAP.rocks.forEach((b,i)=>{b.i=i;D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);MAP.rockIM=im;}
   const blocks=[];for(const s of MAP.walls){const L=Math.hypot(s.x2-s.x1,s.z2-s.z1),n=Math.max(1,Math.ceil(L/1.6)),ang=-Math.atan2(s.z2-s.z1,s.x2-s.x1);s.bi=[];
-    for(let i=0;i<n;i++){s.bi.push(blocks.length);const t=(i+0.5)/n,x=s.x1+(s.x2-s.x1)*t,z=s.z1+(s.z2-s.z1)*t,h=mrand()<0.2?0.8+mrand()*0.6:1.6+mrand()*1.8;blocks.push([x,z,L/n+0.05,h,ang]);}}
+    for(let i=0;i<n;i++){s.bi.push(blocks.length);const t=(i+0.5)/n,x=s.x1+(s.x2-s.x1)*t,z=s.z1+(s.z2-s.z1)*t,h=mrand()<0.2?0.8+mrand()*0.6:1.6+mrand()*1.8;s.hmax=Math.max(s.hmax||0,h);blocks.push([x,z,L/n+0.05,h,ang]);}}
   if(blocks.length){const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshPhongMaterial({color:BIO.wall,flatShading:true,shininess:4}),blocks.length);
     blocks.forEach((b,i)=>{D.rotation.set(0,b[4],0);D.position.set(b[0],Hb(b[0],b[1])+b[3]/2-0.2,b[1]);D.scale.set(b[2],b[3],1.2);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);MAP.wallIM=im;}
   const railM=new THREE.MeshLambertMaterial({color:BIO.bridge==='stone'?0x7a746a:0x6a4426});
@@ -1038,9 +1038,12 @@ const uMesh=new THREE.InstancedMesh(uGeo,uMat,UN);uMesh.frustumCulled=false;uMes
 const sidePal=[0,1],UMAT=uMesh.instanceMatrix.array,UCELL=uCellAttr.array,USCL=CELL*PX,TI=Object.fromEntries(TYPES.map((t,i)=>[t,i]));
 const units=[];
 for(let s=0;s<2;s++)for(let i=0;i<NPS;i++)units.push({uid:s*NPS+i,side:s,type:'inf',i,state:'gone',vis:false,x:0,z:0,y:0,rx:0,rz:0});
+function flyAlt(u){const lx=u.x+(u.vx||0)*0.45,lz=u.z+(u.vz||0)*0.45,gy=Hb(u.x,u.z);let tg=1.7;
+  for(const [px,pz] of [[u.x,u.z],[lx,lz]]){const top=Hb(px,pz)+obH(px,pz)+1.1-gy;if(top>tg)tg=top;}
+  const a=u.fa===undefined?tg:u.fa;u.fa=a+(tg-a)*(tg>a?0.14:0.05);return u.fa;}
 function writeUnit(u,f){const o=u.uid*16;UMAT.fill(0,o,o+16);UMAT[o+15]=1;
   if(!u.vis){UMAT[o+13]=-999;return;}
-  UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y+(FLY[u.type]&&u.state!=='dying'?1.7+Math.sin(u.walk*2+u.i)*0.25:0);UMAT[o+14]=u.z;
+  UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y+(FLY[u.type]&&u.state!=='dying'?flyAlt(u)+Math.sin(u.walk*2+u.i)*0.25:0);UMAT[o+14]=u.z;
   const idx=(sidePal[u.side]*NT+TI[u.type])*4+f;UCELL[u.uid*2]=idx%ATL_C;UCELL[u.uid*2+1]=ATL_R-1-Math.floor(idx/ATL_C);}
 units.forEach(u=>writeUnit(u,0));
 /* spatial grid for targeting and spacing */
@@ -1049,8 +1052,11 @@ for(let i=0;i<GW*GD;i++){GB[0].push([]);GB[1].push([]);GA.push([]);}
 const gcx=x=>clamp(Math.floor((x+FW/2+5)/GC),0,GW-1),gcz=z=>clamp(Math.floor((z+FD/2+5)/GC),0,GD-1);
 const NAV=new Uint8Array(GW*GD);function fillNAV(){for(let z=0;z<GD;z++)for(let x=0;x<GW;x++)NAV[z*GW+x]=terrType((x+0.5)*GC-FW/2-5,(z+0.5)*GC-FD/2-5);}
 const navAt=(x,z)=>NAV[gcz(z)*GW+gcx(x)];
-const RB=new Uint8Array(GW*GD);const BLK=k=>NAV[k]===1||RB[k]===1;
-function fillRB(){RB.fill(0);if(!MAP)return;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){const k=z*GW+x;if(NAV[k]===1)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5;
+const RB=new Uint8Array(GW*GD),OBH=new Float32Array(GW*GD),SOBH=new Float32Array(GW*GD);
+const obH=(x,z)=>{const k=gcz(z)*GW+gcx(x);return Math.max(OBH[k]||0,SOBH[k]||0);};const BLK=k=>NAV[k]===1||RB[k]===1;
+function fillRB(){RB.fill(0);OBH.fill(0);if(!MAP)return;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){const k=z*GW+x;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5;
+    {let h=0;for(const b of MAP.rocks){const dx=wx-b.x,dz=wz-b.z,r=b.r+1.2;if(dx*dx+dz*dz<r*r)h=Math.max(h,b.r*1.15);}for(const w of MAP.walls)if(segD(wx,wz,w)<(w.th||1)/2+1.3)h=Math.max(h,w.hmax||3.4);if(MAP.woods)for(const e of MAP.woods)if(ell(wx,wz,e)<1.15)h=Math.max(h,3.4);OBH[k]=h;}
+    if(NAV[k]===1)continue;
     for(const b of MAP.rocks){const dx=wx-b.x,dz=wz-b.z,r=b.r+0.55;if(dx*dx+dz*dz<r*r){RB[k]=1;break;}}
     if(!RB[k])for(const w of MAP.walls){if(segD(wx,wz,w)<(w.th||1)/2+0.6){RB[k]=1;break;}}}
   PTF.clear();}
@@ -1867,7 +1873,7 @@ function tickPU(dt){puT-=dt;if(puT<=0&&puN<5){const n0=pups.length;spawnPU();if(
     if(best)claimPU(p,best.side);}}
 const AMB0=0xffe8d0,SUN0=0xfff0d8;
 let SIEGE=null;const wallGeo=new THREE.BoxGeometry(1,1,1),wallMat=new THREE.MeshLambertMaterial({color:0x8a8478}),gateMat=new THREE.MeshLambertMaterial({color:0x6a4424}),siegeGrp=new THREE.Group();
-function clearSiege(){SIEGE=null;while(siegeGrp.children.length)siegeGrp.remove(siegeGrp.children[0]);}
+function clearSiege(){SIEGE=null;SOBH.fill(0);while(siegeGrp.children.length)siegeGrp.remove(siegeGrp.children[0]);}
 const _zm=new THREE.Matrix4().makeScale(0,0,0);
 function laneCost(zc){let c=0;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b.r)c+=3;for(const w of MAP.walls)if(Math.min(w.z1,w.z2)<zc+6&&Math.max(w.z1,w.z2)>zc-6)c+=4;
   for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++)if(NAV[gcz(zc)*GW+x]===1)c+=1;return c+Math.abs(zc)*0.05;}
@@ -1878,7 +1884,7 @@ function clearLane(zc){const half=5.4;let n=0;
 function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;for(let z=-24;z<=24;z+=2){const c=laneCost(z);if(c<best){best=c;gzc=z;}}clearLane(gzc);
   const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(gzc-3.2),gz1=gcz(gzc+3.2),gate=[];
   for(let z=gz0-1;z<=gz1+1;z++)for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++){const k=z*GW+x;if(NAV[k]===1)NAV[k]=2;}
-  for(let z=0;z<GD;z++)for(let x=x0;x<=x1;x++){const k=z*GW+x;NAV[k]=1;if(z>=gz0&&z<=gz1)gate.push(k);}
+  SOBH.fill(0);const Hs=3.4+fort*0.6;for(let z=0;z<GD;z++)for(let x=x0-1;x<=x1+1;x++){const k=z*GW+x;if(x>=x0&&x<=x1){NAV[k]=1;if(z>=gz0&&z<=gz1)gate.push(k);}SOBH[k]=Hs+(z<gz0-1||z>gz1+1?0.6:0)+((z===gz0-2||z===gz1+2)?2:0);}
   const app=[];for(let z=gz0;z<=gz1;z++){const ax=def?x0-1:x1+1;app.push(z*GW+ax);}
   const hpMax=180+fort*120;SIEGE={def,att,wx,gx:wx,gz:gzc,gate,app,hp:hpMax,max:hpMax,fort,gateMesh:null};
   const cx=(x0+x1+1)*GC/2-FW/2-5,thick=(x1-x0+1)*GC,H=3.4+fort*0.6;
