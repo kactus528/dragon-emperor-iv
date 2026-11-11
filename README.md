@@ -84,6 +84,18 @@ Progress is saved in the browser: the title screen shows **Continue · Age N**, 
 
 Every battle for a castle is a siege. A stone wall with towers runs the full width of the field in front of the defenders, with a wooden gate placed in the clearest lane across the field; rocks and ruin walls in that lane are cleared away, and a causeway crosses any water, so the gate can always be reached. Attackers path to the gate and batter it (Knights ×2.2, Dragonriders ×1.8, Mages ×1.4, Infantry ×1.2, Cavalry ×0.6, Archers and Monks barely scratch it). The gate starts at 180 HP plus 120 per level of fortification. Defenders behind the wall take 30% less damage from arrows, bolts and spells, and the defending AI holds the wall while the gate stands. Harpies and Dragonriders fly straight over. When the gate falls the defenders lose heart and the attackers surge. A broken gate stays broken for the rest of the battle. The HUD shows the gate's health. Skirmish can also set up a siege either way round.
 
+## Multiplayer
+
+Up to three players share one war table, one nation each (Aldmere, the Ashen Legion or Duskmarch). Any nation nobody picks is run by the computer.
+
+- **Starting:** on the title screen press **Multiplayer**. One player presses **Host a war** and gets a five-letter room code; the others type the code and press **Join**. Everyone picks a nation in the room list, then the host presses **Start the war**. Do this on the flat page; press **Enter VR** afterwards if you want to play in the headset.
+- **How it works:** the host's game runs the war table and every battle; the other players get a live feed of the castles, armies, soldiers, spells and sounds, and their clicks and buttons are sent back to the host. Players connect directly to each other (WebRTC through the free PeerJS service), so a few strict networks such as some work or school Wi-Fi can block the connection.
+- **On the war table:** everyone plays at the same time. You can only select, march, redirect, halt and set tasks for your own nation. Any player can pause.
+- **Battles:** when two players' armies meet (on a road or at a castle), those two fight a live battle. Each picks a general at the start of every round, then gives orders, casts spells (Thunder Lance and Arrow Storm are aimed bolt by bolt for both players), sends squads, uses abilities, seeks duels and duels (both pick Strike, Guard or Power) and steers when retreating or fleeing. If you are on the right-hand side of the battle, your screen is mirrored so your army is always on the left. There are no taunts in multiplayer, and the difficulty bonuses the computer gets (extra enemy damage and mana) are switched off between two humans.
+- **The third player** watches the battle for now; everything else on the war table waits until it ends. After a battle, each fighter gets their own results screen, and the war resumes once both press Return to the war table (or after 40 seconds).
+- **Winning:** a nation falls when it loses its last castle or its ruler (Kaelen, Vorgrath or Ysolde) dies. A captured human ruler can be cut free by their bodyguard on the easier difficulties. The last nation standing wins the war.
+- **Leaving:** if a player disconnects or goes silent for 15 seconds, the computer takes over their nation.
+
 ## Skirmish
 
 **Skirmish** on the title screen sets up a one-off battle: pick up to three generals for each side from all fourteen, the battlefield, the conditions (clear, fog, night, storm or random), a level (as written, all Lv 5 or all Lv 10) and whether generals carry random relics. Nothing carries over to the campaign. Afterwards you can take a rematch with the same setup or go back to the title.
