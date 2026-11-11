@@ -86,7 +86,7 @@ Every battle for a castle is a siege. A stone wall with towers runs the full wid
 
 ## Multiplayer
 
-Up to three players share one war table, one nation each (Aldmere, the Ashen Legion or Duskmarch). Any nation nobody picks is run by the computer.
+Up to three players share one war table, one nation each (Aldmere, the Ashen Legion or Duskmarch). With only two players there is no computer nation: the third nation is left off the map, and its castles start empty and unclaimed for either player to take.
 
 - **Starting:** on the title screen press **Multiplayer**. One player presses **Host a war** and gets a five-letter room code; the others type the code and press **Join**. Everyone picks a nation in the room list, then the host presses **Start the war**. Do this on the flat page; press **Enter VR** afterwards if you want to play in the headset.
 - **How it works:** the host's game runs the war table and every battle; the other players get a live feed of the castles, armies, soldiers, spells and sounds, and their clicks and buttons are sent back to the host. Players connect directly to each other (WebRTC through the free PeerJS service), so a few strict networks such as some work or school Wi-Fi can block the connection.

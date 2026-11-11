@@ -517,7 +517,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 94';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 95';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -3138,13 +3138,15 @@ function mpRender(){const inRoom=MP.stage==='room';$('mpStartBox').hidden=!!MP.s
     sel.style.color=p.nat?NATIONS[p.nat].col:'';sel.addEventListener('change',()=>mpPick(sel.value));row.appendChild(sel);L.appendChild(row);}
   const go=$('mpGo');go.hidden=NET.role!=='host';const ok=MP.players.length>=2&&MP.players.every(p=>p.nat)&&new Set(MP.players.map(p=>p.nat)).size===MP.players.length;go.disabled=!ok;
   $('mpWait').hidden=!(inRoom&&NET.role==='guest');
-  $('mpNote').textContent=MP.players.length<3?'Nations nobody picks are run by the computer.':'All three nations are taken.';}
+  $('mpNote').textContent=MP.players.length<3?'With two players, the third nation is left off the map and its castles start unclaimed.':'All three nations are taken.';}
 /* ---------- starting the war ---------- */
 function mpStartWar(){if(NET.role!=='host'||NET.on)return;const ok=MP.players.length>=2&&MP.players.every(p=>p.nat);if(!ok)return;
   NET.on=true;NET.me=MP.players.find(p=>p.id==='host').nat;NET.humans=new Set(MP.players.map(p=>p.nat));NET.dead=new Set();
   for(const p of MP.players)if(p.id!=='host')NET.peers.set(p.id,{name:p.name,nat:p.nat});
   NET.names={};for(const p of MP.players)NET.names[p.nat]=p.name;
   $('mpp').hidden=true;$('title').hidden=true;tutWanted=false;audioInit();sfx('fanfare');state='kingdom';AGE=1;ageDiff();initCampaign();
+  for(const n of NATS)if(!NET.humans.has(n)){NET.dead.add(n);for(const c of CASTLES)if(c.o===n){c.o='none';c.fort=0;c.task='rest';}for(const r of GENS)if(r.nat===n){r.alive=false;r.loc=null;r.absent=true;}}
+  buildLabels();updateCampPanel();CAMP.feed=[];
   for(const [id,c] of NTX.conns){const p=NET.peers.get(id);netSendTo(c,{t:'go',nat:p.nat,humans:[...NET.humans],names:NET.names,diff:diffKey});}
   clog('A war of '+[...NET.humans].map(n=>NET.names[n]+' ('+NATIONS[n].name+')').join(', ')+'. Hold your capital and keep your ruler alive.');
   netCampSend(true);setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();DE4LOG.info('multiplayer war started as host, '+NET.humans.size+' players');}
