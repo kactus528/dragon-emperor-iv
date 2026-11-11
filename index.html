@@ -502,7 +502,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 92';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 93';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1940,7 +1940,7 @@ function gateHit(u,dmg){const S=SIEGE;if(!S||S.hp<=0)return;S.hp-=dmg;if(Math.ra
 const GATEM={kni:2.2,inf:1.2,cav:0.6,arc:0.25,monk:0.3,mage:1.4,harp:0.3,drag:1.8};
 const behindWall=T=>SIEGE&&T.side===SIEGE.def&&(SIEGE.def?T.x>SIEGE.wx-2:T.x<SIEGE.wx+2);
 function freezeField(){if(MOD!=='blizzard'||FROZEN||!MAP)return;if(!MAP.rivers.some(r=>r.kind!=='lava')&&!MAP.pools.some(p=>p.k==='water'))return;
-  FROZEN=true;fillNAV();fillRB();PTF.clear();efOk=false;fieldT=0;const om=battleTerrain.material;mapGroup.remove(battleTerrain);battleTerrain.geometry.dispose();if(om){if(om.map)om.map.dispose();om.dispose();}
+  FROZEN=true;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){const k=z*GW+x;if(NAV[k]!==1)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5;if(SIEGE&&Math.abs(wx-SIEGE.wx)<3.5)continue;NAV[k]=terrType(wx,wz);}fillRB();PTF.clear();efOk=false;fieldT=0;const om=battleTerrain.material;mapGroup.remove(battleTerrain);battleTerrain.geometry.dispose();if(om){if(om.map)om.map.dispose();om.dispose();}
   battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);DE4LOG.info('rivers frozen');schedule(1.5,()=>showBanner('The water is frozen solid! Cross anywhere'));}
 function rollMod(){schedule(0.05,freezeField);clearBlood();clearSiege();if(!SK&&AGE>=2&&Math.random()<Math.min(0.45,0.2*(AGE-1))){MOD=AGE>=3&&Math.random()<0.5?'bloodmoon':'blizzard';applyMod();shrine.on=false;BOSS.on=!!(pendingBattle&&pendingBattle.e.some(r=>r.d.key==='vorgrath'));BOSS.hp=BOSS.max=520;BOSS.dead=false;BOSS.slain=false;BOSS.next=6;dragon.mode='idle';dragon.sp.visible=true;dragon.sp.rotation.z=0;ecl=[0,0];return;}BOSS.on=!!(pendingBattle&&pendingBattle.e.some(r=>r.d.key==='vorgrath'))||!!(SK&&skSel[1].includes('vorgrath'));BOSS.hp=BOSS.max=520;BOSS.dead=false;BOSS.slain=false;BOSS.next=6;dragon.mode='idle';dragon.sp.visible=true;dragon.sp.rotation.z=0;ecl=[0,0];const r=Math.random();MOD=r<0.45?'none':r<0.63?'fog':r<0.81?'night':'storm';if(SK&&SK.cond!=='random')MOD=SK.cond;applyMod();shrine.on=false;shrRing.visible=shrRune.visible=false;}
 function applyMod(){ambLight.intensity=MOD==='night'?0.3:MOD==='storm'?0.44:MOD==='bloodmoon'?0.4:0.62;sun.intensity=MOD==='night'?0.3:MOD==='storm'?0.46:MOD==='bloodmoon'?0.5:0.78;
