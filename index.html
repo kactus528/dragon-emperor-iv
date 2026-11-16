@@ -519,7 +519,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 99';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 100';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1718,7 +1718,7 @@ let state='title',phase='intro',introT=0,trT=0,swapped=false,endT=0,result=null,
 let kprog=0,kMarch=false,kMet=false;
 const MPPROF={arc:{max:5,start:2,every:10},inf:{max:3,start:1,every:16},cav:{max:3,start:1,every:20},kni:{max:2,start:0,every:24},monk:{max:4,start:2,every:12},mage:{max:5,start:2,every:10},harp:{max:3,start:1,every:16},drag:{max:2,start:1,every:22}},mpMax=[3,3],spellCD=[0,0];
 const KILLMP={arc:0.016,inf:0.012,cav:0.009,kni:0.008,monk:0.016,mage:0.014,harp:0.012,drag:0.02},SPELLCOST={breath:2,eclipse:2};
-const spellCost=s=>(active[s]&&SPELLCOST[active[s].d.spell])||1;
+const spellCost=s=>bzReady(s)?0:(active[s]&&SPELLCOST[active[s].d.spell])||1;
 const orders=['charge','hold'],holdStamp=[0,0],mp=[0,0],anchor=[-35,35],morale=[0.6,0.6];
 let pursuit=null,tyrantTaken=false,traitorMsg='',timers=[],shake=0,round=0,aiT=0,chalT=0,withdrawArm=0,chal=null,selIdx=0,selEnemyHint=null;
 const alive=[[],[]];
@@ -2013,7 +2013,7 @@ function clearField(){
   if(dragon.mode!=='gone'){dragon.mode='idle';}dragon.t=0;dragon.sp.rotation.z=0;timers=[];
 }
 function deploy(){DE4LOG.beat('deploy');DE4LOG.trace(6000);DE4LOG.mark('deploy start');try{DE4LOG.info('deploy round '+(round+1)+': '+active[0].d.key+'('+active[0].d.troop+') vs '+active[1].d.key+'('+active[1].d.troop+') map '+lastType+(SIEGE?' siege':'')+(BOSS.on?' boss':''));}catch(e){}
-  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;berserk[0]=berserk[1]=0;clearPops();EV={at:Math.random()<0.35?R(10,22):-1,done:false};ecl[0]=ecl[1]=0;eclZ[0]=eclZ[1]=null;if(eclSp)eclSp.visible=false;for(const u of units)u.sq=null;form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
+  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;clearPops();EV={at:Math.random()<0.35?R(10,22):-1,done:false};ecl[0]=ecl[1]=0;eclZ[0]=eclZ[1]=null;if(eclSp)eclSp.visible=false;for(const u of units)u.sq=null;form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-28;anchor[1]=28;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf,pe=r.relic==='pearl';mpMax[s]=pf.max+(pe||r.relic==='wyrm'?1:0);mp[s]=pe?mpMax[s]:pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp)+(r.relic==='lion'?0.15:0);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
@@ -2088,6 +2088,14 @@ function nearestEnemy(u){const G=GB[1-u.side],cx=gcx(u.x),cz=gcz(u.z);let best=n
     if(best&&(r*GC)*(r*GC)>bd)break;}
   return best;}
 let GSRC=0;const KB=[{n:0,sx:0,sz:0,t:0,age:0},{n:0,sx:0,sz:0,t:0,age:0}],berserk=[0,0],BZMAX=150;
+/* Berserk: kills fill the meter, losses fill it at half rate, and it carries from round to round. A full meter makes the next spell free and doubled.
+   A computer general fills it slower and hits less hard on the gentler difficulties, and on Squire only uses it when it is losing. */
+const BZAI={squire:{fill:0.5,pw:1.5,hold:true},knight:{fill:0.8,pw:2,hold:false},warlord:{fill:1,pw:2,hold:false}};
+const bzIsAI=s=>s===1&&(!NET.on||NET.ctl[1]==='ai');
+function bzAdd(s,n){if(state!=='battle')return;const was=berserk[s];berserk[s]=Math.min(BZMAX,was+n*(bzIsAI(s)?(BZAI[diffKey]||BZAI.knight).fill:1));
+  if(was<BZMAX&&berserk[s]>=BZMAX&&active[s]){if(s===0)showBanner('BERSERK! Your next spell is free and doubled');else showBanner(active[s].d.short+' goes berserk!',true);sfx('roar');hudAcc=1;}}
+function bzReady(s){if(berserk[s]<BZMAX||!active[s])return false;if(bzIsAI(s)&&(BZAI[diffKey]||BZAI.knight).hold){const g=fg[1].rec;return alive[1].length<alive[0].length*0.7||(g&&g.hp<g.d.hp*0.5);}return true;}
+const bzPw=s=>bzIsAI(s)?(BZAI[diffKey]||BZAI.knight).pw:2;
 function tickKB(dt){for(let s=0;s<2;s++){const b=KB[s];if(!b.n)continue;b.t+=dt;b.age+=dt;if(b.t>0.22||b.age>0.7){if(b.n>=2)popNum(b.sx/b.n,b.sz/b.n,b.n,s);b.n=0;b.sx=b.sz=0;b.age=0;}}}
 const POPS=[];
 function popNum(x,z,n,s){let P=POPS.find(p=>!p.on);if(!P){if(POPS.length<8){const c=cv(128,64),t=tex(c,true),sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false}));sp.renderOrder=9;battle.add(sp);P={c,t,sp,on:false,age:0};POPS.push(P);}else P=POPS.reduce((a,b)=>a.age>b.age?a:b);}
@@ -2100,7 +2108,7 @@ function clearPops(){for(const P of POPS){P.on=false;P.sp.visible=false;}KB.forE
 function kill(u,fx,fz,power=3,launch=0){
   u.state='dying';u.t=0;if(state==='battle')addBlood(u.x,u.z);const dx=u.x-fx,dz=u.z-fz,d=Math.hypot(dx,dz)||1;u.vx=dx/d*power;u.vz=dz/d*power;u.vy=launch;
   chips(u.x,Hb(u.x,u.z)+0.6,u.z,launch>3?4:2,2,4,1.5,[T_CHIPS[u.side?2:1],T_CHIPS[u.side?3:0],T_CHIPS[4]]);
-  killTally[1-u.side]++;BST.kills[1-u.side]++;{const ks=1-u.side;berserk[ks]=Math.min(BZMAX,berserk[ks]+1);if(GSRC>0&&state==='battle'){const b=KB[ks];b.n++;b.sx+=u.x;b.sz+=u.z;b.t=0;}}if(state==='battle')onKill(1-u.side);mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
+  killTally[1-u.side]++;BST.kills[1-u.side]++;{const ks=1-u.side;bzAdd(ks,1);bzAdd(u.side,0.5);if(GSRC>0&&state==='battle'){const b=KB[ks];b.n++;b.sx+=u.x;b.sz+=u.z;b.t=0;}}if(state==='battle')onKill(1-u.side);mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
 function hit(T,dmg,att,raw){
@@ -2254,24 +2262,26 @@ function castSpell(side,tgt){if(side===0)DE4LOG.mark('castSpell '+(active[0]&&ac
   if(side===0&&netIn('spell',tgt?{x:tgt.x,z:tgt.z}:{}))return false;
   if(state!=='battle'||!castPhase(side)||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec||(side===0&&storm.on)||(side===1&&storm1.on))return false;
   const g=fg[side],sp=g.rec.d.spell;if(sp==='breath'&&dragon.mode!=='idle')return false;
-  mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;if(sp==='thunder')lanceBud[1-side]=LANCE_GEN_CAP;
-  showBanner(SPELL[sp],side===1);sfx(sp==='breath'?'roar':'chant');
+  const sup=bzReady(side),K=sup?bzPw(side):1;
+  mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;if(sp==='thunder')lanceBud[1-side]=LANCE_GEN_CAP*(sup?1.5:1);
+  if(sup){berserk[side]=0;flash(0.6);shake=Math.max(shake,1);slowMo(0.5);sfx('roar');cheer(side,1.2);DE4LOG.info('berserk cast side '+side+' '+sp+' x'+K);}
+  showBanner((sup?'BERSERK ':'')+SPELL[sp]+(sup?'!':''),side===1);sfx(sp==='breath'?'roar':'chant');
   morale[side]=clamp(morale[side]+0.08,0,1);morale[1-side]=clamp(morale[1-side]-0.05,0,1);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.4,z:g.z+0.3,tex:T_RUNE,w:3.4,h:3.4,life:1.5,grow:0.6,vy:0.8,blink:true});
   for(let i=0;i<14;i++)spawn({x:g.x+R(-1,1),y:Hb(g.x,g.z)+R(0,2),z:g.z+R(-0.5,0.5),vy:R(3,7),vz:R(0,2),tex:T_SPARK,w:0.4,h:0.4,life:R(0.6,1.2),blink:true});
-  const pw=(1+0.06*((g.rec.lvl||1)-1))*(g.rec.relic==='storm'?1.25:g.rec.relic==='wyrm'?1.2:1),V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=phase==='pursuit'?fg[V]:densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
+  const pw=(1+0.06*((g.rec.lvl||1)-1))*(g.rec.relic==='storm'?1.25:g.rec.relic==='wyrm'?1.2:1)*K,V=1-side;let cx,cz;if(tgt){cx=tgt.x;cz=tgt.z;}else{const c=phase==='pursuit'?fg[V]:densest(alive[V])||fg[V];cx=c.x;cz=c.z;}
   const cl=(x,z)=>[clamp(x,-FW/2+1,FW/2-1),clamp(z,-FD/2+1.5,FD/2-1.5)];
-  if(sp==='starfall'||sp==='ashrain'){const chase=phase==='pursuit'&&!tgt;for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*0.18,()=>{const eg=fg[V],bx=chase&&eg.rec&&!eg.captured?eg.x+eg.x*0.04:cx,bz=chase&&eg.rec&&!eg.captured?eg.z:cz,sp2=chase?3:7;const[x,z]=cl(bx+R(-sp2,sp2),bz+R(-sp2,sp2));dropMeteor(x,z,V);});}
-  else if((sp==='thunder'||sp==='volley')&&side===1&&NET.on&&NET.ctl[1]==='remote'){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);Object.assign(storm1,{kind:sp,on:true,left:n,tot:n,t:10,gap:0.35});if(tgt)schedule(0.35,()=>{storm1.gap=0;stormStrikeS(1,cx,cz);});}
-  else if((sp==='thunder'||sp==='volley')&&side===0){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);storm.kind=sp;storm.on=true;storm.left=storm.tot=n;storm.t=10;storm.gap=0.35;aim.mode=true;
+  if(sp==='starfall'||sp==='ashrain'){const chase=phase==='pursuit'&&!tgt;for(let i=0;i<Math.round(12*pw);i++)schedule(0.55+i*(sup?0.11:0.18),()=>{const eg=fg[V],bx=chase&&eg.rec&&!eg.captured?eg.x+eg.x*0.04:cx,bz=chase&&eg.rec&&!eg.captured?eg.z:cz,sp2=chase?3:7;const[x,z]=cl(bx+R(-sp2,sp2),bz+R(-sp2,sp2));dropMeteor(x,z,V);});}
+  else if((sp==='thunder'||sp==='volley')&&side===1&&NET.on&&NET.ctl[1]==='remote'){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);Object.assign(storm1,{kind:sp,on:true,left:n,tot:n,t:sup?16:10,gap:0.35});if(tgt)schedule(0.35,()=>{storm1.gap=0;stormStrikeS(1,cx,cz);});}
+  else if((sp==='thunder'||sp==='volley')&&side===0){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);storm.kind=sp;storm.on=true;storm.left=storm.tot=n;storm.t=sup?16:10;storm.gap=0.35;aim.mode=true;
     schedule(0.4,()=>showBanner(n+(vol?' volleys':' bolts')+' · aim and '+(vol?'loose!':'strike!')));if(tgt)schedule(0.35,()=>{storm.gap=0;stormStrike0(cx,cz);});}
   else if(sp==='thunder'||sp==='volley'){const vol=sp==='volley',n=Math.round((vol?7:8)*pw);showBanner(vol?active[side].d.short+' looses volley after volley!':active[side].d.short+' calls the storm!',side===1);
-    for(let i=0;i<n;i++)schedule(0.45+i*(vol?0.3:0.22),()=>{if(!(phase==='fight'||phase==='pursuit'))return;const p=aiStrikePoint(V,cx,cz);if(vol)barrage(p.x,p.z,V,side);else lightning(p.x,p.z,V,true);});}
-  else if(sp==='breath')castBreathAt(cx,cz,side);
-  else if(sp==='eclipse'){ecl[side]=7.5;eclZ[side]={x:cx,z:cz,n:0.5,k:0};flash(0.3);sfx('roar');schedule(0.3,()=>sfx('horn'));shake=Math.max(shake,0.8);slowMo(0.35);
+    for(let i=0;i<n;i++)schedule(0.45+i*(vol?0.3:0.22)/(sup?1.5:1),()=>{if(!(phase==='fight'||phase==='pursuit'))return;const p=aiStrikePoint(V,cx,cz);if(vol)barrage(p.x,p.z,V,side);else lightning(p.x,p.z,V,true);});}
+  else if(sp==='breath'){castBreathAt(cx,cz,side);dragon.sup=K;}
+  else if(sp==='eclipse'){ecl[side]=7.5*K;eclZ[side]={x:cx,z:cz,n:0.5,k:0};flash(0.3);sfx('roar');schedule(0.3,()=>sfx('horn'));shake=Math.max(shake,0.8);slowMo(0.35);
     morale[V]=clamp(morale[V]-0.2,0,1);morale[side]=clamp(morale[side]+0.12,0,1);showBanner(side?'The sun goes dark! Your army falters':'Eclipse! The enemy falters in the dark',side===1);
     const sp2=eclSun();sp2.visible=true;sp2.position.set(cx,Hb(cx,cz)+18,cz);sp2.scale.set(1,1,1);
-    for(let i=0;i<3;i++)schedule(0.35+i*0.3,()=>{const[x,z]=cl(cx+R(-2.5,2.5),cz+R(-2.5,2.5));darkBolt(x,z,V);});}
+    for(let i=0;i<Math.round(3*K);i++)schedule(0.35+i*0.3,()=>{const[x,z]=cl(cx+R(-2.5,2.5),cz+R(-2.5,2.5));darkBolt(x,z,V);});}
   else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
       Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});u.x=clamp(g.x+R(-3,3),-FW/2+1,FW/2-1);u.z=clamp(g.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(navAt(u.x,u.z)===1){u.x=g.x;u.z=g.z;}n++;}
     morale[side]=clamp(morale[side]+0.12,0,1);for(let i=0;i<30;i++)spawn({x:g.x+R(-5,5),y:Hb(g.x,g.z)+R(0,1),z:g.z+R(-5,5),vy:R(2,5),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.3),blink:true});
@@ -2317,7 +2327,7 @@ function impactCore(x,z,V,small,lance){if(V===1)bossHit(lance?22:small?14:30,x,z
     if(d<kr){if(STATS[u.type].hp>=10){u.hp-=5;if(u.hp<=0)kill(u,x,z,R(4,8),R(7,12));}else kill(u,x,z,R(4,8),R(7,12));}else if(d<dr){u.hp-=3;if(u.hp<=0)kill(u,x,z,R(3,5),R(4,7));}}
   const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<(lance?1.8:2.6)){let dm=lance?3:small?5:8;if(lance){dm=Math.min(dm,lanceBud[V]);lanceBud[V]-=dm;}if(dm>0)generalHit(eg,dm,null);}
 }
-function castBreathAt(cx,cz,side=1){schedule(0.9,()=>ignite(cx,cz));
+function castBreathAt(cx,cz,side=1){dragon.sup=1;schedule(0.9,()=>ignite(cx,cz));
   cz=clamp(cz,-30,30);dragon.mode='swoop';dragon.t=0;dragon.side=side;
   const p0={x:dragon.x,y:dragon.y,z:dragon.z},p1={x:cx+26,y:16,z:cz-5},p2={x:cx-26,y:14,z:cz},p3={x:-12,y:42,z:-82};
   dragon.path=[{a:p0,b:p1,d:2.4,br:false},{a:p1,b:p2,d:3.4,br:true},{a:p2,b:p3,d:2.8,br:false}];
@@ -2364,7 +2374,7 @@ function breathFlame(){
   sfx('flame');
   spawn({x:mx,y:my,z:mz,frames:FLAME,w:2.4,h:2.4,life:0.45,grow:1.4,update:(p)=>{const k=p.age/p.life;p.x=mx+(gx-mx)*k;p.y=my+(gy+0.4-my)*k;p.z=mz+(gz-mz)*k+k*1.2;},
     onEnd:()=>{spawn({x:gx,y:gy+1,z:gz+0.3,frames:FLAME,w:3.2,h:3.2,life:0.7,grow:0.8,vy:1.2,vz:1});if(Math.random()<0.3)chips(gx,gy+0.3,gz,2,2,5,2,[T_CHIPS[5],T_CHIPS[7]]);
-      const V=1-(dragon.side===0?0:1);GSRC++;try{for(const u of alive[V]){if(u.state!=='alive')continue;if(Math.hypot(u.x-gx,u.z-gz)<2.2){u.hp-=2;if(u.hp<=0)kill(u,gx,gz,R(2,4),R(3,6));}}}finally{GSRC--;}
+      const V=1-(dragon.side===0?0:1),BK=dragon.sup||1;if(BK>1)spawn({x:gx+R(-1.5,1.5),y:gy+1,z:gz+R(-1.5,1.5),frames:FLAME,w:3.6,h:3.6,life:0.7,grow:0.8,vy:1.2});GSRC++;try{for(const u of alive[V]){if(u.state!=='alive')continue;if(Math.hypot(u.x-gx,u.z-gz)<2.2*(BK>1?1.5:1)){u.hp-=2*BK;if(u.hp<=0)kill(u,gx,gz,R(2,4),R(3,6));}}}finally{GSRC--;}
       if(fg[V].rec&&Math.hypot(fg[V].x-gx,fg[V].z-gz)<1.6)generalHit(fg[V],2,null);}});
 }
 
@@ -2835,7 +2845,7 @@ function updateHud(dt){
       $('cnt'+k).textContent=n;$('bar'+k).style.width=(100*n/NPS)+'%';$('hp'+k).style.width=(100*r.hp/r.d.hp)+'%';$('mp'+k).style.width=(mp[s]/mpMax[s]*100)+'%';$('mor'+k).style.width=(morale[s]*100)+'%';$('sta'+k).style.width=((fg[s].sta??1)*100)+'%';$('sta'+k).parentNode.classList.toggle('burst',fg[s].burst>0);}
     $('rosLbl').textContent=avail(0).length+' GEN · R'+round+' · '+avail(1).length+' GEN';
     {const bb=$('bossbar'),on=bossActive();bb.hidden=!on||xrActive;if(on)$('bossHp').style.width=(100*BOSS.hp/BOSS.max)+'%';}
-    $('objLbl').textContent='BERSERK '+(berserk[0]>=BZMAX?'FULL':Math.round(berserk[0]/BZMAX*100)+'%')+' · '+(ecl[0]>0?'YOUR ECLIPSE '+Math.ceil(ecl[0])+' · ':'')+(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BERSERK '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
+    $('objLbl').textContent='BERSERK '+(berserk[0]>=BZMAX?'READY: NEXT SPELL FREE ×2':Math.round(berserk[0]/BZMAX*100)+'%')+' · '+(ecl[0]>0?'YOUR ECLIPSE '+Math.ceil(ecl[0])+' · ':'')+(ecl[1]>0?'ECLIPSE '+Math.ceil(ecl[1])+' · ':'')+(SIEGE?(SIEGE.hp>0?'GATE '+Math.ceil(SIEGE.hp/SIEGE.max*100)+'% · ':'GATE BROKEN · '):'')+(pups.length?pups.length+' POWER-UP'+(pups.length>1?'S':''):'')+(fury[0]>0?' · BERSERK '+Math.ceil(fury[0]):'')+(tcloud[0].t>0?' · STORM '+Math.ceil(tcloud[0].t):'')+(MOD!=='none'?' · '+MODN[MOD].toUpperCase():'');
     {const qb=$('squadBtn');qb.disabled=phase!=='fight'||squadCD>0;qb.textContent=squadAim?'Click a spot':'G Send squad'+(squadCD>0?' '+Math.ceil(squadCD):'');}
     {const ab=$('abilBtn'),A=abil[0],AB=ABIL[active[0].d.troop];ab.textContent='R '+AB.n+(A.t>0?' ON':A.cd>0?' '+Math.ceil(A.cd):'');ab.disabled=phase!=='fight'||A.cd>0;ab.classList.toggle('ready',phase==='fight'&&A.cd<=0);}
     const sp=$('spell'),ready=(phase==='pursuit'&&pursuit&&pursuit.L===0&&fg[0].sta>=STA.min&&fg[0].burst<=0)||storm.on||(mp[0]>=spellCost(0)&&spellCD[0]<=0&&castPhase(0)&&state==='battle');sp.disabled=!ready;sp.classList.toggle('ready',ready);
@@ -3534,7 +3544,7 @@ function loopInner(tms){
   if(state==='transition'){
     trT+=dt;const sMax=xrActive?1.6:3.2;
     if(trT<0.8){const k=ease(trT/0.8),s=1+k*(sMax-1);kingdom.scale.setScalar(KS*s);kingdom.position.set(PASS.x*KS*(1-s),-k*2.5,PASS.z*KS*(1-s));}
-    else{if(!swapped&&GUEST()){swapped=true;netGuestSwap();}if(!swapped){DE4LOG.beat('transition swap');DE4LOG.info('enter battlefield');swapped=true;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();BST.kills=[0,0];BST.rounds=[0,0];BST.snap=new Map(roster[0].map(r=>[r,{lvl:r.lvl,xp:r.xp,troops:r.troops}]));RES=null;if(resBoard)resBoard.visible=false;active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();const seed0=mapSeed;buildBattlefield(lastType);clearField();rollMod();
+    else{if(!swapped&&GUEST()){swapped=true;netGuestSwap();}if(!swapped){DE4LOG.beat('transition swap');DE4LOG.info('enter battlefield');swapped=true;berserk[0]=berserk[1]=0;kingdom.visible=false;battle.visible=true;if(pendingBattle){roster=[pendingBattle.p.slice(),pendingBattle.e.slice()];}else newRoster();BST.kills=[0,0];BST.rounds=[0,0];BST.snap=new Map(roster[0].map(r=>[r,{lvl:r.lvl,xp:r.xp,troops:r.troops}]));RES=null;if(resBoard)resBoard.visible=false;active[0]=active[1]=null;round=0;tyrantTaken=false;traitorMsg='';pursuit=null;lastPor[0]=lastPor[1]='';lastType=pickType();const seed0=mapSeed;buildBattlefield(lastType);clearField();rollMod();
         if(pendingBattle&&pendingBattle.ctx.kind==='castle'){const c=pendingBattle.ctx,pAtt=c.attN===P0N();setupSiege(pAtt?1:0,c.castle.fort||0);}else if(SK&&SK.siege)setupSiege(SK.siege==='def'?0:1,1);
         if(HOSTMP()){NET.lastPNat=P0N();NET.lastENat=pendingBattle.eNat;netBattleStart(seed0);}}
       const k=ease(Math.min(1,(trT-0.8)/0.9));battle.scale.setScalar(0.35+0.65*k);battle.position.y=(1-k)*2;
