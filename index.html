@@ -519,7 +519,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 98';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 99';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2254,7 +2254,7 @@ function castSpell(side,tgt){if(side===0)DE4LOG.mark('castSpell '+(active[0]&&ac
   if(side===0&&netIn('spell',tgt?{x:tgt.x,z:tgt.z}:{}))return false;
   if(state!=='battle'||!castPhase(side)||mp[side]<spellCost(side)||spellCD[side]>0||!fg[side].rec||(side===0&&storm.on)||(side===1&&storm1.on))return false;
   const g=fg[side],sp=g.rec.d.spell;if(sp==='breath'&&dragon.mode!=='idle')return false;
-  mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;
+  mp[side]-=spellCost(side);spellCD[side]=4;if(side===0)aim.mode=false;g.cast=1.6;hudAcc=1;if(sp==='thunder')lanceBud[1-side]=LANCE_GEN_CAP;
   showBanner(SPELL[sp],side===1);sfx(sp==='breath'?'roar':'chant');
   morale[side]=clamp(morale[side]+0.08,0,1);morale[1-side]=clamp(morale[1-side]-0.05,0,1);
   spawn({x:g.x,y:Hb(g.x,g.z)+1.4,z:g.z+0.3,tex:T_RUNE,w:3.4,h:3.4,life:1.5,grow:0.6,vy:0.8,blink:true});
@@ -2303,6 +2303,8 @@ function lightning(x,z,V,lance){
   spawn({x,y:y+9,z,tex:T_BOLT,w:2.4,h:18,life:0.3,blink:true});if(lance)spawn({x,y:y+0.2,z,tex:T_RUNE,w:3.6,h:3.6,life:0.45,grow:0.8,blink:true});
   impact(x,z,V,true,lance);scatterArchers(x,z,V,6.5,0.5,0.6);if(lance)shatterRocks(x,z);
 }
+/* Thunder Lance is for breaking troops: each bolt only grazes a general, and one cast can do him only so much harm */
+const lanceBud=[0,0],LANCE_GEN_CAP=10;
 function impact(x,z,V,small,lance){GSRC++;try{impactCore(x,z,V,small,lance);}finally{GSRC--;}}
 function impactCore(x,z,V,small,lance){if(V===1)bossHit(lance?22:small?14:30,x,z);
   const y=Hb(x,z);if(!small)sfx('boom');shake=Math.max(shake,small?0.5:0.9);flash(small?0.3:0.55);
@@ -2313,7 +2315,7 @@ function impactCore(x,z,V,small,lance){if(V===1)bossHit(lance?22:small?14:30,x,z
   const fk=FKR[ef(V)],kr=(lance?1.9:small?1.5:2.4)*fk,dr=(lance?3.2:small?2.7:3.9)*fk;
   for(const u of alive[V]){if(u.state!=='alive')continue;const d=Math.hypot(u.x-x,u.z-z);
     if(d<kr){if(STATS[u.type].hp>=10){u.hp-=5;if(u.hp<=0)kill(u,x,z,R(4,8),R(7,12));}else kill(u,x,z,R(4,8),R(7,12));}else if(d<dr){u.hp-=3;if(u.hp<=0)kill(u,x,z,R(3,5),R(4,7));}}
-  const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<2.6)generalHit(eg,lance?7:small?5:8,null);
+  const eg=fg[V];if(eg.rec&&Math.hypot(eg.x-x,eg.z-z)<(lance?1.8:2.6)){let dm=lance?3:small?5:8;if(lance){dm=Math.min(dm,lanceBud[V]);lanceBud[V]-=dm;}if(dm>0)generalHit(eg,dm,null);}
 }
 function castBreathAt(cx,cz,side=1){schedule(0.9,()=>ignite(cx,cz));
   cz=clamp(cz,-30,30);dragon.mode='swoop';dragon.t=0;dragon.side=side;

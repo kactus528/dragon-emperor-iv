@@ -103,7 +103,7 @@ Up to three players share one war table, one nation each (Aldmere, the Ashen Leg
 
 **Flying troops** (harpies and dragons) climb over obstacles instead of passing through them: rocks, desert stone walls, siege walls and gate towers all have a height (trees don't: flyers pass straight through forests), and flyers look ahead and rise smoothly above whatever is in front of them (and over rising ground), then settle back down once past.
 
-**Rapid fire:** with Thunder Lance or Arrow Storm charged, hold the right trigger (or hold the mouse button) and bolts or volleys keep firing at the aim point as fast as they recharge (about 4–5 a second). Enemy generals now cast the same way: a run of aimed strikes, each at one of your soldiers (or now and then at your general), instead of one big swarm.
+**Rapid fire:** with Thunder Lance or Arrow Storm charged, hold the right trigger (or hold the mouse button) and bolts or volleys keep firing at the aim point as fast as they recharge (about 4–5 a second). Enemy generals now cast the same way: a run of aimed strikes, each at one of your soldiers (or now and then at your general), instead of one big swarm. Thunder Lance is a troop-killer, not a general-killer: a bolt only hurts a general on a near-direct hit (within about 1.8 units), does 3 damage instead of 7, and one cast can do a general at most 10 damage in total however many bolts land on him. The same limit applies to enemy generals casting it at yours.
 
 ## Relics
 
