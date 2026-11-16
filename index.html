@@ -519,7 +519,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 97';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 98';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1882,7 +1882,7 @@ function reinforce(s,N){const r=active[s],g=fg[s];if(!r)return;let n=0;const ex=
     if(n%2)spawn({x:u.x,y:Hb(u.x,u.z)+0.4,z:u.z,frames:SMOKE,w:1.6,h:1.6,life:0.9,grow:1.2,vy:1});}
   battleCry(s,24,1.2);sfx('horn');morale[s]=clamp(morale[s]+0.1,0,1);showBanner(n?n+' reinforcements charge in!':'No reserves left...',s===1);}
 function dragonWrath(s){const o=1-s,c=centroid(alive[o],fg[o]),dir=s?-1:1;if(!wr[s].sp){wr[s].sp=card(new THREE.MeshBasicMaterial({map:DRAG.r[0],alphaTest:0.5,side:THREE.DoubleSide}),0.5,0.5,0);battle.add(wr[s].sp);}
-  Object.assign(wr[s],{t:5.6,x:-dir*(FW/2+14),z:c.z,dir,n:0,k:0});wr[s].sp.visible=true;wr[s].sp.scale.set(9*dir,5.8,1);sfx('roar');schedule(0.3,()=>sfx('horn'));showBanner(s?'A dragon answers the enemy!':"Dragon's Wrath! The wyrm answers!",s===1);}
+  Object.assign(wr[s],{t:5.6,x:-dir*(FW/2+14),z:c.z,dir,n:0,k:0});dragShow(wr[s].sp,dir);wr[s].sp.scale.set(9*dir,5.8,1);sfx('roar');schedule(0.3,()=>sfx('horn'));showBanner(s?'A dragon answers the enemy!':"Dragon's Wrath! The wyrm answers!",s===1);}
 const eclZ=[null,null];let eclSp=null;
 function eclSun(){if(eclSp)return eclSp;const c=cv(128,128),x=c.getContext('2d'),g=x.createRadialGradient(64,64,18,64,64,62);g.addColorStop(0,'rgba(220,180,255,1)');g.addColorStop(0.42,'rgba(170,110,255,0.9)');g.addColorStop(0.7,'rgba(90,40,170,0.45)');g.addColorStop(1,'rgba(40,10,80,0)');
   x.fillStyle=g;x.fillRect(0,0,128,128);x.fillStyle='#07040c';x.beginPath();x.arc(64,64,25,0,7);x.fill();
@@ -1910,11 +1910,14 @@ function fireEvent(force){const opts=[];const c0=centroid(alive[0],fg[0]),c1=cen
     const ex=s?FW/2-3:-FW/2+3,cz=(s?c1:c0).z,n=spawnTroops(s,24,M[1],ex,clamp(cz,-FD/2+6,FD/2-6),5);battleCry(s,24,1);sfx('horn');morale[s]=clamp(morale[s]+0.12,0,1);
     showBanner(M[0]+"'s "+M[2]+' join '+(s?'the enemy':'your side')+'! (+'+n+')',s===1);}
   else if(k==='wyrm'){if(!WILD.sp){WILD.sp=card(new THREE.MeshBasicMaterial({map:DRAG.r[0],alphaTest:0.5,side:THREE.DoubleSide}),0.5,0.5,0);battle.add(WILD.sp);}
-    const dir=Math.random()<0.5?1:-1;Object.assign(WILD,{t:7,x:-dir*(FW/2+14),z:(c0.z+c1.z)/2,dir,n:0});WILD.sp.visible=true;WILD.sp.scale.set(11*dir,7,1);sfx('roar');schedule(0.4,()=>sfx('roar'));shake=Math.max(shake,0.9);showBanner('A wild wyrm descends on the battle!');}
+    const dir=Math.random()<0.5?1:-1;Object.assign(WILD,{t:7,x:-dir*(FW/2+14),z:(c0.z+c1.z)/2,dir,n:0});dragShow(WILD.sp,dir);WILD.sp.scale.set(11*dir,7,1);sfx('roar');schedule(0.4,()=>sfx('roar'));shake=Math.max(shake,0.9);showBanner('A wild wyrm descends on the battle!');}
   else if(k==='storm'){MOD='storm';modT=R(2,4);applyMod();sfx('zap');showBanner('A storm rolls in!');}}
+/* never leave a dragon sprite without a picture: a material compiled while its map is empty draws a plain white card */
+function dragFrame(dir,t){return (dir>0?DRAG.r:DRAG.l)[Math.abs(Math.floor(Math.max(0,t)/0.12))%2]||DRAG.r[0];}
+function dragShow(sp,dir){sp.material.map=dragFrame(dir,0);sp.material.needsUpdate=true;sp.visible=true;}
 function tickWild(dt){const W=WILD;if(!(W.t>0))return;W.t-=dt;const spd=(FW+28)/7;W.x+=W.dir*spd*dt;const gy=Hb(clamp(W.x,-FW/2,FW/2),W.z);
   const col=[...alive[0],...alive[1]].filter(u=>Math.abs(u.x-W.x)<7);if(col.length){let zz=0;for(const u of col)zz+=u.z;W.z+=(zz/col.length-W.z)*Math.min(1,dt*2);}
-  W.sp.position.set(W.x,gy+10+Math.sin(W.t*4)*0.8,W.z);W.sp.material.map=(W.dir>0?DRAG.r:DRAG.l)[Math.floor(W.t/0.12)%2];
+  W.sp.position.set(W.x,gy+10+Math.sin(W.t*4)*0.8,W.z);W.sp.material.map=dragFrame(W.dir,W.t);
   if(Math.abs(W.x)<FW/2-1&&phase==='fight'){for(let i=0;i<2;i++)spawn({x:W.x+W.dir*R(1,3),y:gy+R(6,8),z:W.z+R(-1,1),vx:W.dir*R(1,4),vy:-R(9,14),vz:R(-2,2),frames:FLAME,w:R(1.8,2.8),h:R(1.8,2.8),life:0.45,grow:1});
     W.n-=dt;if(W.n<=0){W.n=0.12;const C=col.filter(u=>u.state==='alive'&&Math.abs(u.x-W.x)<3.4);if(C.length){const u=C[(Math.random()*C.length)|0];impact(u.x,u.z,u.side,true);ignite(u.x,u.z);}}}
   if(W.t<=0)W.sp.visible=false;}
@@ -1933,7 +1936,7 @@ function tickSpectacles(dt){
     const M=met[s];if(M.t>0&&phase==='fight'&&alive[o].length){M.t-=dt;M.n-=dt;if(M.n<=0){M.n=R(0.7,0.95);const u=alive[o][(Math.random()*alive[o].length)|0];if(u){dropMeteor(clamp(u.x+R(-1.5,1.5),-FW/2+1,FW/2-1),clamp(u.z+R(-1.5,1.5),-FD/2+1.5,FD/2-1.5),o);M.k++;}}}
     else if(M.t>0&&phase!=='fight')M.t=0;
     const W=wr[s];if(W.t>0){W.t-=dt;const spd=(FW+28)/5.6;W.x+=W.dir*spd*dt;const gy=Hb(clamp(W.x,-FW/2,FW/2),W.z);{const col=alive[o].filter(u=>Math.abs(u.x-W.x)<6);if(col.length){let zz=0;for(const u of col)zz+=u.z;W.z+=(zz/col.length-W.z)*Math.min(1,dt*2.5);}}
-      W.sp.position.set(W.x,gy+8+Math.sin(W.t*5)*0.6,W.z);W.sp.material.map=(W.dir>0?DRAG.r:DRAG.l)[Math.floor(W.t/0.12)%2];
+      W.sp.position.set(W.x,gy+8+Math.sin(W.t*5)*0.6,W.z);W.sp.material.map=dragFrame(W.dir,W.t);
       if(Math.abs(W.x)<FW/2-1&&phase==='fight'){for(let i=0;i<3;i++)spawn({x:W.x+W.dir*R(1,2.5),y:gy+R(5,7),z:W.z+R(-1,1),vx:W.dir*R(1,4),vy:-R(9,14),vz:R(-2,2),frames:FLAME,w:R(1.6,2.6),h:R(1.6,2.6),life:0.45,grow:1});
         W.n-=dt;if(W.n<=0){W.n=0.07;const col=alive[o].filter(u=>u.state==='alive'&&Math.abs(u.x-W.x)<3.2);
           if(col.length){const u=col[(Math.random()*col.length)|0];impact(u.x,u.z,o,true);spawn({x:u.x,y:Hb(u.x,u.z)+3,z:u.z,frames:FLAME,w:2.4,h:6,life:0.4,grow:0.6});}else if(Math.random()<0.4)impact(W.x+W.dir*1.5,clamp(W.z+R(-6,6),-FD/2+1.5,FD/2-1.5),o,true);}}
