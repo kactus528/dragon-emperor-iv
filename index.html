@@ -500,13 +500,13 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   window.addEventListener('pagehide',flush);document.addEventListener('visibilitychange',()=>{L.add('info','page '+document.visibilityState);flush();if(document.visibilityState==='hidden'){try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:true}));}catch(e){}}});
   let trUntil=0,trBuf=[];let wdw=null;try{const src="let last=0,st='',on=false,done=false;onmessage=e=>{const d=e.data;if(d==='off'){on=false;return;}last=Date.now();st=d;on=true;done=false;};function put(v){try{const r=indexedDB.open('de4wd',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>{try{r.result.transaction('k','readwrite').objectStore('k').put(v,'f');}catch(e){}};}catch(e){}}setInterval(()=>{if(on&&!done&&Date.now()-last>3000){done=true;put({t:last,st:st,at:Date.now()});}},500);";
     wdw=new Worker(URL.createObjectURL(new Blob([src],{type:'text/javascript'})));}catch(e){wdw=null;}
-  L.beat=st=>{if(wdw)try{wdw.postMessage(st);}catch(e){}if(Date.now()<trUntil)L.mark(st);};
+  L.beat=st=>{if(wdw)try{wdw.postMessage(document.visibilityState==='hidden'?'off':st);}catch(e){}if(Date.now()<trUntil)L.mark(st);};
   L.mark=st=>{try{const t=Date.now();if(t<trUntil){trBuf.push((t%100000)+' '+st);if(trBuf.length>14)trBuf.shift();}localStorage.setItem('de4-mark',JSON.stringify({t,st:(L.ctx()+' '+st).slice(0,160),tr:t<trUntil?trBuf.join(' > '):''}));}catch(e){}};
   L.trace=(ms)=>{trUntil=Date.now()+ms;trBuf=[];};L.tracing=()=>Date.now()<trUntil;L.beatOff=()=>{if(wdw)try{wdw.postMessage('off');}catch(e){}};
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')L.beatOff();});
   let prevAlive=null;
   try{const a=JSON.parse(localStorage.getItem('de4-alive')||'null');prevAlive=a;if(a&&!a.clean&&Date.now()-a.t<15*60000){L.add('ERROR','Previous session ended without closing (tab crash, browser kill or freeze). Last seen '+Math.round((Date.now()-a.t)/1000)+'s before this load: '+a.s);}}catch(e){}
-  try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:false,s:'page loading'}));}catch(e){}
+  try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:document.visibilityState==='hidden',s:'page loading'}));}catch(e){}
   window.addEventListener('pagehide',()=>{try{localStorage.setItem('de4-alive',JSON.stringify({t:Date.now(),clean:true}));}catch(e){}});
   L.add('info','page load');
   try{const mk=JSON.parse(localStorage.getItem('de4-mark')||'null');if(mk&&prevAlive&&!prevAlive.clean&&mk.t>=prevAlive.t-1500&&Date.now()-mk.t<15*60000)L.add('ERROR','Last step before the crash: '+mk.st+' ('+((mk.t-prevAlive.t)/1000).toFixed(1)+'s after the last snapshot)'+(mk.tr?' · trace: '+mk.tr:''));}catch(e){}
@@ -519,7 +519,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 96';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 97';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
