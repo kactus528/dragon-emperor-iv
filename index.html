@@ -538,7 +538,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 113';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 114';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1346,6 +1346,7 @@ function turnRec(r,side,nat){return Object.assign({},r,{d:Object.assign({},r.d,{
 function gainXP(r,n){if(!r||r.lvl===undefined||!r.alive)return;r.xp+=n*(isHum(r.nat)?DIFF.xp:1);
   while(r.lvl<10&&r.xp>=xpNeed(r.lvl)){r.xp-=xpNeed(r.lvl);r.lvl++;r.d.hp+=5;r.hp=Math.min(r.d.hp,r.hp+5);r.d.atk+=0.7;r.d.def+=0.5;r.troopsMax=capOf(r);levelUps.push(r);}}
 const power=r=>r.troops*(1+r.lvl*0.08)+Math.max(0,r.hp)*r.d.atk*0.8;
+const isRuler=r=>!!(r&&r.d&&NATIONS[r.nat]&&r.d.key===NATIONS[r.nat].ruler);
 const ready=r=>r.alive&&!(r.rest>0)&&r.troops>=r.troopsMax*0.5&&r.hp>=r.d.hp*0.5;
 const canMarchGen=r=>r.alive&&!(r.rest>0)&&r.troops>0&&r.hp>0;
 const restTxt=r=>r.rest>0?`Resting · ${r.rest} wk`:'';
@@ -1520,7 +1521,11 @@ function showCampaignEnd(){if(NET.on){netCampEndScreen();return;}const win=CAMP.
   $('againBtn').textContent=win?'Begin Age '+ROMAN(AGE+1):'New campaign';$('againBtn').hidden=false;$('mapBtn').hidden=!win;$('mapBtn').textContent='Start over at Age I';if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 function aiCampaign(n){
   const own=CASTLES.filter(c=>c.o===n);if(!own.length)return;
-  for(const c of own){const G=garrison(c).filter(ready).sort((a,b)=>power(b)-power(a)),keep=c.cap?1:0;if(G.length<=keep)continue;
+  {const ru=GENS.find(r=>r.alive&&r.nat===n&&isRuler(r)&&typeof r.loc==='number');/* a ruler left alone sends for a bodyguard */
+    if(ru&&garrison(CASTLES[ru.loc]).length<2&&!CAMP.armies.some(a=>a.nat===n&&a.path[a.path.length-1]===ru.loc)){let best=null,bd=1e9;
+      for(const c of own){if(c.id===ru.loc)continue;const g=garrison(c).filter(r=>!isRuler(r)&&!(r.rest>0)&&r.troops>0).sort((a,b)=>power(b)-power(a))[0],p=g&&bfs(c.id,ru.loc);if(p&&p.length<bd){bd=p.length;best=[g,c];}}
+      if(best){dispatch(n,[best[0]],best[1].id,ru.loc);refreshCastle(best[1]);}}}
+  for(const c of own){const all=garrison(c),hasRu=all.some(isRuler),G=all.filter(r=>ready(r)&&!isRuler(r)).sort((a,b)=>power(b)-power(a)),keep=hasRu?(all.filter(r=>!isRuler(r)).length>G.length?0:1):(c.cap?1:0);if(G.length<=keep)continue;
     const targeted=new Set(CAMP.armies.filter(a=>a.nat===n).map(a=>a.path[a.path.length-1]));
     const opts=c.adj.map(i=>CASTLES[i]).filter(t=>t.o!==n&&!targeted.has(t.id));
     const send=G.slice(0,Math.min(3,G.length-keep)),my=send.reduce((s,r)=>s+power(r),0);
@@ -2728,7 +2733,7 @@ function selAct(x){if(!x)return;if(x.k==='gen')chooseGeneral(x.r);else if(x.k===
 function startSelect(){DE4LOG.mark('startSelect');
   phase='select';NET.pick=[null,null];NET.selT=0;const it=selItems();
   const e=active[1];selEnemyHint=e&&!e.out&&e.troops>=NPS*0.35&&e.hp>0?e:null;
-  selIdx=Math.max(0,it.findIndex(x=>x.k!=='sur'&&x.r===active[0]));
+  selIdx=Math.max(0,it.findIndex(x=>x.k!=='sur'&&x.r===active[0]));if(it[selIdx]&&it[selIdx].k==='gen'&&isRuler(it[selIdx].r)){const j=it.findIndex(x=>x.k==='gen'&&!isRuler(x.r));if(j>=0)selIdx=j;}
   renderSelect();updateModeUI();hudAcc=1;
   setOrbitGoal({theta:0,phi:0.95,r:118,ty:0,tx:0,tz:0},1);
 }
@@ -2758,11 +2763,11 @@ function chooseGeneral(r){
 function chooseSide(side,rr){if(phase!=='select'||!rr||!avail(side).includes(rr))return;NET.pick[side]=rr;
   const need0=!NET.on||NET.ctl[0]!=='ai',need1=NET.on&&NET.ctl[1]!=='ai';
   if((need0&&!NET.pick[0])||(need1&&!NET.pick[1])){if(side===0&&NET.ctl[0]==='local'){updateModeUI();showBanner('Waiting for the other commander…');}return;}
-  const r=NET.pick[0]||avail(0).sort((x,y)=>power(y)-power(x))[0],r1=NET.pick[1];NET.pick=[null,null];NET.selT=0;if(!r)return;
+  const r=NET.pick[0]||avail(0).sort((x,y)=>(isRuler(x)-isRuler(y))||power(y)-power(x))[0],r1=NET.pick[1];NET.pick=[null,null];NET.selT=0;if(!r)return;
   DE4LOG.beat('chooseGeneral');DE4LOG.mark('chooseGeneral '+r.d.key);active[0]=r;
   if(!r1)for(const c of roster[0].filter(x=>x.captor===1&&!x.turned&&x.tried!==round&&x.d.key!==NATIONS[P0N()].ruler)){c.tried=round;
     if(Math.random()<DIFF.turn){c.turned=true;roster[1].push(turnRec(c,1,pendingBattle?pendingBattle.eNat:'ashen'));traitorMsg=c.d.short+' has turned traitor!';}}
-  const e=active[1],ea=avail(1);let pick=null;
+  const e0=active[1],ea0=avail(1),eaN=ea0.filter(x=>!isRuler(x)),ea=eaN.length?eaN:ea0,e=e0&&ea.includes(e0)?e0:null;let pick=null;
   if(r1)pick=r1;else if(e&&ea.includes(e)&&e.troops>=NPS*0.35)pick=e;
   else{const counters=ea.filter(x=>adv(x.d.troop,r.d.troop)>1.25).sort((a,b)=>adv(b.d.troop,r.d.troop)-adv(a.d.troop,r.d.troop)),nonBoss=ea.filter(x=>x.d.key!=='vorgrath'),pl=nonBoss.length?nonBoss:ea;
     pick=(counters.length&&Math.random()<DIFF.counter)?counters[0]:pl[(Math.random()*pl.length)|0];}
