@@ -538,7 +538,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 117';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 118';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2598,8 +2598,8 @@ const TUT_PAGES=[
   d:[['Space','Aim the spell'],['Click','Fire (Thunder/Arrows: one per click)'],['Esc','Cancel aim / release the storm']],v:[['Point R hand','Aim at the field'],['R trigger','Fire (Thunder/Arrows: one per pull)'],['R stick','Turn and zoom to find a target']]},
  {h:'Duels',q:['a','rt','lt','x'],b:'Generals only duel when they <b>meet on the field</b>. Press Seek duel to send yours after his rival; a strong enemy will hunt you too. In the duel, pick a move before the <b>centre timer</b> runs out. A <b>LOCKED IN</b> tag shows when either fighter commits, and both moves are revealed together. A <b>gold glow</b> means he is charging Power, so Strike him.',art:()=>TRI('Strike','Power','Guard','#ffb09a','#f0c055','#9ab8ff'),
   d:[['5','Seek duel / stop seeking'],['J  K  L','Strike · Guard · Power']],v:[['Hold A','Seek duel / stop seeking'],['R trigger','Strike'],['L trigger','Guard'],['A or X','Power']]},
- {h:'Spoils of war',q:['rt','lt','ls'],b:'A beaten or withdrawing general must run to <b>any edge of the field</b> to escape. You can also hit a fleeing enemy general with your magic: wear him down and he is struck down and captured. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: steer him with <b>WASD</b> (or the left stick) and press <b>Space</b> (or the right trigger) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
-  d:[['WASD / arrows','Steer while fleeing'],['Space','Sprint while fleeing'],['Click a prisoner','Try to persuade him']],v:[['L stick','Steer while fleeing'],['R trigger','Sprint while fleeing'],['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
+ {h:'Spoils of war',q:['rt','lt','ls'],b:'A beaten or withdrawing general must run to <b>any edge of the field</b> to escape. You can also hit a fleeing enemy general with your magic: wear him down and he is struck down and captured. <b>Catch him</b> before he gets there (cavalry is fastest) and he becomes your prisoner. The same goes for yours: steer him with <b>WASD</b> (or the left stick) and press <b>Space</b> (or the A button in VR) to sprint. Sprints burn the <b>stamina</b> bar, which refills while he jogs, so time them for when the chasers close in. Between rounds you can try to <b>persuade prisoners</b> to join you with fresh troops. Generals earn XP for kills, wins and duels. Each level adds HP, attack and up to <b>400 troops</b>. The results screen ranks every battle from S to D.',
+  d:[['WASD / arrows','Steer while fleeing'],['Space','Sprint while fleeing'],['Click a prisoner','Try to persuade him']],v:[['L stick','Steer while fleeing'],['A','Sprint while fleeing'],['R trigger','Cast a spell while fleeing'],['L trigger','Move to a prisoner card'],['R trigger','Persuade him']]},
  {h:'Your view',q:['lg','rg','ls','rs','b'],b:'This is a stereo diorama. Lean in, pull back and walk around it. On a flat screen, use the view bar to switch between normal, anaglyph (red/cyan glasses), side-by-side and cross-eye. In VR the whole table is in your hands. You can reopen this guide any time from <b>How to play</b> on the title screen. Win the war and a new <b>Age</b> begins: your generals keep their levels and relics, and the enemy comes back stronger. Good luck, Commander.',
   d:[['Drag','Orbit'],['Right-drag / WASD','Pan'],['Scroll / pinch','Zoom'],['Q / E','Turn']],v:[['Grip','Grab the table'],['Both grips','Scale and turn it'],['L stick','Slide the battlefield'],['R stick','Turn and zoom'],['B','Reset the table']]}];
 function padSVG(on,fontless){const O=new Set(on||[]),G='#f0c055',D='#4a3d63',F='#1c1730',T='#857aa0',ff=fontless?'monospace':'Silkscreen,monospace';
@@ -2815,7 +2815,7 @@ function endEngagement(w,reason){DE4LOG.trace(6000);DE4LOG.mark('endEngagement '
   if(reason==='fallen'){captureGen(L,w);schedule(0.6,()=>showBanner(lr.d.short+' is captured!',L===0));setOrbitGoal(BV,0.9);schedule(3,nextRound);return;}
   phase='pursuit';pursuit={t:0,L,w,withdraw:wd};if(SIEGE)SIEGE.sally=false;siegeOpen();fg[L].flee=false;battleCry(w,16,0.9);
   schedule(0.3,()=>showBanner(L===1?'Run him down, or blast him with magic!':lr.d.short+(wd?' withdraws':' flees')+'! Reach any edge!',L===0));
-  if(L===0)schedule(1.9,()=>showBanner(xrActive?'Left stick steers · R trigger sprints':'WASD steers · Space sprints',true));
+  if(L===0)schedule(1.9,()=>showBanner(xrActive?'Left stick steers · A sprints · R trigger casts':'WASD steers · Space sprints',true));
   setOrbitGoal({theta:0,phi:1.0,r:70,ty:0,tx:clamp(fg[L].x,-50,50),tz:clamp(fg[L].z,-34,34)},0.9);
 }
 function updatePursuit(dt){ecl[0]=Math.max(0,ecl[0]-dt);ecl[1]=Math.max(0,ecl[1]-dt);tickEclipse(dt);
@@ -3023,7 +3023,7 @@ function drawVrHudInner(){
       line(B.d.short+' challenges '+A.d.short+'!',140,'#f1e8d4','18px');line('A: ACCEPT    X: DECLINE',170,'#f0c055','20px');
       x.fillStyle='#2a1418';x.fillRect(24,204,W-48,8);x.fillStyle='#ff5a3a';x.fillRect(24,204,(W-48)*chal.t/chal.max,8);}
     else if(state==='end'){line(RES&&RES.live&&RES.t<RES.T?'Trigger: skip':'Trigger: return to the war table',110,'#f0c055');if(RES)line('Rank '+(RES.stamped?RES.grade:'?')+' · slain '+RES.K+' · lost '+RES.Lo,140,'#a99fb8','16px');}
-    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · L TRIG SPRINT · R TRIG MAGIC':'RUN HIM DOWN! AIM + R TRIG: MAGIC',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
+    else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · A SPRINT · R TRIG MAGIC':'RUN HIM DOWN! AIM + R TRIG: MAGIC',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
     else{if(bossActive()){x.fillStyle='#2a0e0e';x.fillRect(470,20,270,12);x.fillStyle='#e8401a';x.fillRect(470,20,270*BOSS.hp/BOSS.max,12);x.font='700 14px Silkscreen, monospace';x.fillStyle='#ff7a4a';x.fillText('ASHEN WYRM',470,38);}
       line('ORDER: '+orders[0].toUpperCase()+' · '+FNAME[form[0]].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);line('R-STICK CLICK: SQUAD'+(squadCD>0?' '+Math.ceil(squadCD):'')+' · Y FORM · L-STICK: '+ABIL[A.d.troop].n.toUpperCase()+(abil[0].t>0?' ON':abil[0].cd>0?' '+Math.ceil(abil[0].cd):' READY')+(pups.length?' · '+pups.length+' POWER-UPS':''),190,abil[0].cd<=0?'#9ab8ff':'#857aa0','15px');
       line(storm.on?(storm.kind==='volley'?'VOLLEYS: HOLD R TRIG · ':'STORM: HOLD R TRIG · ')+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
@@ -3091,7 +3091,7 @@ function xrSelect(hand){DE4LOG.trace(6000);DE4LOG.mark('trigger '+hand+' '+state
     if(phase==='plan'){if(planMine()){if(hand==='left')planHover(PLN.idx+1);else planAct(PLN.idx);drawVrHud();}return;}
     if(phase==='select'){const it=selItems();if(!it.length)return;if(hand==='left'){selIdx=(selIdx+1)%it.length;renderSelect();hudAcc=1;}else selAct(it[selIdx%it.length]);}
     else if(phase==='duel')duelPick(hand==='left'?'guard':'strike');
-    else if(phase==='pursuit'&&pursuit&&pursuit.L===0){if(hand!=='left'&&storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(hand!=='left'&&mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else sprint(fg[0]);}
+    else if(phase==='pursuit'&&pursuit&&pursuit.L===0){if(hand!=='left'&&storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(hand!=='left'&&mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(hand!=='left')showBanner(mp[0]<spellCost(0)?'No magic. A sprints':'Spell recharging. A sprints');}
     else if(phase==='pursuit'&&pursuit&&pursuit.L===1&&hand!=='left'){if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);}
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1&&orders[0]!=='retreat')setOrder('charge');else if(orders[0]==='retreat')showBanner(mp[0]<1?'No magic yet':'Spell recharging');}
   }
@@ -3104,6 +3104,7 @@ function xrFace(hand){DE4LOG.trace(6000);DE4LOG.mark('button '+hand+' '+state+'/
     CAMP.sel=null;CAMP.target=false;updateCampPanel();drawVrHud();return;}
   if(state!=='battle')return;
   if(phase==='duel'){duelPick('power');return;}
+  if(phase==='pursuit'&&pursuit&&pursuit.L===0){sprint(fg[0]);return;}
   if(phase!=='fight')return;
   if(chal){answerChallenge(hand!=='left');return;}
   if(hand==='left'){if(withdrawArm>0){withdrawArm=0;withdraw();}else{withdrawArm=2.5;showBanner('X again: withdraw');}}
