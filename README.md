@@ -6,6 +6,52 @@ A miniature war-table kingdom drops into stereoscopic battles of 400 vs 400 spri
 
 New players get an nine-page **How to play** guide when they press Start, covering the war table, match-ups, orders, magic, duels, spoils and the view controls. Every page lists both keyboard and Quest 2 controls, with a controller diagram that lights up the buttons that page uses (the Quest list comes first when opened in the Quest browser). It can be skipped, the "Don't show this at start" choice is remembered, and it can be reopened from **How to play** on the title screen. It works on desktop and in VR.
 
+## Tactical mode (experimental)
+
+Tick **Tactical mode** on the title screen (in VR, press A on the title panel) to play with a deeper battle and war-table model. Untick it and the game is exactly the classic one. The setting is remembered. In multiplayer the host's setting applies to everyone.
+
+**Squads.** Each army is split into up to eight squads, each with its own **cohesion** (blue bar) and **morale** (green/gold/red bar), shown on a marker above it. The marker letter shows its state: `!` wavering, `X` routing, `>` charge at full speed, `~` re-forming, `H` hidden, `.` an order on its way.
+- Cohesion falls with casualties, flank and rear blows, broken charges, spells and formation changes, and recovers out of contact (faster near the general). A disordered squad hits softer and takes more damage.
+- Morale falls with losses, low cohesion, being surrounded and nearby routs, and recovers out of contact and near the general. Below 35 a squad **wavers** (slower, hits softer); held below 12 for 1.5 s it **routs** and runs, and every friendly squad nearby loses heart. A general close by halves that shock and can **rally** a routing squad once if he reaches it within a few seconds. Army morale is now the average of its squads.
+- **Leadership:** a general steadies squads within about 11-15 units (more at higher level, less when wounded). A wounded or distant general also makes orders slower to arrive.
+
+**Combat.**
+- **Facing and flanks:** each squad faces its nearest enemy squad, and in melee it turns only slowly. Blows from the side do +25% (+40% against a Wedge, +15% against Spread, +10% against Knights) and from behind +50%, and both shred cohesion and morale. A Square has no flanks.
+- **Frontage:** only the soldiers who can reach an enemy fight; a fourth attacker on the same man adds little (a third in a narrow pass). Outnumbering the enemy locally adds up to +35%.
+- **Charges:** a squad on Charge builds momentum over distance (cavalry, knights and dragonriders up to full power over 12 units, others half as much over 20). The first impact hits much harder and staggers the target. Woods, bog and fords stop momentum building, halting wastes it, and a flank blow or a Thunder Lance bolt breaks it. A charge into the front of a Square breaks: the attackers lose cohesion and fall back for 4 s to recover, and the computer remembers not to try it again for a while. Cavalry wheel away after a few seconds of melee and charge again.
+- **Formations:** Line fights at full frontage (+10%); Wedge hits harder when charging but its flanks are exposed; Square stops charges but is slow; Spread halves spell damage but suffers against concentrated attacks (+20-30%). Changing formation now takes about 3-7 s (less for a high-level general and steady troops), during which squads lose cohesion and take 15% more damage. You can't change again until it is done.
+- **Match-ups are conditional:** spears only beat horse when they are steady and facing the charge; horse only rides down archers, mages and monks with momentum or from the flank; archers only beat infantry at range.
+- **Troop behaviour:** archers suppress what they hit (slower, shakier) and step back from melee unless ordered to Charge; mages' bolts disorder; dragonriders frighten; knights resist disorder; ranged troops shooting downhill reach further and hit harder.
+- **Spells:** every spell hit costs cohesion and morale. Starfall and Ash Rain do extra damage to packed formations; Ash Rain leaves burning ground for 6 s; Arrow Storm suppresses; Thunder Lance breaks charges; Dragon's Breath scatters squads from the flames; Eclipse doubles the enemy's order delay and halves how far the computer can see.
+- **Concealment:** a squad standing still in woods with no enemy within 11 units hides (the enemy cannot see or target it). It is revealed when an enemy comes within 9 or when it attacks, and its first 3 s of attacks after an ambush hit 30% harder.
+- The computer gets no hidden damage or mana bonus in Tactical mode; difficulty comes from how well it fights (see below). The armies tire after 75 s instead of 90.
+
+**Orders.**
+- Orders now take time to reach squads: about 0.2-2 s depending on the general's distance and health, and the squad's cohesion. Charge and Retreat commit a squad for 3 s.
+- **Single squads:** on a flat screen press **Tab** (Shift+Tab back) to select a squad, or click on the squad itself; **0** or clicking it again returns to the whole army. Order keys then go to that squad only, and clicking the field sends it there (it holds on arrival). In VR, point at one of your squads and tap **A** to select it, tap A on the field to move it there, and the left trigger's orders go to it; tap A on the squad again to deselect.
+- **Flank** now sends squads around the side of a real enemy squad, then into its side or rear.
+- Warnings appear when a squad is wavering, surrounded, routing, rallying, or its charge breaks.
+
+**Generals and duels.**
+- Generals are picked **blind**: the computer chooses without seeing your choice, guessing from your last general and your strongest. The reveal banner names its personality.
+- Each enemy general has a **personality** (Aggressive, Cautious, Defensive, Opportunistic or Balanced) that shapes its battle plan and its duel habits: an Aggressive one tends to go Strike, Strike, Power; a Defensive one Guard, Guard, Strike; a Cautious one alternates Guard and Strike; an Opportunistic one counters your last move.
+- A duel only starts if the target general is thinly guarded (fewer than 10 of his soldiers within 7 units) or is seeking the duel himself; otherwise his bodyguard keeps the generals apart and a seeking general stops short. Each duel exchange moves both armies' morale a little; the winner's squads gain 20 morale and the loser's Berserk meter empties. A general who **starts** a duel and loses also costs his side's other companies 15% of their troops to desertion.
+
+**Crystals and events.**
+- Crystals glow on the ground 10 s before they appear, and are claimed by holding the ground beside them: four or more soldiers within 2 units, outnumbering the enemy there 1.5 to 1, for 2.5 s. Soldiers channelling a crystal stop fighting. Their effects are smaller: fury and the Cyclone and Thundercloud last 5-6 s, Meteor Shower 3 s, and reinforcements are halved.
+- Battle events are announced about 4 s ahead (birds burst from the woods, horns, a shadow overhead, distant thunder), and ambushes and sellsword bands are half as big.
+
+**The computer commander** works at squad level: it sees only what is within sight of its squads (not hidden ones), throws a squad at any enemy squad whose side is exposed while it is fighting to the front, piles onto wavering, disordered or isolated squads, keeps cavalry from charging through woods and bog, on Knight and Warlord sets the army's order itself (heavy troops charge rather than wait to be charged, archers hold, foot charges unless outnumbered and forms Square against incoming horse), keeps a reserve behind the line (except an Aggressive general) and commits it to a flank once the lines lock or to plug a breaking squad, and adapts: if it keeps being flanked it holds its end squads, and if it keeps being charged it forms Square. On Squire it rethinks every 3 s and often misses chances; on Knight every 1.6 s; on Warlord every 0.8 s and rarely misses.
+
+**War table.**
+- Every road and castle has a battlefield type, written on the road, and battles there use it (unless you picked a battlefield), so you can choose where to fight.
+- **Blockades:** select a marching army and press **Blockade** (Y in VR) before it arrives. It then camps outside an enemy castle instead of storming it. Each week the garrison loses 15% of its troops, some health and loyalty, and sometimes a level of fortification, while the besiegers lose 3%. A starved-out castle opens its gates. Press **Storm the castle** whenever you're ready. A computer defender sallies out when it is stronger, and computer attackers blockade strong castles half the time.
+- **Balance of power:** when one nation holds 45% or more of the claimed castles (at least 8), the other two stop attacking each other and gang up on it.
+- **Succession:** capturing a ruler no longer ends a nation. The highest-level free general takes the crown; a quarter of the others ride off to rival nations, loyalty drops and half the treasury is lost. The captured ruler becomes an ordinary prisoner who can be ransomed. A computer nation with two castles or fewer formally surrenders instead, and a nation with no free generals falls. This applies to you too: losing Kaelen hands the crown to your best general.
+- In a two-player war the third nation stays on the map under computer control.
+
+**Skirmish** gains an **Army ratio** setting (1:1, 1:1.5, 1:2, 1:3) that shrinks your army, for testing whether tactics can beat numbers. After every Tactical battle the results list a **Tactics** line: flank and rear blows, charges that struck home, broke on a square or were disrupted, and routs and rallies on each side.
+
 ## Difficulty
 Pick one on the title screen (left trigger in VR):
 - **Squire:** enemy troops hit 22% softer, enemy magic recharges slowly, the rivals mostly fight each other, Duskmarch keeps a 10-week truce, your garrisons recover fast, and Kaelen is always rescued if captured.
