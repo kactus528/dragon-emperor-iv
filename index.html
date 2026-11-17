@@ -538,7 +538,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 114';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 115';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1530,7 +1530,14 @@ function aiCampaign(n){
     const opts=c.adj.map(i=>CASTLES[i]).filter(t=>t.o!==n&&!targeted.has(t.id));
     const send=G.slice(0,Math.min(3,G.length-keep)),my=send.reduce((s,r)=>s+power(r),0);
     let best=null,bs=0;for(const t of opts){const g=garrison(t).reduce((s,r)=>s+power(r),0);const sc=(t.o==='none'&&!g?3:g?my/(g*1.2):2)+(t.cap?0.6:0)+(isHum(t.o)?DIFF.bias:0)+(!isHum(t.o)&&t.o!=='none'&&t.o!==n?DIFF.rival:0)+Math.random()*0.5;if(!NET.on&&n==='dusk'&&t.o==='aldmere'&&CAMP.week<=DIFF.peace)continue;if((g===0||my>g*1.3)&&sc>bs){bs=sc;best=t;}}
-    if(best&&Math.random()<DIFF.aiP){const a=dispatch(n,send,c.id,best.id);aiGear(n,a,best);if(a&&isHum(best.o)){clog(`${NATIONS[n].name} marches on ${best.n}!`);warDrums(1,1,124);}refreshCastle(c);continue;}
+    if(best&&Math.random()<DIFF.aiP){/* the ruler rides along only when capture is unlikely: escorted, against an empty or badly outmatched castle, with no hostile army on either end of the road */
+      {const ru=all.find(r=>isRuler(r)&&ready(r)),g=garrison(best).reduce((s,r)=>s+power(r),0),threat=CAMP.armies.some(a=>hostile(a.nat,n)&&(a.path.slice(a.seg).includes(c.id)||a.path.slice(a.seg).includes(best.id)));
+        if(ru&&send.length&&send.length<5&&!threat&&(g===0||my>g*2.2)&&Math.random()<0.5)send.push(ru);}
+      const a=dispatch(n,send,c.id,best.id);aiGear(n,a,best);if(a&&isHum(best.o)){clog(`${NATIONS[n].name} marches on ${best.n}!`);warDrums(1,1,124);}refreshCastle(c);continue;}
+    /* a ruler deep inside his own land may move up, escorted, to a neighbouring castle of his that no one threatens and that his company can comfortably hold */
+    if(!opts.length&&hasRu&&G.length&&Math.random()<0.12){const ru=all.find(r=>isRuler(r)&&ready(r));if(ru){const esc=G.slice(0,2),pw=esc.reduce((s,r)=>s+power(r),power(ru));
+        const tg=c.adj.map(i=>CASTLES[i]).filter(t=>t.o===n&&!CAMP.armies.some(a=>hostile(a.nat,n)&&a.path.slice(a.seg).includes(t.id))&&t.adj.some(i=>CASTLES[i].o!==n)&&t.adj.every(i=>{const e=CASTLES[i];return e.o===n||garrison(e).reduce((s,r)=>s+power(r),0)*1.5<pw+garrison(t).reduce((s,r)=>s+power(r),0);}))[0];
+        if(tg){dispatch(n,esc.concat([ru]),c.id,tg.id);refreshCastle(c);continue;}}}
     if(!opts.length&&G.length>keep&&Math.random()<0.15){const front=own.find(o=>o.adj.some(i=>CASTLES[i].o!==n));if(front&&front!==c)dispatch(n,[G[0]],c.id,front.id);refreshCastle(c);}}
 }
 let pendingBattle=null,advT=0;
