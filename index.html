@@ -55,7 +55,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 #kbar{max-width:560px;margin:0 auto;padding:10px 14px;text-align:center;display:grid;gap:3px}
 #kbar .place{font-family:var(--f-display);font-weight:900;font-size:clamp(18px,4.4vw,26px);color:var(--gold);text-wrap:balance}
 #kbar .line{color:var(--dim);font-size:11px;letter-spacing:.05em;text-wrap:balance}
-#kbar .koffer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--gold);background:#1d1710;font-size:12px;font-weight:700;color:var(--gold)}.koffer[hidden]{display:none}.koffer span{flex:1 1 200px}.koffer button{padding:5px 10px;font-size:11px}
+#kbar .koffer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--gold);background:#1d1710;font-size:12px;font-weight:700;color:var(--gold)}.koffer[hidden]{display:none}.koffer.open{box-shadow:0 0 0 2px var(--gold),0 0 22px rgba(240,192,85,.45)}.koffer span{flex:1 1 200px}.koffer button{padding:5px 10px;font-size:11px}
 .khint{font-size:12px;font-weight:700;color:var(--gold);line-height:1.45;text-wrap:balance;padding:6px 8px;border:1px solid #4a3d63;background:#16121f}
 #kbar .khint.warn{color:#ffb09a;border-color:var(--ember);background:#2a1214}
 #kbar .kfeed{display:grid;gap:2px;font-family:var(--f-term);font-size:15px;line-height:1.15;color:#a99fb8;text-align:left}
@@ -306,7 +306,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <div class="place" id="kPlace">The Kingdom of Aldmere</div>
     <div class="line" id="kStats"></div>
     <div class="khint" id="kHint"></div>
-    <div class="koffer" id="kOffer" hidden><span id="kOfferT"></span><button id="ofYes" class="go">Accept</button><button id="ofNo">Decline</button></div>
+    <div class="koffer" id="kOffer" hidden><span id="kOfferT"></span><button id="ofYes" class="go">Accept</button><button id="ofNo">Decline</button><button id="ofWait">Wait</button></div>
     <div class="kfeed" id="kFeed"></div>
   </div>
 </div>
@@ -540,7 +540,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 122';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 123';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1331,7 +1331,7 @@ function etaOf(a){if(a.halt)return 1e9;let d=0;for(let k=a.seg;k<a.path.length-1
 function weeksToReady(r){const tm=r.troopsMax||NPS,a=Math.max(0,Math.ceil((tm*0.5-r.troops)/(tm*0.4))),b=Math.max(0,Math.ceil((r.d.hp*0.5-r.hp)/(r.d.hp*0.3)));return Math.max(1,a,b);}
 const names=L=>L.length<=2?L.join(' and '):L.slice(0,-1).join(', ')+' and '+L[L.length-1];
 function advise(){
-  if(CAMP.over)return{t:''};{const o=myOffer();if(o)return{t:offerText(o)+(xrActive?(o.k==='fate'?' A: ransom · X: execute.':' A: pay · X: refuse.'):''),warn:o.k!=='fate'};}const S=CAMP.sel,T=threats(),sec=n=>Math.max(1,Math.round(n))+'s';
+  if(CAMP.over)return{t:''};{const o=openOffer();if(o)return{t:offerText(o)+(xrActive?(o.k==='fate'?' A: ransom · X: execute · L trig: wait.':' A: pay · X: refuse · L trig: wait.'):''),warn:o.k!=='fate'};}const S=CAMP.sel,T=threats(),sec=n=>Math.max(1,Math.round(n))+'s';
   if(S&&S.castle){const c=S.castle;
     if(c.o===NET.me)return CAMP.picked.size?{t:`Now click any castle to march there with ${CAMP.picked.size} general${CAMP.picked.size>1?'s':''}. Castles one road away are ringed white.`}
       :{t:`No one at ${c.n} can march yet. Troops recover every week. Click empty ground to deselect.`};
@@ -1433,7 +1433,7 @@ function makeArmy(nat,gens,path){
   a.pick=new THREE.Mesh(armyPickGeo,armyPickMat);a.pick.userData.army=a;kingdom.add(a.pick);pickables.push(a.pick);
   CAMP.armies.push(a);refreshArmy(a);refreshCastle(CASTLES[path[0]]);return a;}
 function refreshArmy(a){dropLabel(a);const lead=a.gens[0];if(!lead){return;}a.lab=makeLabel(lead.d.short+(a.gens.length>1?' +'+(a.gens.length-1):''),NATIONS[a.nat].col);kingdom.add(a.lab);}
-function removeArmy(a){kingdom.remove(a.tok);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);CAMP.armies.splice(CAMP.armies.indexOf(a),1);if(CAMP.sel&&CAMP.sel.army===a)CAMP.sel=null;}
+function removeArmy(a){kingdom.remove(a.tok);if(a.blkLab)kingdom.remove(a.blkLab);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);CAMP.armies.splice(CAMP.armies.indexOf(a),1);if(CAMP.sel&&CAMP.sel.army===a)CAMP.sel=null;}
 function dispatch(nat,gens,from,to){const path=bfs(from,to);if(!path||path.length<2||!gens.length)return null;return makeArmy(nat,gens,path);}
 function hostile(a,b){return a&&b&&a!==b&&a!=='none'&&b!=='none';}
 function campTick(dt,now){
@@ -1716,7 +1716,7 @@ function campClick(hit){
   updateCampPanel();
 }
 function pickAt(o,d){ray.set(o,d);const h=pickFirst(ray.intersectObjects(pickables,false));return h?h.object:null;}
-function campTokens(now){if(TAC.on)tacRoadLabels();else if(TAC.rl)tacClearRoadLabels();mapFxTick(now);merchToken(now,now-(campTokens.l||now));campTokens.l=now;
+function campTokens(now){blkMarks(now);if(TAC.on)tacRoadLabels();else if(TAC.rl)tacClearRoadLabels();mapFxTick(now);merchToken(now,now-(campTokens.l||now));campTokens.l=now;
   for(const a of CAMP.armies){const lead=a.gens[0];if(!lead)continue;const fr=GMF[lead.d.key][a.dir||0][Math.floor(now*4)%2];
     a.tok.material=fr.m;a.tok.scale.set(fr.w*0.7,fr.h*0.7,1);const y=Hk(a.x,a.z);a.tok.position.set(a.x,y,a.z);a.pick.position.set(a.x,y+1.1,a.z);if(a.lab)a.lab.position.set(a.x,y+fr.h*0.7+0.2,a.z);}
   const ra=CAMP.sel&&CAMP.sel.army?CAMP.sel.army:flashT>0&&!CAMP.sel&&flashArmy&&CAMP.armies.includes(flashArmy)?flashArmy:null;
@@ -2371,6 +2371,13 @@ function ord2spd(u){if(phase==='duel')return 1;const s=u.side;return(orders[s]==
 /* a duel is only fought where both generals can be seen: not under trees, not tucked against a wall or a castle rampart, not among boulders and not at the very edge of the field */
 function spotSeen(x,z){if(Math.abs(x)>FW/2-3||Math.abs(z)>FD/2-3)return false;if(inWoods(x,z)||inRock(x,z,1.2))return false;
   for(const w of MAP.walls)if(segD(x,z,w)<w.th/2+2)return false;if(SIEGE&&SIEGE.hp>0&&Math.abs(x-SIEGE.wx)<3.2)return false;return true;}
+/* duel ground: both generals stand clear of trees, boulders, walls and lava, on roughly level ground, and the camera (which always frames a duel from 6-13 units on the +z side,
+   at about head height) has a clear line of sight to each of them over the terrain, trees and boulders in between */
+function duelGround(x,z){if(!spotSeen(x,z)||!spotSeen(x-2.4,z)||!spotSeen(x+2.4,z))return false;if(SIEGE&&SIEGE.hp>0&&Math.abs(x-SIEGE.wx)<5)return false;
+  if((LAVA.rivers.length||LAVA.pools.length)&&lavaDist(x,z)<4)return false;const h0=Hb(x,z);if(Math.abs(Hb(x-2.3,z)-h0)>1||Math.abs(Hb(x+2.3,z)-h0)>1)return false;
+  for(const gx of[x-2.3,x+2.3])for(const dc of[6,9,12.5]){const ex=x,ey=h0+2.4,ez=z+dc,tx=gx,ty=Hb(gx,z)+1.2,tz=z;
+    for(let k=1;k<10;k++){const t=k/10,px=ex+(tx-ex)*t,py=ey+(ty-ey)*t,pz=ez+(tz-ez)*t;if(Math.abs(pz)>FD/2-0.5)continue;if(Hb(px,pz)>py-0.25)return false;if(inWoods(px,pz)||inRock(px,pz,0.4))return false;}}
+  return true;}
 function pathCrowd(g,o){const dx=o.x-g.x,dz=o.z-g.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d;let n=0;
   for(const u of alive[1-g.side]){const rx=u.x-g.x,rz=u.z-g.z;if(Math.abs(rx)>7||Math.abs(rz)>7)continue;const f=rx*ux+rz*uz,l=Math.abs(-rx*uz+rz*ux);if((f>-1.5&&f<6&&l<2.4)||rx*rx+rz*rz<6.25)n++;}return n;}
 function updateGenerals(dt){
@@ -2443,7 +2450,7 @@ function castSpell(side,tgt){if(side===0)DE4LOG.mark('castSpell '+(active[0]&&ac
     morale[V]=clamp(morale[V]-0.2,0,1);morale[side]=clamp(morale[side]+0.12,0,1);showBanner(side?'The sun goes dark! Your army falters':'Eclipse! The enemy falters in the dark',side===1);
     const sp2=eclSun();sp2.visible=true;sp2.position.set(cx,Hb(cx,cz)+18,cz);sp2.scale.set(1,1,1);
     for(let i=0;i<Math.round(3*K);i++)schedule(0.35+i*0.3,()=>{const[x,z]=cl(cx+R(-2.5,2.5),cz+R(-2.5,2.5));darkBolt(x,z,V);});}
-  else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw*(engT>90?0.5:1)),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
+  else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
       Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});u.x=clamp(g.x+R(-3,3),-FW/2+1,FW/2-1);u.z=clamp(g.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(navAt(u.x,u.z)===1){u.x=g.x;u.z=g.z;}n++;}
     morale[side]=clamp(morale[side]+0.12,0,1);for(let i=0;i<30;i++)spawn({x:g.x+R(-5,5),y:Hb(g.x,g.z)+R(0,1),z:g.z+R(-5,5),vy:R(2,5),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.3),blink:true});
     spawn({x:g.x,y:Hb(g.x,g.z)+10,z:g.z,tex:T_BOLT,w:4,h:22,life:0.9,blink:true});spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:9,h:9,life:1.2,grow:1.5,blink:true});
@@ -2567,8 +2574,8 @@ function startDuel(){DE4LOG.trace(6000);DE4LOG.mark("startDuel");
   if(phase!=='fight')return;
   /* the duel ring goes on open ground both players can see; if there is none near, the generals cannot duel here yet */
   const mx=clamp((fg[0].x+fg[1].x)/2,-FW/2+6,FW/2-6),mz=clamp((fg[0].z+fg[1].z)/2,-FD/2+6,FD/2-6);let spot=null;
-  {let bd=400;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){if(NAV[z*GW+x]!==0)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5,d=(wx-mx)**2+(wz-mz)**2;if(d>=bd)continue;let ok=true;for(let oz=-2;oz<=2&&ok;oz++)for(let ox=-2;ox<=2;ox++){const k=(z+oz)*GW+x+ox;if(z+oz<0||z+oz>=GD||x+ox<0||x+ox>=GW||NAV[k]!==0){ok=false;break;}}
-    if(ok&&spotSeen(wx,wz)&&spotSeen(wx-2.4,wz)&&spotSeen(wx+2.4,wz)){bd=d;spot=[wx,wz];}}}
+  {const C=[];/* nearest good ground within 25 units */for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){if(NAV[z*GW+x]!==0)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5;C.push([(wx-mx)**2+(wz-mz)**2,wx,wz]);}C.sort((a,b)=>a[0]-b[0]);
+    for(const [d2,wx,wz] of C){if(d2>625)break;if(duelGround(wx,wz)){spot=[wx,wz];break;}}}
   if(!spot){duel.cd=4;DE4LOG.info('duel put off: no open, visible ground nearby');if(engT-(duel.noSpotT||-99)>6){duel.noSpotT=engT;showBanner('The generals need open ground to duel');}return;}
   stormEnd(false);stormEndS(1,false);phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
   for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
@@ -2629,9 +2636,16 @@ function applyClash(){stopHit(0.1);buzz(0.6,120);
   if(dB>0)cheer(0,Math.min(1,0.3+dB/12));if(dA>0)cheer(1,Math.min(1,0.3+dA/12));
   hudAcc=1;
 }
+let fightSp=null;
+function fightSign(){showBanner('Fight!');sfx('horn');sfx('clang');buzz(0.9,160);if(!fightSp){fightSp=makeLabel('FIGHT!','#ff5a3a');fightSp.userData.w=fightSp.scale.x*2.2;fightSp.userData.h=fightSp.scale.y*2.2;battle.add(fightSp);}
+  fightSp.visible=true;fightSp.position.set(duel.cx,Hb(duel.cx,duel.cz)+4.6,duel.cz);fightSp.scale.set(fightSp.userData.w*0.6,fightSp.userData.h*0.6,1);}
 function updateDuel(dt){
   duel.t+=dt;
-  if(duel.stage==='approach'){if(duel.t>1.0)beginRound();}
+  if(duel.stage==='approach'){const inPos=g=>{const d=Math.hypot(g.x-duel.cx,g.z-duel.cz);return d>1.6&&d<3.1&&Math.abs(g.z-duel.cz)<0.7;};
+    if(duel.t>0.8&&((inPos(fg[0])&&inPos(fg[1]))||duel.t>7)){
+      for(const g of[fg[0],fg[1]])if(!inPos(g)){const dir=g.side?-1:1;for(let i=0;i<8;i++)spawn({x:g.x+R(-0.5,0.5),y:Hb(g.x,g.z)+R(0.2,1.6),z:g.z+R(-0.5,0.5),tex:glowTex,w:0.8,h:0.8,life:0.5});g.x=duel.cx-dir*2.3;g.z=duel.cz;}
+      duel.stage='ready';duel.t=0;fightSign();}}
+  else if(duel.stage==='ready'){if(duel.t>0.9){if(fightSp)fightSp.visible=false;beginRound();}else if(fightSp){const k=Math.min(1,duel.t/0.18);fightSp.scale.set(fightSp.userData.w*(0.6+0.4*k)*(1+0.08*Math.sin(duel.t*30)),fightSp.userData.h*(0.6+0.4*k),1);}}
   else if(duel.stage==='choose'){
     if(!duel.eLocked&&duel.epick&&duel.t>=duel.elock){duel.eLocked=true;sfx('lock');hudAcc=1;}
     if(duel.tell&&duel.t>duel.win*0.3){if(!duel.toldFx){duel.toldFx=true;sfx('charge');buzz(0.5,220);spawn({x:fg[1].x,y:Hb(fg[1].x,fg[1].z)+0.2,z:fg[1].z+0.2,tex:T_RUNE,w:3.2,h:3.2,life:duel.win*0.7,grow:0.3,blink:true});}fg[1].cast=0.1;if(Math.random()<dt*30)spawn({x:fg[1].x+R(-0.6,0.6),y:Hb(fg[1].x,fg[1].z)+R(0.5,2.4),z:fg[1].z+0.3,vy:2,tex:T_SPARK,w:0.4,h:0.4,life:0.4});}
@@ -3023,7 +3037,7 @@ function updateModeUI(){
   if(state==='kingdom'||state==='transition'){const cnt=n=>CASTLES.filter(c=>c.o===n).length;
     $('kPlace').textContent=`Week ${CAMP.week}${CAMP.paused?' · Paused':CAMP.ff?' · Fast-forward':''}`;
     $('kStats').innerHTML=['aldmere','ashen','dusk'].map(n=>`<span style="color:${NATIONS[n].col}">${NATIONS[n].name} ${cnt(n)}</span>`).join(' · ')+` · <span style="color:var(--gold)">Gold ${goldOf(NET.me)}</span>`;
-    {const A=advise(),h=$('kHint');h.textContent=A.t;h.hidden=!A.t;h.className='khint'+(A.warn?' warn':'');$('kFeed').innerHTML=(CAMP.feed||[]).slice(0,3).map(f=>`<span>${f}</span>`).join('');}{const o=myOffer(),k=$('kOffer');k.hidden=!o;if(o){$('kOfferT').textContent=offerText(o);if(OFSEEN.id!==o.id){OFSEEN.id=o.id;OFSEEN.t=performance.now();}$('ofYes').textContent=o.k==='fate'?'Demand '+o.gold+' gold':'Pay '+o.gold+' gold';$('ofNo').textContent=o.k==='fate'?'Execute':'Refuse';$('ofYes').disabled=o.k!=='fate'&&goldOf(o.pay)<o.gold;}}$('pauseBtn').textContent=CAMP.paused?'Resume':'Pause';$('spdBtn').textContent='Speed '+CAMP.speed+'×';}
+    {const A=advise(),h=$('kHint');h.textContent=A.t;h.hidden=!A.t;h.className='khint'+(A.warn?' warn':'');$('kFeed').innerHTML=(CAMP.feed||[]).slice(0,3).map(f=>`<span>${f}</span>`).join('');}{const o=myOffer(),k=$('kOffer');k.hidden=!o;if(o){$('kOfferT').textContent=offerText(o);if(OFSEEN.id!==o.id){OFSEEN.id=o.id;OFSEEN.t=performance.now();}$('ofYes').textContent=o.k==='fate'?'Demand '+o.gold+' gold':'Pay '+o.gold+' gold';$('ofNo').textContent=o.k==='fate'?'Execute':'Refuse';$('ofYes').disabled=o.k!=='fate'&&goldOf(o.pay)<o.gold;$('ofWait').hidden=OFWAIT.has(o.id);k.classList.toggle('open',!OFWAIT.has(o.id));}}$('pauseBtn').textContent=CAMP.paused?'Resume':'Pause';$('spdBtn').textContent='Speed '+CAMP.speed+'×';}
 }
 let hudAcc=0;const lastPor=['',''];
 function updateHud(dt){
@@ -3051,7 +3065,7 @@ function updateHud(dt){
       const sa=$('dStatA'),sb=$('dStatB');sa.textContent=ch?(duel.pick?'Locked in':'Choosing'):'';sa.className='sfstat'+(duel.pick&&ch?' on':'');sa.hidden=!ch;
       sb.textContent=ch?(duel.eLocked?'Locked in':'Choosing'):'';sb.className='sfstat'+(duel.eLocked&&ch?' on':'');sb.hidden=!ch;
       $('dMoves').hidden=!duel.reveal;if(duel.reveal){$('dMoveA').textContent=duel.reveal.p.toUpperCase();$('dMoveB').textContent=duel.reveal.e.toUpperCase();}
-      $('dLog').textContent=duel.stage==='approach'?'Get ready…':duel.log;if(xrActive)drawDuelBoard();
+      $('dLog').textContent=duel.stage==='approach'?'The generals take their places…':duel.stage==='ready'?'FIGHT!':duel.log;if(xrActive)drawDuelBoard();
       document.querySelectorAll('[data-duel]').forEach(b=>{b.classList.toggle('on',duel.pick===b.dataset.duel);b.disabled=duel.stage!=='choose'||!!duel.pick;});}
   }
   if(xrActive)drawVrHud();
@@ -3069,13 +3083,13 @@ function drawVrHudInner(){
     line(CAMP.won?'Every castle flies the banner of Aldmere.':'The Eternal War goes on without you.',80,'#f1e8d4','18px');line((CAMP.won?'Won':'Lost')+' in week '+CAMP.week,112,'#a99fb8','16px');line(CAMP.won?'A: begin Age '+ROMAN(AGE+1)+' · X: start over':'Right trigger: new campaign',170,'#f0c055','20px');}
   else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+' · GOLD '+goldOf(NET.me)+(CAMP.paused?' · PAUSED':CAMP.ff?' · FAST':''),24,16);
     const cnt=n=>CASTLES.filter(c=>c.o===n).length;line(`Aldmere ${cnt('aldmere')} · Ashen ${cnt('ashen')} · Dusk ${cnt('dusk')}`,56,'#a99fb8','16px');
-    const of=myOffer(),ofr=of&&GENS[of.g];
+    const of=openOffer(),ofr=of&&GENS[of.g];
     if(ofr){const fate=of.k==='fate',can=goldOf(of.pay)>=of.gold;
       line(fate?'PRISONER: '+ofr.d.short.toUpperCase()+' ('+NATIONS[of.pay].name+')':'RANSOM DEMAND FOR '+ofr.d.short.toUpperCase(),82,'#f0c055','18px');
       line(fate?ofr.d.short+' refuses to serve you.':NATIONS[of.get].name+' wants '+of.gold+' gold. You have '+Math.floor(goldOf(of.pay))+'.',106,'#f1e8d4','15px');
       line(fate?'Ransom: '+of.gold+' gold. They have '+Math.floor(goldOf(of.pay))+'.':'Refuse, or wait too long: executed.',127,fate&&!can?'#ffb09a':'#f1e8d4','15px');
       line(fate?(can?'They will probably pay.':'They cannot pay: demanding means death.'):(can?'':'You cannot afford it yet.'),147,'#ffb09a','14px');
-      line(fate?'A: DEMAND RANSOM   ·   X: EXECUTE':'A: PAY '+of.gold+'   ·   X: REFUSE',166,'#f0c055','17px');}
+      line(fate?'A: DEMAND RANSOM · X: EXECUTE · L TRIG: WAIT':'A: PAY '+of.gold+' · X: REFUSE · L TRIG: WAIT',166,'#f0c055','15px');}
     else{
     const hv=vrHover&&(vrHover.userData.castle||vrHover.userData.army),sel=CAMP.sel;
     line(hv?(hv.n?hv.n+' ('+NATIONS[hv.o].name+', '+garrison(hv).length+' gen)':NATIONS[hv.nat].name+' army: '+hv.gens.map(r=>r.d.short).join(', ')):'Point at a castle or army',84,'#f1e8d4','16px');
@@ -3122,7 +3136,7 @@ document.querySelectorAll('[data-form]').forEach(b=>b.addEventListener('click',(
 document.querySelectorAll('[data-duel]').forEach(b=>b.addEventListener('click',()=>duelPick(b.dataset.duel)));
 $('spell').addEventListener('click',spellPress);
 $('duelBtn').addEventListener('click',requestDuel);
-$('wdBtn').addEventListener('click',withdraw);$('ofYes').addEventListener('click',()=>actOffer(true));$('ofNo').addEventListener('click',()=>actOffer(false));$('gateBtn').addEventListener('click',()=>toggleGate());
+$('wdBtn').addEventListener('click',withdraw);$('ofYes').addEventListener('click',()=>actOffer(true));$('ofNo').addEventListener('click',()=>actOffer(false));$('ofWait').addEventListener('click',()=>actWait());$('gateBtn').addEventListener('click',()=>toggleGate());
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
@@ -3168,7 +3182,7 @@ function vrPointAct(){if(!aim.valid){showBanner('Point at the field first');retu
 function xrSelect(hand){DE4LOG.trace(6000);DE4LOG.mark('trigger '+hand+' '+state+'/'+phase+(storm.on?' storm':'')+' mp'+(mp[0]||0).toFixed(1));audioInit();
   if(TUT.open){tutGo(hand==='left'?-1:1);return;}
   if(storyVR&&storyVR!=='sticky'){closeStoryBoard();return;}
-  if(state==='title'){if(hand==='left'){const K=Object.keys(DIFFS);setDiff(K[(K.indexOf(diffKey)+1)%K.length]);drawVrHud();}else startGame();}else if(state==='kingdom'){if(CAMP.over){if(!CAMP.won&&hand!=='left'&&performance.now()-(CAMP.endAt||0)>2500){closeStoryBoard();fightAgain();}return;}if(hand==='left')togglePause();else if(shopHover>=0){const it=shopRows[shopHover];if(it&&it.ok)actBuy(it.k,it.arg);else sfx('blip',200);shopHash='';}else if(castHover>=0)castToggle(castHover);else campClick(vrHover);drawVrHud();}
+  if(state==='title'){if(hand==='left'){const K=Object.keys(DIFFS);setDiff(K[(K.indexOf(diffKey)+1)%K.length]);drawVrHud();}else startGame();}else if(state==='kingdom'){if(CAMP.over){if(!CAMP.won&&hand!=='left'&&performance.now()-(CAMP.endAt||0)>2500){closeStoryBoard();fightAgain();}return;}if(hand==='left'){if(openOffer())actWait();else togglePause();}else if(shopHover>=0){const it=shopRows[shopHover];if(it&&it.ok)actBuy(it.k,it.arg);else sfx('blip',200);shopHash='';}else if(castHover>=0)castToggle(castHover);else campClick(vrHover);drawVrHud();}
   else if(state==='battle'){
     if(phase==='taunt'){endTaunt();return;}
     if(phase==='plan'){if(planMine()){if(hand==='left')planHover(PLN.idx+1);else planAct(PLN.idx);drawVrHud();}return;}
@@ -3182,7 +3196,7 @@ function xrSelect(hand){DE4LOG.trace(6000);DE4LOG.mark('trigger '+hand+' '+state
 function xrFace(hand){DE4LOG.trace(6000);DE4LOG.mark('button '+hand+' '+state+'/'+phase);if(state==='title'){tacToggle(!TAC.on);drawVrHud();return;}
   if(TUT.open){closeTut();return;}
   if(state==='kingdom'&&CAMP.over&&CAMP.won){if(performance.now()-(CAMP.endAt||0)>2500){if(hand==='left')restartAgeOne();else startNextAge();}return;}
-  if(state==='kingdom'&&myOffer()){actOffer(hand!=='left');drawVrHud();return;}
+  if(state==='kingdom'&&openOffer()){actOffer(hand!=='left');drawVrHud();return;}
   if(state==='kingdom'){const A=CAMP.sel&&CAMP.sel.army;if(A&&A.nat===NET.me&&!CAMP.target){if(hand==='left'){actHalt(A,!A.halt);clog(A.halt?'Your army halts on the road.':'Your army marches on.');}else{CAMP.target=true;clog('Pick any castle for the new course.');}updateCampPanel();drawVrHud();return;}
     CAMP.sel=null;CAMP.target=false;updateCampPanel();drawVrHud();return;}
   if(state!=='battle')return;
@@ -3373,7 +3387,20 @@ function weekEconomy(){ensureGold();ransomWeek();const aiK={squire:0.6,knight:0.
 /* ---------- prisoners who would not change sides: the captor either executes them or demands a ransom. If the ransom is refused (or never answered) the prisoner is executed. ---------- */
 let offerSeq=1;const OFSEEN={id:0,t:0};
 const ransomPrice=r=>40+(r.lvl||1)*12,natLives=n=>!NET.dead.has(n)&&CASTLES.some(c=>c.o===n);
-function myOffer(){if(!CAMP||!CAMP.offers)return null;const L=CAMP.offers.filter(o=>o.dec===NET.me);return L.find(o=>o.k==='fate')||L.find(o=>goldOf(o.pay)>=o.gold)||L[0]||null;}
+/* an offer is "open" (the war pauses, A/X answer it) until you choose Wait; a waited offer stays in the panel and opens again when you can afford it, in its last week, or after two weeks */
+const OFWAIT=new Map();
+function myOffers(){return CAMP&&CAMP.offers?CAMP.offers.filter(o=>o.dec===NET.me):[];}
+function openOffer(){const L=myOffers().filter(o=>!OFWAIT.has(o.id));return L.find(o=>o.k==='fate')||L.find(o=>goldOf(o.pay)>=o.gold)||L[0]||null;}
+function myOffer(){return openOffer()||myOffers()[0]||null;}
+function offerPrompt(){if(!openOffer())return;if(!NET.on&&state==='kingdom'&&!CAMP.paused){CAMP.paused=true;CAMP.ofPause=true;}updateModeUI();}
+function offerDone(){if(!openOffer()&&CAMP.ofPause){CAMP.ofPause=false;CAMP.paused=false;}updateModeUI();}
+function actWait(){const o=openOffer();if(!o)return;OFWAIT.set(o.id,{wk:CAMP.week,gold:false,last:false});sfx('blip',300);
+  showBanner(o.k==='pay'?'You can still pay from the panel. It comes back when you can afford it, and in its last week':'You can decide later from the panel');offerDone();}
+function offerRecheck(){let re=false;for(const o of myOffers()){const w=OFWAIT.get(o.id);if(!w)continue;
+  if(o.k==='pay'&&!w.gold&&goldOf(o.pay)>=o.gold){w.gold=true;OFWAIT.delete(o.id);re=true;showBanner('You can now afford the ransom for '+(GENS[o.g]?GENS[o.g].d.short:'your general'));}
+  else if(o.k==='pay'&&!w.last&&o.until-CAMP.week<=1){w.last=true;OFWAIT.delete(o.id);re=true;showBanner('Last week to pay the ransom!',true);}
+  else if(o.k==='fate'&&CAMP.week-w.wk>=2){OFWAIT.delete(o.id);re=true;}}
+  for(const id of [...OFWAIT.keys()])if(!myOffers().some(o=>o.id===id))OFWAIT.delete(id);if(re){sfx('fanfare');offerPrompt();}}
 function offerText(o,plain){const r=GENS[o.g];if(!r)return'';return o.k==='fate'?`${r.d.short} of ${NATIONS[o.pay].name} refuses to serve you. Demand ${o.gold} gold for the prisoner, or execute?`+(plain?'':` (${NATIONS[o.pay].name} has ${Math.floor(goldOf(o.pay))} gold.)`):`${NATIONS[o.get].name} demands ${o.gold} gold for ${r.d.short}. Refuse and ${r.d.short} is executed`+(!plain&&goldOf(o.pay)<o.gold?` (you have ${goldOf(o.pay)}).`:'.');}
 function freeGeneral(r){const c=CASTLES.find(c=>c.o===r.nat&&c.cap)||CASTLES.find(c=>c.o===r.nat);if(!c)return false;r.alive=true;delete r.prisonerOf;delete r.scattered;delete r.capWk;r.loc=c.id;r.hp=Math.max(8,Math.round(r.d.hp*0.5));r.troops=Math.round((r.troopsMax||100)*0.25);r.rest=2;refreshCastle(c);return c;}
 function executeGeneral(r,by){r.alive=false;r.executed=true;delete r.prisonerOf;clog(`${r.d.short} of ${NATIONS[r.nat].name} is executed by ${NATIONS[by].name}.`);if(r.nat===NET.me){showBanner(r.d.short+' has been executed',true);sfx('defeat');}else if(by===NET.me)sfx('boom');}
@@ -3389,17 +3416,17 @@ function offerAnswer(nat,id,yes){const O=CAMP.offers||[],i=O.findIndex(o=>o.id==
   else if(yes){if(goldOf(o.pay)<o.gold){if(nat===NET.me)showBanner('Not enough gold for the ransom',true);return false;}O.splice(i,1);payRansom(o,r);}
   else{O.splice(i,1);clog(`${NATIONS[o.pay].name} refuses the ransom for ${r.d.short}.`);executeGeneral(r,o.get);}
   updateCampPanel();updateModeUI();return true;}
-function actOffer(yes){const o=myOffer();if(!o)return;if(OFSEEN.id!==o.id||performance.now()-OFSEEN.t<1200)return;if(GUEST()){netAct('offer',{id:o.id,y:yes?1:0});sfx('lock');return;}offerAnswer(NET.me,o.id,yes);}
+function actOffer(yes){const o=myOffer();if(!o)return;OFWAIT.delete(o.id);if(OFSEEN.id!==o.id||performance.now()-OFSEEN.t<1200)return;if(GUEST()){netAct('offer',{id:o.id,y:yes?1:0});sfx('lock');return;}offerAnswer(NET.me,o.id,yes);offerDone();}
 function ransomWeek(){const O=CAMP.offers||(CAMP.offers=[]);
   for(let i=O.length-1;i>=0;i--){const o=O[i],r=GENS[o.g];if(!r||r.alive||r.prisonerOf!==o.get||!natLives(o.get)){O.splice(i,1);continue;}
     if(o.k==='pay'&&(CAMP.week>=o.until||!natLives(o.pay))){O.splice(i,1);clog(`The ransom for ${r.d.short} goes unpaid.`);executeGeneral(r,o.get);}}
   GENS.forEach((r,g)=>{if(r.alive||!r.prisonerOf||r.prisonerOf===r.nat||r.d.key===NATIONS[r.nat].ruler)return;const own=r.nat,cap=r.prisonerOf;if(!natLives(cap)||O.some(o=>o.g===g))return;const price=ransomPrice(r);
-    if(isHum(cap)){O.push({id:offerSeq++,k:'fate',g,pay:own,get:cap,gold:price,dec:cap,until:9999});if(cap===NET.me){showBanner('A prisoner awaits your judgement');sfx('lock');}return;}
+    if(isHum(cap)){O.push({id:offerSeq++,k:'fate',g,pay:own,get:cap,gold:price,dec:cap,until:9999});if(cap===NET.me){showBanner('A prisoner awaits your judgement');sfx('lock');offerPrompt();}return;}
     if(r.capWk===undefined){r.capWk=CAMP.week;return;}if(!natLives(own)||Math.random()>0.4)return;
     if(!isHum(own)){if(goldOf(own)>=price)payRansom({pay:own,get:cap,gold:price},r);else if(Math.random()<0.3)executeGeneral(r,cap);return;}
     if(Math.random()<0.15){executeGeneral(r,cap);return;}
-    O.push({id:offerSeq++,k:'pay',g,pay:own,get:cap,gold:Math.round(price*1.25),dec:own,until:CAMP.week+3});clog(offerText(O[O.length-1],true));if(own===NET.me){showBanner('A ransom demand has arrived');sfx('fanfare');}});
-  updateModeUI();}
+    O.push({id:offerSeq++,k:'pay',g,pay:own,get:cap,gold:Math.round(price*1.25),dec:own,until:CAMP.week+3});clog(offerText(O[O.length-1],true));if(own===NET.me){showBanner('A ransom demand has arrived');sfx('fanfare');offerPrompt();}});
+  offerRecheck();updateModeUI();}
 function aiSpend(n){const M=CAMP.merch;
   for(const a of CAMP.armies){if(a.nat===n)continue;const c=CASTLES[a.path[a.path.length-1]];if(c&&c.o===n&&(c.oil||0)<1&&goldOf(n)>=PRICE.oil+20&&garrison(c).length)buy(n,'oil',{c:c.id});}
   if(M&&!(M.to>=0)&&CASTLES[M.c].o===n&&goldOf(n)>=PRICE.relic&&Math.random()<0.5){const r=garrison(CASTLES[M.c]).find(x=>!x.relic);if(r)buy(n,'relic',{c:M.c,i:0,g:GENS.indexOf(r)});}
@@ -3690,10 +3717,10 @@ let netLastG='';
 function netCampSend(full){if(!HOSTMP()||!NTX.conns.size)return;const G=JSON.stringify(GENS.map(serRec)),sendG=full||G!==netLastG;netLastG=G;
   netBcast({t:'camp',w:CAMP.week,ct:r2(CAMP.t),ov:CAMP.over?1:0,win:CAMP.winner||null,pa:CAMP.paused?1:0,sp:CAMP.speed,va:CAMP.vault||[],dead:[...(NET.dead||[])],
     go:(ensureGold(),CAMP.gold),me:CAMP.merch||null,tac:TAC.on?1:0,ru:[NATIONS.aldmere.ruler,NATIONS.ashen.ruler,NATIONS.dusk.ruler],fx:(CAMP.fx||[]).map(f=>[f.x,f.z,f.txt,f.col,Math.round(f.ms-(performance.now()-f.at))]),of:CAMP.offers||[],C:CASTLES.map(c=>[c.o,c.fort||0,c.task||'rest',c.oil||0]),G:sendG?JSON.parse(G):null,
-    A:CAMP.armies.map(a=>[a.id,a.nat,a.gens.map(r=>GENS.indexOf(r)),a.path,a.seg,r3(a.t),a.from,a.halt?1:0,a.retreat?1:0,a.dir||0,a.gear||null])});}
+    A:CAMP.armies.map(a=>[a.id,a.nat,a.gens.map(r=>GENS.indexOf(r)),a.path,a.seg,r3(a.t),a.from,a.halt?1:0,a.retreat?1:0,a.dir||0,a.gear||null,a.bsg!=null?a.bsg:-1])});}
 function netClog(t){if(!HOSTMP()||!NTX.conns.size)return;if(NET.actor){const c=netPeerOf(NET.actor);if(c)netSendTo(c,{t:'clog',s:t});return;}netBcast({t:'clog',s:t});}
 function netApplyCamp(m){
-  if(m.go)CAMP.gold=m.go;if(m.tac!=null)TAC.on=!!m.tac;if(m.ru){NATIONS.aldmere.ruler=m.ru[0];NATIONS.ashen.ruler=m.ru[1];NATIONS.dusk.ruler=m.ru[2];}if(m.fx){const pn=performance.now(),old=CAMP.fx||[];CAMP.fx=m.fx.map(f=>{const o=old.find(q=>q.x===f[0]&&q.z===f[1]&&q.txt===f[2]);return o||{x:f[0],z:f[1],txt:f[2],col:f[3],ms:6000,at:pn-(6000-f[4])};});}{const had=myOffer();CAMP.offers=m.of||[];const now=myOffer();if(now&&(!had||had.id!==now.id)){showBanner(now.k==='fate'?'A prisoner awaits your judgement':'A ransom demand has arrived');sfx('fanfare');}}{const o=CAMP.merch;CAMP.merch=m.me||null;if(CAMP.merch&&o&&o.px!==undefined){CAMP.merch.px=o.px;CAMP.merch.pz=o.pz;}merchMark();}
+  if(m.go)CAMP.gold=m.go;if(m.tac!=null)TAC.on=!!m.tac;if(m.ru){NATIONS.aldmere.ruler=m.ru[0];NATIONS.ashen.ruler=m.ru[1];NATIONS.dusk.ruler=m.ru[2];}if(m.fx){const pn=performance.now(),old=CAMP.fx||[];CAMP.fx=m.fx.map(f=>{const o=old.find(q=>q.x===f[0]&&q.z===f[1]&&q.txt===f[2]);return o||{x:f[0],z:f[1],txt:f[2],col:f[3],ms:6000,at:pn-(6000-f[4])};});}{const had=myOffer();CAMP.offers=m.of||[];offerRecheck();const now=openOffer();if(now&&(!had||had.id!==now.id)){showBanner(now.k==='fate'?'A prisoner awaits your judgement':'A ransom demand has arrived');sfx('fanfare');}}{const o=CAMP.merch;CAMP.merch=m.me||null;if(CAMP.merch&&o&&o.px!==undefined){CAMP.merch.px=o.px;CAMP.merch.pz=o.pz;}merchMark();}
   CAMP.week=m.w;CAMP.t=m.ct;CAMP.paused=!!m.pa;CAMP.speed=m.sp||1;CAMP.vault=m.va||[];NET.dead=new Set(m.dead||[]);
   if(m.G){const n=m.G.length;for(let i=0;i<n;i++)GENS[i]=deserRec(GENS[i],m.G[i]);GENS.length=n;}
   const gc=new Map();for(const r of GENS)if(r.alive&&typeof r.loc==='number')gc.set(r.loc,(gc.get(r.loc)||0)+1);
@@ -3702,7 +3729,7 @@ function netApplyCamp(m){
   for(const A of m.A){seen.add(A[0]);let a=CAMP.armies.find(x=>x.id===A[0]);const gens=A[2].map(i=>GENS[i]).filter(Boolean);if(!gens.length)continue;
     if(!a){const nid=CAMP.nextId;a=makeArmy(A[1],gens,A[3]);CAMP.nextId=nid;a.id=A[0];gens.forEach(r=>r.loc='army'+A[0]);}
     const lead=a.gens[0];a.nat=A[1];a.gens=gens;if(lead!==gens[0]||a._n!==gens.length){a._n=gens.length;refreshArmy(a);}
-    a.path=A[3];a.seg=A[4];if(Math.abs((a.t||0)-A[5])>0.08||a.seg!==A[4])a.t=A[5];else a.t=A[5];a.from=A[6];a.halt=!!A[7];a.retreat=!!A[8];a.dir=A[9];a.gear=A[10]||{};
+    a.path=A[3];a.seg=A[4];if(Math.abs((a.t||0)-A[5])>0.08||a.seg!==A[4])a.t=A[5];else a.t=A[5];a.from=A[6];a.halt=!!A[7];a.retreat=!!A[8];a.dir=A[9];a.gear=A[10]||{};a.bsg=A[11]>=0?A[11]:null;
     const P=CASTLES[a.path[a.seg]],Q=CASTLES[a.path[a.seg+1]]||P;a.x=P.x+(Q.x-P.x)*Math.min(1,a.t);a.z=P.z+(Q.z-P.z)*Math.min(1,a.t);}
   for(const a of CAMP.armies.slice())if(!seen.has(a.id))removeArmy(a);
   if(CAMP.sel&&CAMP.sel.army&&!CAMP.armies.includes(CAMP.sel.army)){CAMP.sel=null;CAMP.target=false;}
@@ -4189,12 +4216,16 @@ function blkPower(a){return a.gens.reduce((s,r)=>s+power(r),0);}
 function tacWeek(){if(!TAC.on||!CAMP)return;
   for(const a of CAMP.armies.slice()){if(a.bsg==null)continue;const c=CASTLES[a.bsg];if(!c||c.o===a.nat||!hostile(a.nat,c.o)){a.bsg=null;a.blk=false;a.halt=false;continue;}
     const G=garrison(c);for(const r of G){r.troops=Math.max(0,Math.round(r.troops*0.85));r.hp=Math.max(1,r.hp*0.95);if(r.loy!==undefined)r.loy=Math.max(0,r.loy-4);}
-    for(const r of a.gens)r.troops=Math.max(1,Math.round(r.troops*0.97));if(c.fort>0&&Math.random()<0.5)c.fort--;
+    for(const r of a.gens)r.troops=Math.max(1,Math.round(r.troops*0.97));if(c.fort>0&&Math.random()<0.5)c.fort--;a.bwk=(a.bwk||0)+1;
     const gp=G.reduce((s,r)=>s+power(r),0);
     if(!G.length||G.every(r=>r.troops<=0)){clog(`${c.n} is starved out and opens its gates to ${NATIONS[a.nat].name}.`);a.blk=false;a.bsg=null;a.halt=false;G.forEach(r=>{r.troops=0;});tacStorm(a,c);continue;}
     clog(`The blockade of ${c.n} tightens: its garrison loses men to hunger.`);
     if(!isHum(c.o)&&gp>blkPower(a)*1.15){clog(`${NATIONS[c.o].name} sallies out of ${c.n} to break the blockade!`);tacStorm(a,c);if(state!=='kingdom')return;}
-    else if(!isHum(a.nat)&&blkPower(a)>gp*1.6){clog(`${NATIONS[a.nat].name} storms ${c.n}.`);tacStorm(a,c);if(state!=='kingdom')return;}}}
+    else if(!isHum(a.nat)&&(blkPower(a)>gp*1.6||(a.bwk>=4&&blkPower(a)>gp*0.8))){clog(`${NATIONS[a.nat].name} storms ${c.n}.`);tacStorm(a,c);if(state!=='kingdom')return;}
+    else if(!isHum(a.nat)&&a.bwk>=4){const h=nearestOwned(a.nat,c.id),p=h==null?null:bfs(c.id,h);clog(`${NATIONS[a.nat].name} lifts the blockade of ${c.n}.`);a.blk=false;a.bsg=null;a.halt=false;
+      if(p&&p.length>1){a.path=p;a.seg=0;a.t=0;a.retreat=true;}else{a.halt=false;}if(c.o===NET.me)showBanner('The blockade of '+c.n+' is lifted');}}}
+function blkMarks(now){if(!CAMP)return;for(const a of CAMP.armies){const on=a.bsg!=null;if(!on){if(a.blkLab)a.blkLab.visible=false;continue;}
+    if(!a.blkLab){a.blkLab=makeLabel('BLOCKADE','#ff9a4a');a.blkLab.scale.multiplyScalar(0.7);kingdom.add(a.blkLab);}a.blkLab.visible=((now*2)|0)%3!==0;a.blkLab.position.set(a.x,Hk(a.x,a.z)+3.2,a.z);}}
 function tacStorm(a,c){a.blk=false;a.bsg=null;a.halt=false;a.seg=a.path.length-2;a.t=1;arrive(a,c);}
 function tacBop(n,o){if(!o||o==='none'||o===n)return 0;const own={};let tot=0;for(const c of CASTLES){if(c.o!=='none'){own[c.o]=(own[c.o]||0)+1;tot++;}}
   let lead=null;for(const k in own)if(own[k]>=Math.max(8,tot*0.45)&&(!lead||own[k]>own[lead]))lead=k;
@@ -4249,7 +4280,7 @@ endBattle=(f=>(win,why)=>{const r=f(win,why);if(TAC.on&&TAC.tel){const t=tacTelT
 pickType=(f=>()=>{if(TAC.on&&mapChoice==='random'){const t=tacFieldType();if(t)return t;}return f();})(pickType);
 collapse=(f=>n=>{if(TAC.on&&tacSuccession(n))return;return f(n);})(collapse);
 arrive=(f=>(a,c)=>{if(TAC.on&&a.blk&&!a.retreat&&c.o!==a.nat&&hostile(a.nat,c.o)&&garrison(c).some(r=>r.troops>0||r.hp>0)){a.bsg=c.id;a.halt=true;a.seg=Math.max(0,a.path.length-2);a.t=0.82;
-  if(isHum(a.nat)||isHum(c.o))clog(`${NATIONS[a.nat].name} blockades ${c.n}. Its garrison will starve week by week${isHum(a.nat)?'. Storm it from the army panel when ready':''}.`);updateCampPanel();return;}return f(a,c);})(arrive);
+  a.bwk=0;if(isHum(a.nat)||isHum(c.o))clog(`${NATIONS[a.nat].name} blockades ${c.n}. Its garrison will starve week by week${isHum(a.nat)?'. Storm it from the army panel when ready':'. Attack the blockading army to break it'}.`);if(c.o===NET.me){showBanner(NATIONS[a.nat].name+' is blockading '+c.n+'!',true);sfx('horn');}updateCampPanel();return;}return f(a,c);})(arrive);
 weekEconomy=(f=>()=>{const r=f();tacWeek();return r;})(weekEconomy);
 spawn=netWrapSpawn(spawn);
 sfx=netWrap('sfx',sfx,a=>['s',a[0],a[1]]);battleCry=netWrap('bc',battleCry,a=>['bc',a[0],a[1],a[2]]);cheer=netWrap('ch',cheer,a=>['ch',a[0],a[1]]);warDrums=netWrap('wd',warDrums,a=>['wd',a[0],a[1],a[2]]);
