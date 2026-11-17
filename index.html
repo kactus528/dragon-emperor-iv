@@ -538,7 +538,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 110';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 111';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2116,7 +2116,7 @@ function endTaunt(){if(phase!=='taunt')return;DE4LOG.trace(6000);DE4LOG.mark('en
 /* ---------- battle plan: after the taunts each commander picks a starting formation, and a castle's defender may send archers up to the wall ---------- */
 let PLAN=null;const PLN={step:0,idx:0,f:'line'},lastPlan={f:'line',wi:1};
 const FDESC={line:'Balanced. A wide front that can wrap around the enemy.',wedge:'Fast and hard-hitting at the point. Good for breaking a line.',square:'Slow and tough in melee, but packed tight, so spells hurt more.',spread:'Loose ranks. Spells and arrows hurt far less; weaker in melee.'};
-const WALLOPT=[[0,'No archers on the wall','Everyone stays on the ground behind the gate.'],[0.15,'A few archers on the wall (15%)','They shoot twice as far as ordinary archers, hit harder and take far less damage.'],[0.3,'Many archers on the wall (30%)','A strong wall, but fewer soldiers on the ground.']];
+const WALLOPT=[[0,'No archers on the wall','Everyone stays on the ground behind the gate.'],[0.15,'A few archers on the wall (15%)','They shoot three times as far as ordinary archers, hit harder and take far less damage.'],[0.3,'Many archers on the wall (30%)','A strong wall, but fewer soldiers on the ground.']];
 const planWall=()=>!!(SIEGE&&SIEGE.def===0&&SIEGE.hp>0),planOil=()=>!!(SIEGE&&SIEGE.gear&&SIEGE.gear.oil>0);
 function planItems(){return PLN.step?WALLOPT.map((o,i)=>({n:o[1],d:o[2]+(planOil()?(i?' They also pour your boiling oil.':' Your boiling oil will go unused.'):'')})):FORMS.map(f=>({n:FNAME[f]+' formation',d:FDESC[f]}));}
 function planMine(){return state==='battle'&&phase==='plan'&&(GUEST()?NET.bs>=0&&!NG.planned:(!NET.on||NET.ctl[0]==='local')&&!!PLAN&&!PLAN.done[0]);}
@@ -2251,7 +2251,7 @@ function updateUnits(dt){
       else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
     }else if(phase==='pursuit'&&pursuit&&u.side===pursuit.w){const g=fg[pursuit.L];tx=g.x;tz=g.z;move=!g.captured&&Math.hypot(tx-u.x,tz-u.z)>0.5;chase=PF;}
     else{const[sx,sz]=slotPos(u);tx=sx;tz=sz;move=Math.hypot(sx-u.x,sz-u.z)>0.25;}
-    if(u.wall){rg*=2;if(!SOBH[gcz(u.z)*GW+gcx(u.x)])wallDrop(u);}
+    if(u.wall){rg*=3;if(!SOBH[gcz(u.z)*GW+gcx(u.x)])wallDrop(u);}
     let dvx=0,dvz=0;if(move&&!u.wall){const nd=navDir(u,tx,tz,FLY[u.type]?null:chase),sp=st.spd*ord2spd(u)*terrSpd(u,u.type);dvx=nd[0]*sp;dvz=nd[1]*sp;}
     if(u.dodgeT>0){u.dodgeT-=dt;dvx=u.dodx*5.2;dvz=u.dodz*5.2;}
     const k=Math.min(1,dt*6);u.vx+=(dvx-u.vx)*k;u.vz+=(dvz-u.vz)*k;
@@ -3323,7 +3323,7 @@ function tickGear(dt){const S=SIEGE;if(!S||!S.gear||(S.open&&!S.sally))return;co
       if(N.length>=5){G.oil--;S.oilCD=7;S.oilHold=4;showBanner('Boiling oil!',S.att===0);sfx('flame');GSRC++;try{for(const u of N.slice(0,14)){u.hp-=STATS[u.type].hp>=10?6:99;if(u.hp<=0)kill(u,S.wx,u.z,2,3);}}finally{GSRC--;}
         for(let i=0;i<16;i++)spawn({x:fx+R(-2.5,2.5),y:Hb(fx,S.gz)+R(0.3,3),z:S.gz+R(-4,4),frames:i%3?FLAME:SMOKE,w:R(1.6,2.6),h:R(1.6,2.6),life:R(0.6,1.1),grow:0.8,vy:R(-1,2)});}else S.oilCD=0.5;}}}
 /* once a general is fleeing, the gate is thrown open so he can be run down; it is shut again for the next round if it still stands */
-/* archers on the ramparts: they stand on the wall, shoot twice as far and 25% harder, take 60% less damage and cannot be reached by foot soldiers. They pour the oil. When the gate falls or the wall is breached they come down. */
+/* archers on the ramparts: they stand on the wall, shoot three times as far and 25% harder, take 60% less damage and cannot be reached by foot soldiers. They pour the oil. When the gate falls or the wall is breached they come down. */
 function wallDrop(u){const S=SIEGE;u.wall=0;u.lx=undefined;if(!S)return;const sg=S.def?1:-1;u.x=S.wx+sg*R(3.4,5.5);for(let k=0;k<20&&navAt(u.x,u.z)===1;k++)u.x+=sg*0.8;}
 function wallDown(){let n=0;for(const u of units)if(u.wall&&u.vis&&u.state==='alive'){wallDrop(u);n++;}if(n&&SIEGE)showBanner(SIEGE.def===0?'Your archers abandon the wall!':'The archers abandon the wall!',SIEGE.def===0);return n;}
 function manWall(s,frac){const S=SIEGE;if(!S||S.def!==s||S.hp<=0||!(frac>0))return 0;const sg=s?1:-1,L=units.filter(u=>u.side===s&&u.vis&&u.state==='alive'&&!u.wall).sort((a,b)=>b.i-a.i),n=Math.min(L.length-10,Math.round(L.length*Math.min(0.4,frac)));if(n<=0)return 0;
