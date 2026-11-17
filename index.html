@@ -538,7 +538,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 115';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 116';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1362,7 +1362,7 @@ function bfs(a,b){const prev=new Map([[a,-1]]),q=[a];while(q.length){const v=q.s
   if(!prev.has(b))return null;const p=[];for(let v=b;v!==-1;v=prev.get(v))p.unshift(v);return p;}
 function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.length){const v=q.shift();if(CASTLES[v].o===nat&&v!==from)return v;for(const w of CASTLES[v].adj)if(!seen.has(w)){seen.add(w);q.push(w);}}
   const any=CASTLES.find(c=>c.o===nat);return any?any.id:null;}
-function initCampaign(){if(CAMP){CAMP.gold=null;CAMP.merch=null;CAMP.offers=[];}if(merchSp)merchSp.visible=false;if(merchTok)merchTok.visible=false;
+function initCampaign(){if(CAMP){CAMP.gold=null;CAMP.merch=null;CAMP.offers=[];CAMP.fx=[];}if(merchSp)merchSp.visible=false;if(merchTok)merchTok.visible=false;
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);});
   if(endCard){kingdom.remove(endCard);endCard=null;}
   Object.assign(CAMP,{vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
@@ -1420,17 +1420,30 @@ function arrive(a,c){
     if(isHum(a.nat)||isHum(was))clog(`${NATIONS[a.nat].name} takes ${c.n}${was!=='none'?' from '+NATIONS[was].name:''}.`);checkCampaignEnd();updateCampPanel();return;}
   clash({kind:'castle',att:a,castle:c,x:c.x,z:c.z,b:c.b});
 }
+const MFX=[];
+function mapFx(x,z,txt,col){if(!CAMP.fx)CAMP.fx=[];CAMP.fxN=(CAMP.fxN||0)+1;CAMP.fx.push({x:r2(x),z:r2(z),txt,col,ms:6000,at:performance.now()});if(CAMP.fx.length>4)CAMP.fx.shift();}
+function mapFxTick(now){const F=(CAMP&&CAMP.fx)||[],pn=performance.now();for(let i=F.length-1;i>=0;i--)if(pn-F[i].at>F[i].ms)F.splice(i,1);
+  for(const m of MFX)m.live=false;
+  for(const f of F){const key=f.x+'/'+f.z+'/'+f.txt;let m=MFX.find(q=>q.key===key);if(!m){m={key,a:makeLabel('BATTLE!','#ff5a3a'),b:makeLabel(f.txt,f.col||'#f0c055')};m.b.scale.multiplyScalar(0.7);kingdom.add(m.a);kingdom.add(m.b);MFX.push(m);}
+    m.live=true;const age=(pn-f.at)/1000,y=Hk(f.x,f.z),first=age<2.6;m.a.visible=first&&((now*5)|0)%2===0;m.b.visible=!first;m.a.position.set(f.x,y+4.6+Math.sin(now*9)*0.15,f.z);m.b.position.set(f.x,y+4.6+Math.min(1,(age-2.6))*0.8,f.z);}
+  for(let i=MFX.length-1;i>=0;i--)if(!MFX[i].live){kingdom.remove(MFX[i].a);kingdom.remove(MFX[i].b);MFX.splice(i,1);}}
 function clash(ctx){
   const attN=ctx.att.nat,defN=ctx.kind==='castle'?ctx.castle.o:ctx.defArmy.nat;
   const A=ctx.att.gens.filter(r=>r.alive),D=(ctx.kind==='castle'?garrison(ctx.castle):ctx.defArmy.gens).filter(r=>r.alive);
   ctx.A=A;ctx.D=D;ctx.attN=attN;ctx.defN=defN;
   if(isHum(attN)||isHum(defN)){startCampaignBattle(ctx);return;}
   const sA=A.reduce((s,r)=>s+power(r),0)*R(0.75,1.25),sD=D.reduce((s,r)=>s+power(r),0)*R(0.75,1.25)*(ctx.kind==='castle'?1.15:1);
+  const cWas=ctx.kind==='castle'?ctx.castle.o:null,fought=D.length>0&&A.length>0;
   const aw=sA>=sD,W=aw?A:D,L=aw?D:A,ratio=Math.min(1,(aw?sD:sA)/Math.max(1,aw?sA:sD)),wn=aw?attN:defN;
   W.forEach(r=>{r.troops=Math.max(5,Math.round(r.troops*(1-0.6*ratio)));gainXP(r,30);r.rest=DIFF.marchRest?2:0;});L.forEach(r=>r.rest=DIFF.marchRest?2:1);
   const turned=[];
   L.forEach(r=>{if(Math.random()<(r.d.key===NATIONS[r.nat].ruler?0.08:0.22)){r.alive=false;if(r.d.key!==NATIONS[r.nat].ruler&&Math.random()<0.4)turned.push(r);else r.prisonerOf=wn;}else{r.troops=Math.round(r.troops*0.15);r.hp=Math.max(5,r.hp*0.6);}});
+  const capN=L.filter(r=>!r.alive&&r.prisonerOf===wn).map(r=>r.d.short);
   resolveOutcome(ctx,aw);
+  /* wars between the computer nations are not shown, but the board and the feed report them */
+  if(fought){const an=NATIONS[attN].name,dn=NATIONS[defN].name,cx=ctx.kind==='castle'?ctx.castle.x:ctx.x,cz=ctx.kind==='castle'?ctx.castle.z:ctx.z;
+    clog((ctx.kind==='castle'?(aw?`${an} takes ${ctx.castle.n} from ${dn}.`:`${dn} holds ${ctx.castle.n} against ${an}.`):`${NATIONS[wn].name} beats ${NATIONS[aw?defN:attN].name} on the road near ${CASTLES[ctx.att.path[Math.min(ctx.att.seg+1,ctx.att.path.length-1)]].n}.`)+(capN.length?` ${capN.join(' and ')} ${capN.length>1?'are':'is'} taken prisoner.`:''));
+    mapFx(cx,cz,NATIONS[wn].name.toUpperCase()+' WINS',NATIONS[wn].col);warDrums(1,1,104);}
   const anchor=W.find(x=>x.alive);for(const r of turned){const nr=turnRec(r,1,wn);GENS.push(nr);joinWith(nr,anchor,wn);clog(`${r.d.short} of ${NATIONS[r.nat].name} goes over to ${NATIONS[wn].name}.`);}
 }
 function resolveOutcome(ctx,attWon){
@@ -1529,7 +1542,7 @@ function aiCampaign(n){
     const targeted=new Set(CAMP.armies.filter(a=>a.nat===n).map(a=>a.path[a.path.length-1]));
     const opts=c.adj.map(i=>CASTLES[i]).filter(t=>t.o!==n&&!targeted.has(t.id));
     const send=G.slice(0,Math.min(3,G.length-keep)),my=send.reduce((s,r)=>s+power(r),0);
-    let best=null,bs=0;for(const t of opts){const g=garrison(t).reduce((s,r)=>s+power(r),0);const sc=(t.o==='none'&&!g?3:g?my/(g*1.2):2)+(t.cap?0.6:0)+(isHum(t.o)?DIFF.bias:0)+(!isHum(t.o)&&t.o!=='none'&&t.o!==n?DIFF.rival:0)+Math.random()*0.5;if(!NET.on&&n==='dusk'&&t.o==='aldmere'&&CAMP.week<=DIFF.peace)continue;if((g===0||my>g*1.3)&&sc>bs){bs=sc;best=t;}}
+    let best=null,bs=0;for(const t of opts){const g=garrison(t).reduce((s,r)=>s+power(r),0);const sc=(t.o==='none'&&!g?3:g?my/(g*1.2):2)+(t.cap?0.6:0)+(isHum(t.o)?DIFF.bias:0)+(!isHum(t.o)&&t.o!=='none'&&t.o!==n?DIFF.rival+0.35:0)+Math.random()*0.5;if(!NET.on&&n==='dusk'&&t.o==='aldmere'&&CAMP.week<=DIFF.peace)continue;if((g===0||my>g*(!isHum(t.o)&&t.o!=='none'?1.05:1.3))&&sc>bs){bs=sc;best=t;}}
     if(best&&Math.random()<DIFF.aiP){/* the ruler rides along only when capture is unlikely: escorted, against an empty or badly outmatched castle, with no hostile army on either end of the road */
       {const ru=all.find(r=>isRuler(r)&&ready(r)),g=garrison(best).reduce((s,r)=>s+power(r),0),threat=CAMP.armies.some(a=>hostile(a.nat,n)&&(a.path.slice(a.seg).includes(c.id)||a.path.slice(a.seg).includes(best.id)));
         if(ru&&send.length&&send.length<5&&!threat&&(g===0||my>g*2.2)&&Math.random()<0.5)send.push(ru);}
@@ -1651,7 +1664,7 @@ function campClick(hit){
   updateCampPanel();
 }
 function pickAt(o,d){ray.set(o,d);const h=pickFirst(ray.intersectObjects(pickables,false));return h?h.object:null;}
-function campTokens(now){merchToken(now,now-(campTokens.l||now));campTokens.l=now;
+function campTokens(now){mapFxTick(now);merchToken(now,now-(campTokens.l||now));campTokens.l=now;
   for(const a of CAMP.armies){const lead=a.gens[0];if(!lead)continue;const fr=GMF[lead.d.key][a.dir||0][Math.floor(now*4)%2];
     a.tok.material=fr.m;a.tok.scale.set(fr.w*0.7,fr.h*0.7,1);const y=Hk(a.x,a.z);a.tok.position.set(a.x,y,a.z);a.pick.position.set(a.x,y+1.1,a.z);if(a.lab)a.lab.position.set(a.x,y+fr.h*0.7+0.2,a.z);}
   const ra=CAMP.sel&&CAMP.sel.army?CAMP.sel.army:flashT>0&&!CAMP.sel&&flashArmy&&CAMP.armies.includes(flashArmy)?flashArmy:null;
@@ -3586,11 +3599,11 @@ function deserRec(r,a){const D=gdef(a[0]);if(!r||r.d.key!==a[0]){r=mkRec(D);r.d=
 let netLastG='';
 function netCampSend(full){if(!HOSTMP()||!NTX.conns.size)return;const G=JSON.stringify(GENS.map(serRec)),sendG=full||G!==netLastG;netLastG=G;
   netBcast({t:'camp',w:CAMP.week,ct:r2(CAMP.t),ov:CAMP.over?1:0,win:CAMP.winner||null,pa:CAMP.paused?1:0,sp:CAMP.speed,va:CAMP.vault||[],dead:[...(NET.dead||[])],
-    go:(ensureGold(),CAMP.gold),me:CAMP.merch||null,of:CAMP.offers||[],C:CASTLES.map(c=>[c.o,c.fort||0,c.task||'rest',c.oil||0]),G:sendG?JSON.parse(G):null,
+    go:(ensureGold(),CAMP.gold),me:CAMP.merch||null,fx:(CAMP.fx||[]).map(f=>[f.x,f.z,f.txt,f.col,Math.round(f.ms-(performance.now()-f.at))]),of:CAMP.offers||[],C:CASTLES.map(c=>[c.o,c.fort||0,c.task||'rest',c.oil||0]),G:sendG?JSON.parse(G):null,
     A:CAMP.armies.map(a=>[a.id,a.nat,a.gens.map(r=>GENS.indexOf(r)),a.path,a.seg,r3(a.t),a.from,a.halt?1:0,a.retreat?1:0,a.dir||0,a.gear||null])});}
 function netClog(t){if(!HOSTMP()||!NTX.conns.size)return;if(NET.actor){const c=netPeerOf(NET.actor);if(c)netSendTo(c,{t:'clog',s:t});return;}netBcast({t:'clog',s:t});}
 function netApplyCamp(m){
-  if(m.go)CAMP.gold=m.go;{const had=myOffer();CAMP.offers=m.of||[];const now=myOffer();if(now&&(!had||had.id!==now.id)){showBanner(now.k==='fate'?'A prisoner awaits your judgement':'A ransom demand has arrived');sfx('fanfare');}}{const o=CAMP.merch;CAMP.merch=m.me||null;if(CAMP.merch&&o&&o.px!==undefined){CAMP.merch.px=o.px;CAMP.merch.pz=o.pz;}merchMark();}
+  if(m.go)CAMP.gold=m.go;if(m.fx){const pn=performance.now(),old=CAMP.fx||[];CAMP.fx=m.fx.map(f=>{const o=old.find(q=>q.x===f[0]&&q.z===f[1]&&q.txt===f[2]);return o||{x:f[0],z:f[1],txt:f[2],col:f[3],ms:6000,at:pn-(6000-f[4])};});}{const had=myOffer();CAMP.offers=m.of||[];const now=myOffer();if(now&&(!had||had.id!==now.id)){showBanner(now.k==='fate'?'A prisoner awaits your judgement':'A ransom demand has arrived');sfx('fanfare');}}{const o=CAMP.merch;CAMP.merch=m.me||null;if(CAMP.merch&&o&&o.px!==undefined){CAMP.merch.px=o.px;CAMP.merch.pz=o.pz;}merchMark();}
   CAMP.week=m.w;CAMP.t=m.ct;CAMP.paused=!!m.pa;CAMP.speed=m.sp||1;CAMP.vault=m.va||[];NET.dead=new Set(m.dead||[]);
   if(m.G){const n=m.G.length;for(let i=0;i<n;i++)GENS[i]=deserRec(GENS[i],m.G[i]);GENS.length=n;}
   const gc=new Map();for(const r of GENS)if(r.alive&&typeof r.loc==='number')gc.set(r.loc,(gc.get(r.loc)||0)+1);
