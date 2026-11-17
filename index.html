@@ -540,7 +540,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 121';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 122';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -867,7 +867,10 @@ const rX=(r,z)=>r.x0+r.amp*Math.sin(z*r.f+r.p);
 const crossAt=(r,z)=>{for(const c of r.cross)if(Math.abs(z-c.z)<c.w)return c.t;return null;};
 const ell=(x,z,e)=>((x-e.x)/e.rx)**2+((z-e.z)/e.rz)**2;
 function segD(x,z,s){const dx=s.x2-s.x1,dz=s.z2-s.z1,L=dx*dx+dz*dz||1,t=clamp(((x-s.x1)*dx+(z-s.z1)*dz)/L,0,1);return Math.hypot(x-(s.x1+t*dx),z-(s.z1+t*dz));}
-const inWoods=(x,z)=>MAP.woods.some(w=>!w.burnt&&ell(x,z,w)<1);let FROZEN=false;
+/* GCUT: smooth cutouts made for a castle gate's approach and the wall's footprint. Mountains sink to ground level inside them and woods stop at their edge. */
+let GCUT=[];
+function gcutF(x,z){let f=1;for(const c of GCUT){if(!c.ridge)continue;const d=segD(x,z,c);if(d<c.r1)f=Math.min(f,d<=c.r0?0:(d-c.r0)/(c.r1-c.r0));}return f*f*(3-2*f);}
+const inWoods=(x,z)=>MAP.woods.some(w=>!w.burnt&&ell(x,z,w)<1)&&!(GCUT.length&&GCUT.some(c=>c.woodR&&segD(x,z,c)<c.woodR));let FROZEN=false;
 const inRock=(x,z,m=0)=>MAP.rocks.some(b=>(x-b.x)**2+(z-b.z)**2<(b.r+m)**2);
 const DEEP={water:1,lava:1};
 const rgb=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
@@ -928,14 +931,14 @@ const BIOMES={
 const BIOKEYS=Object.keys(BIOMES);let BIO=BIOMES.river;
 function Hbase(x,z){if(MAP.mir)x=-x;let h=BIO.hill*(0.9*Math.sin(x*0.22+0.6)*Math.cos(z*0.27-0.4)+0.6*Math.sin(x*0.11-z*0.19+1.3)+0.3*Math.cos(x*0.5+z*0.45)+1.3*Math.sin(x*0.07+0.4)*Math.cos(z*0.09-0.3)+2.3*Math.sin(x*0.034+1.1)*Math.cos(z*0.047-0.6));
   if(BIO.dunes)h+=1.7*Math.sin(x*0.085+z*0.03+(MAP.dp||0))+0.8*Math.sin(x*0.17-z*0.05);return h;}
-function featH(x,z){let h=0;for(const r of MAP.ridges){const d=segD(x,z,r);if(d<r.w+3.5)h=Math.max(h,r.h*(d<=r.w?1:1-(d-r.w)/3.5));}return h;}
+function featH(x,z){let h=0;for(const r of MAP.ridges){const d=segD(x,z,r);if(d<r.w+3.5)h=Math.max(h,r.h*(d<=r.w?1:1-(d-r.w)/3.5));}return h&&GCUT.length?h*gcutF(x,z):h;}
 function cut(x,z){let c=0;
   for(const r of MAP.rivers){const d=Math.abs(x-rX(r,z));if(d<r.w+2){const ct=crossAt(r,z);if(ct==='bridge')continue;c=Math.max(c,Math.max(0,1-Math.max(0,d-r.w)/2)*(ct==='ford'?0.45:1.4));}}
   for(const p of MAP.pools){const q=ell(x,z,p);if(q<1.4){const k=Math.min(1,(1.4-q)/0.4);c=Math.max(c,k*(DEEP[p.k]?1.4:p.k==='marsh'?0.35:0.15));}}return c;}
 function Hb(x,z){for(const r of MAP.rivers){const d=Math.abs(x-rX(r,z));if(d<r.w+2.2&&crossAt(r,z)==='bridge')return Hbase(rX(r,z),z)+0.25;}return Hbase(x,z)+featH(x,z)-cut(x,z);}
 function terrType(x,z){if(Math.abs(x)>FW/2-0.6||Math.abs(z)>FD/2-1)return 1;if(inRock(x,z,0.9))return 1;
   for(const s of MAP.walls)if(segD(x,z,s)<s.th/2+0.8)return 1;
-  for(const r of MAP.ridges)if(segD(x,z,r)<r.w)return 1;
+  for(const r of MAP.ridges)if(segD(x,z,r)<r.w&&(!GCUT.length||gcutF(x,z)>0.35))return 1;
   let slow=false;
   for(const r of MAP.rivers)if(Math.abs(x-rX(r,z))<r.w+1){const ct=crossAt(r,z);if(ct==='bridge')continue;if(ct==='ford'||(FROZEN&&r.kind!=='lava')){slow=true;continue;}return 1;}
   for(const p of MAP.pools)if(ell(x,z,p)<1.05){if(DEEP[p.k]&&!(FROZEN&&p.k==='water'))return 1;slow=true;}
@@ -1031,7 +1034,7 @@ const standards=[[-FW/2+0.8,FD/2-0.4,'#2f5fc4','#f2c94c'],[FW/2-0.8,FD/2-0.4,'#a
 function drawSky(bands){const x=skyC.getContext('2d');
   for(let y=0;y<128;y++){const f=y/127*(bands.length-1),i=Math.floor(f),fr=f-i;for(let xx=0;xx<8;xx++){const th=((xx%2)*2+(y%2))/4;x.fillStyle=bands[Math.min(bands.length-1,i+(fr>th+0.12?1:0))];x.fillRect(xx,y,1,1);}}skyT.needsUpdate=true;}
 function clearMapGroup(){while(mapGroup.children.length){const o=mapGroup.children.pop();o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material&&!SHARED.has(n.material)){if(n.material.map&&n.material.map!==skyT)n.material.map.dispose();n.material.dispose();}});}}
-function genMap(type,seed){_m=seed%2147483646+1;BIO=BIOMES[type];MAP={type,rivers:[],pools:[],woods:[],rocks:[],walls:[],ridges:[]};BIO.gen();}
+function genMap(type,seed){GCUT=[];_m=seed%2147483646+1;BIO=BIOMES[type];MAP={type,rivers:[],pools:[],woods:[],rocks:[],walls:[],ridges:[]};BIO.gen();}
 function mapIsSound(){
   const F=new Float64Array(GW*GD);dijkstra(F,[gcz(0)*GW+gcx(46)]);if(F[gcz(0)*GW+gcx(-46)]>1e8)return false;
   for(let z=-30;z<=30;z+=2)for(const x of[-47,-41,-35,35,41,47])if(navAt(x,z)===1)return false;return true;}
@@ -1061,7 +1064,7 @@ function buildBattlefield(type){efOk=false;FROZEN=false;CRN=0;CRT.fill(0);if(crI
     else{const gx=[-50,-22,4,30,54][(mrand()*5)|0],gz=(mrand()<0.5?-1:1)*(29+mrand()*6);x=gx+(mrand()-0.5)*14;z=gz+(mrand()-0.5)*6;}
     if(okTree(x,z))add(pick(),x,z,1.2+mrand()*0.6);}
   MAP.woods.forEach(w=>{w.tr=[];const n=Math.round(w.rx*w.rz*(w.palm?0.5:1.1));for(let i=0;i<n;i++){const a=mrand()*6.283,r=Math.sqrt(mrand())*0.95,x=w.x+Math.cos(a)*r*w.rx,z=w.z+Math.sin(a)*r*w.rz;
-    if(okTree(x,z)){const kk=w.palm?'palm':pick();add(kk,x,z,1.1+mrand()*0.6);w.tr.push([kk,lists[kk].length-1]);}}});
+    if(okTree(x,z)){const kk=w.palm?'palm':pick();add(kk,x,z,1.1+mrand()*0.6);w.tr.push([kk,lists[kk].length-1,x,z]);}}});
   TREEIM={};for(const k in lists){const m=propBatch(TREE[k].m,lists[k]);TREEIM[k]=m;mapGroup.add(m);}
   const tl=[[],[],[]],[tw,th]=TUFTSZ[BIO.tuft];for(let i=0;i<330;i++){const x=-FW/2+mrand()*FW,z=FD/2-1.4+mrand()*1.6;tl[i%3].push([x,Hb(x,z),z,tw*0.11,th*0.11]);}
   tl.forEach((l,i)=>mapGroup.add(propBatch(TUFT[BIO.tuft][i],l)));
@@ -1153,11 +1156,20 @@ function buildLava(){lavaPrep();if(!LAVA.rivers.length&&!LAVA.pools.length)retur
       P.push(p.x,yAt(p.x,p.z,0.12),p.z,...pt(a0,1),...pt(a1,1));const o0=pt(a0,1),o1=pt(a1,1),q0=pt(a0,1+0.35/Math.min(p.rx,p.rz)),q1=pt(a1,1+0.35/Math.min(p.rx,p.rz));o0[1]+=0.02;o1[1]+=0.02;q0[1]+=0.02;q1[1]+=0.02;Rg.push(...o0,...q0,...o1,...q0,...q1,...o1);}
     for(const [arr,mat] of [[P,LAVA.mat],[Rg,LAVA.rim]]){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));const m=new THREE.Mesh(g,mat);m.renderOrder=1;mapGroup.add(m);}}}
 /* no lava pool may sit by a castle gate: any pool in the gate's approach is filled in before the wall goes up (same on every player's machine) */
-function lavaClearGate(wx,gz){if(!LAVA.pools.length)return;const near=p=>{for(let x=wx-9;x<=wx+9;x+=1.5)for(let dz=-6;dz<=6;dz+=1.5)if(ell(x,gz+dz,p)<1.7)return true;return false;};
-  const drop=MAP.pools.filter(p=>p.k==='lava'&&near(p));if(!drop.length)return;MAP.pools=MAP.pools.filter(p=>!drop.includes(p));fillNAV();PTF.clear();efOk=false;
-  for(const m of mapGroup.children.slice())if(m.material===LAVA.mat||m.material===LAVA.rim){mapGroup.remove(m);if(m.geometry)m.geometry.dispose();}
+function rebuildGround(){fillNAV();PTF.clear();efOk=false;
+  for(const m of mapGroup.children.slice())if(LAVA.mat&&(m.material===LAVA.mat||m.material===LAVA.rim)){mapGroup.remove(m);if(m.geometry)m.geometry.dispose();}
   const om=battleTerrain.material;mapGroup.remove(battleTerrain);battleTerrain.geometry.dispose();if(om&&!SHARED.has(om)){if(om.map)om.map.dispose();om.dispose();}
-  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);buildLava();fillRB();DE4LOG.info('siege: filled '+drop.length+' lava pool(s) by the gate');}
+  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);buildLava();fillRB();}
+/* a castle wall clears its own footprint and the road through its gate: mountains in the gate's approach get a smooth pass cut through them,
+   woods stop at the wall, and trees standing in the wall or by the gate are removed */
+function siegeCutouts(wx,gz){const lane={x1:wx-20,z1:gz,x2:wx+20,z2:gz},wall={x1:wx,z1:-FD/2-4,x2:wx,z2:FD/2+4};
+  const ridgeHit=MAP.ridges.some(r=>{for(let x=wx-20;x<=wx+20;x+=2)for(let dz=-11;dz<=11;dz+=2)if(segD(x,gz+dz,r)<r.w+3.5)return true;return false;});
+  const woodHit=MAP.woods.some(w=>{if(w.burnt)return false;for(let a=0;a<6.283;a+=0.4)for(const k of[0.3,0.7,1]){const x=w.x+Math.cos(a)*w.rx*k,z=w.z+Math.sin(a)*w.rz*k;if(Math.abs(x-wx)<3.4||segD(x,z,lane)<9)return true;}return false;});
+  GCUT=[];if(ridgeHit)GCUT.push(Object.assign({ridge:true,r0:6.5,r1:11},lane));if(woodHit){GCUT.push(Object.assign({woodR:9},lane));GCUT.push(Object.assign({woodR:3.4},wall));}
+  let hidden=0;if(TREEIM)for(const w of MAP.woods)for(const t of w.tr||[]){const[k,i,x,z]=t;if(x==null)continue;if(Math.abs(x-wx)<3.4||segD(x,z,lane)<11){const m=TREEIM[k];if(m){m.setMatrixAt(i,_zm);m.instanceMatrix.needsUpdate=true;hidden++;}}}
+  if(ridgeHit||woodHit)rebuildGround();DE4LOG.info('siege cutouts: ridge '+ridgeHit+' woods '+woodHit+' trees removed '+hidden);}
+function lavaClearGate(wx,gz){if(!LAVA.pools.length)return;const near=p=>{for(let x=wx-9;x<=wx+9;x+=1.5)for(let dz=-6;dz<=6;dz+=1.5)if(ell(x,gz+dz,p)<1.7)return true;return false;};
+  const drop=MAP.pools.filter(p=>p.k==='lava'&&near(p));if(!drop.length)return;MAP.pools=MAP.pools.filter(p=>!drop.includes(p));rebuildGround();DE4LOG.info('siege: filled '+drop.length+' lava pool(s) by the gate');}
 function solid(x,z){if(navAt(x,z)===1)return true;if((LAVA.rivers.length||LAVA.pools.length)&&lavaDist(x,z)<LAVA_BUF)return true;
   for(const w of MAP.walls){if(x<(w.x1<w.x2?w.x1:w.x2)-1.3||x>(w.x1>w.x2?w.x1:w.x2)+1.3||z<(w.z1<w.z2?w.z1:w.z2)-1.3||z>(w.z1>w.z2?w.z1:w.z2)+1.3)continue;if(segD(x,z,w)<w.th/2+0.35)return true;}
   for(const b of MAP.rocks){const dx=x-b.x,dz=z-b.z,r=b.r+0.3;if(dx*dx+dz*dz<r*r)return true;}
@@ -1865,7 +1877,8 @@ const PU={mana:{n:'Mana Surge',col:'#7fb0ff',g:'✦',w:8},heal:{n:'Holy Nova',co
   fury:{n:'Berserk Rage',col:'#ff8a2a',g:'⚔',w:11},dread:{n:'Dread Horn',col:'#ff6a4a',g:'☠',w:10},swift:{n:'Cyclone',col:'#9ff0ff',g:'@',w:12},cloud:{n:'Thundercloud',col:'#b48cff',g:'⚡',w:13},raise:{n:'Resurrection',col:'#ff2a2a',g:'☥',w:9},
   meteor:{n:'Meteor Shower',col:'#ff5a1a',g:'☄',w:11},wrath:{n:"Dragon's Wrath",col:'#ffd23a',g:'♛',w:5,legend:true}};
 const PUK=Object.keys(PU),PUT={},PUW=PUK.reduce((a,k)=>a+PU[k].w,0);
-function pickPU(){let r=Math.random()*PUW;for(const k of PUK){r-=PU[k].w;if(r<=0)return k;}return 'cloud';}
+const PU_SUSTAIN={heal:1,raise:1,reinf:1,mana:1};
+function pickPU(){const late=typeof lateRound==='function'&&lateRound(),wt=k=>PU[k].w*(late?(PU_SUSTAIN[k]?0.3:1.6):1);let tot=0;for(const k of PUK)tot+=wt(k);let r=Math.random()*tot;for(const k of PUK){r-=wt(k);if(r<=0)return k;}return 'cloud';}
 for(const k of PUK){const c=cv(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,4,32,32,30);g.addColorStop(0,'#ffffff');g.addColorStop(0.35,PU[k].col);g.addColorStop(1,'rgba(0,0,0,0)');
   x.fillStyle=g;x.beginPath();x.arc(32,32,30,0,7);x.fill();x.fillStyle='#120e1c';x.beginPath();x.arc(32,32,15,0,7);x.fill();x.strokeStyle=PU[k].col;x.lineWidth=3;x.stroke();
   x.fillStyle=PU[k].col;x.font='bold 20px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(PU[k].g,32,33);PUT[k]=tex(c,true);}
@@ -2036,7 +2049,11 @@ function tickSpectacles(dt){
           if(col.length){const u=col[(Math.random()*col.length)|0];impact(u.x,u.z,o,true);spawn({x:u.x,y:Hb(u.x,u.z)+3,z:u.z,frames:FLAME,w:2.4,h:6,life:0.4,grow:0.6});}else if(Math.random()<0.4)impact(W.x+W.dir*1.5,clamp(W.z+R(-6,6),-FD/2+1.5,FD/2-1.5),o,true);}}
       if(W.t<=0)W.sp.visible=false;}}}
 function clearSpectacles(){WILD.t=0;if(WILD.sp)WILD.sp.visible=false;clearPops();for(let s=0;s<2;s++){cyc[s].t=0;met[s].t=0;wr[s].t=0;if(wr[s].sp)wr[s].sp.visible=false;}}
-function tickPU(dt){puT-=dt;if(puT<=0&&puN<5){const n0=pups.length;spawnPU();if(pups.length>n0){puN++;puT=puN<2?R(4,6):R(7,10);}else puT=1;}fury[0]=Math.max(0,fury[0]-dt);fury[1]=Math.max(0,fury[1]-dt);
+/* long rounds: after 45 s the field starts throwing up crystals faster and faster (down to about a third of the usual gap by about 110 s), with no limit on how many,
+   and late crystals lean towards ones that end fights (meteors, storms, cyclones, rage, dread) rather than ones that prolong them (healing, raising, reinforcements, mana) */
+const lateRound=()=>phase==='fight'&&engT>45;
+function tickPU(dt){puT-=dt;const late=lateRound();if(late&&!tickPU.warned){tickPU.warned=true;showBanner('The battle drags on... crystals rise faster!');sfx('chant');}
+  if(puT<=0&&(puN<5||late)){const n0=pups.length;spawnPU();if(pups.length>n0){puN++;puT=(puN<2?R(4,6):R(7,10))*(late?Math.max(0.35,1-(engT-45)/100):1);}else puT=1;}fury[0]=Math.max(0,fury[0]-dt);fury[1]=Math.max(0,fury[1]-dt);
   for(const p of pups.slice()){p.t+=dt;if(TAC.on&&tacPupTick(p,dt))continue;let best=null,bd=0.95;for(let s=0;s<2;s++)for(const u of alive[s]){if(u.state!=='alive'||Math.abs(u.x-p.x)>1||Math.abs(u.z-p.z)>1)continue;const d=Math.hypot(u.x-p.x,u.z-p.z);if(d<bd){bd=d;best=u;}}
     for(let s=0;s<2&&!best;s++){const g=fg[s];if(okGen(g)&&Math.hypot(g.x-p.x,g.z-p.z)<1.2)best={side:s};}
     if(best)claimPU(p,best.side);}}
@@ -2044,13 +2061,13 @@ const AMB0=0xffe8d0,SUN0=0xfff0d8;
 let SIEGE=null;const wallGeo=new THREE.BoxGeometry(1,1,1),wallMat=new THREE.MeshLambertMaterial({color:0x8a8478}),crenMat=new THREE.MeshLambertMaterial({color:0x9d978b}),gateMat=new THREE.MeshLambertMaterial({color:0x6a4424}),siegeGrp=new THREE.Group();
 function clearSiege(){SIEGE=null;SOBH.fill(0);CLB.fill(0);siegeGrp.visible=true;while(siegeGrp.children.length)siegeGrp.remove(siegeGrp.children[0]);}
 const _zm=new THREE.Matrix4().makeScale(0,0,0);
-function laneCost(zc,wx){let c=0;if(wx!=null&&(LAVA.rivers.length||LAVA.pools.length))for(let x=wx-8;x<=wx+8;x+=2)for(const dz of[-5,-2.5,0,2.5,5])if(lavaDist(x,zc+dz)<4)c+=60;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b.r)c+=3;for(const w of MAP.walls)if(Math.min(w.z1,w.z2)<zc+6&&Math.max(w.z1,w.z2)>zc-6)c+=4;
+function laneCost(zc,wx){let c=0;if(wx!=null)for(const r of MAP.ridges)for(let x=wx-8;x<=wx+8;x+=4)if(segD(x,zc,r)<r.w+3)c+=25;if(wx!=null&&(LAVA.rivers.length||LAVA.pools.length))for(let x=wx-8;x<=wx+8;x+=2)for(const dz of[-5,-2.5,0,2.5,5])if(lavaDist(x,zc+dz)<4)c+=60;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b.r)c+=3;for(const w of MAP.walls)if(Math.min(w.z1,w.z2)<zc+6&&Math.max(w.z1,w.z2)>zc-6)c+=4;
   for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++)if(NAV[gcz(zc)*GW+x]===1)c+=1;return c+Math.abs(zc)*0.05;}
 function clearLane(zc){const half=5.4;let n=0;
   MAP.rocks=MAP.rocks.filter(b=>{if(Math.abs(b.z-zc)<half+b.r){if(MAP.rockIM&&b.i!==undefined){MAP.rockIM.setMatrixAt(b.i,_zm);MAP.rockIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
   MAP.walls=MAP.walls.filter(w=>{const zmin=Math.min(w.z1,w.z2)-1,zmax=Math.max(w.z1,w.z2)+1;if(zmax>zc-half&&zmin<zc+half){if(MAP.wallIM&&w.bi){for(const i of w.bi)MAP.wallIM.setMatrixAt(i,_zm);MAP.wallIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
-  fillRB();if(n)DE4LOG.info('siege lane at z '+zc+' cleared '+n+' obstacles');}
-function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;const wx0=(def?1:-1)*18;for(let z=-24;z<=24;z+=2){const c=laneCost(z,wx0);if(c<best){best=c;gzc=z;}}clearLane(gzc);lavaClearGate(wx0,gzc);
+  if(n)fillNAV();fillRB();if(n){PTF.clear();efOk=false;DE4LOG.info('siege lane at z '+zc+' cleared '+n+' obstacles');}}
+function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;const wx0=(def?1:-1)*18;for(let z=-24;z<=24;z+=2){const c=laneCost(z,wx0);if(c<best){best=c;gzc=z;}}clearLane(gzc);lavaClearGate(wx0,gzc);siegeCutouts(wx0,gzc);
   const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(gzc-3.2),gz1=gcz(gzc+3.2),gate=[];
   for(let z=gz0-1;z<=gz1+1;z++)for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++){const k=z*GW+x;if(NAV[k]===1)NAV[k]=2;}
   SOBH.fill(0);const Hs=3.4+fort*0.6;for(let z=0;z<GD;z++)for(let x=x0-1;x<=x1+1;x++){const k=z*GW+x;if(x>=x0&&x<=x1){NAV[k]=1;if(z>=gz0&&z<=gz1)gate.push(k);}SOBH[k]=Hs+(z<gz0-1||z>gz1+1?0.6:0)+((z===gz0-2||z===gz1+2)?2:0);}
@@ -2116,7 +2133,7 @@ function clearField(){
   if(dragon.mode!=='gone'){dragon.mode='idle';}dragon.t=0;dragon.sp.rotation.z=0;timers=[];
 }
 function deploy(){siegeClose();DE4LOG.beat('deploy');DE4LOG.trace(6000);DE4LOG.mark('deploy start');try{DE4LOG.info('deploy round '+(round+1)+': '+active[0].d.key+'('+active[0].d.troop+') vs '+active[1].d.key+'('+active[1].d.troop+') map '+lastType+(SIEGE?' siege':'')+(BOSS.on?' boss':''));}catch(e){}
-  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;clearPops();EV={at:Math.random()<0.35?R(10,22):-1,done:false};ecl[0]=ecl[1]=0;eclZ[0]=eclZ[1]=null;if(eclSp)eclSp.visible=false;for(const u of units){u.sq=null;u.ramc=0;}form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
+  squadAim=false;squadCD=0;esc[0]=esc[1]=0;puT=R(3,4.5);puN=0;tickPU.warned=false;clearPops();EV={at:Math.random()<0.35?R(10,22):-1,done:false};ecl[0]=ecl[1]=0;eclZ[0]=eclZ[1]=null;if(eclSp)eclSp.visible=false;for(const u of units){u.sq=null;u.ramc=0;}form[0]=form[1]='line';reform[0]=reform[1]=0;for(const A of abil){A.cd=8;A.t=0;}ls[0]=ls[1]=false;rallied[0]=rallied[1]=false;routT[0]=routT[1]=0;streak[0]=streak[1]=0;engT=0;exhB=false;aiCast=false;aiFormCD=0;shrine.own=-1;shrine.hold=[0,0];shrine.won=false;clearPU();puT=R(5,8);tickPU.warned=false;shrRing.material.color.setHex(0xd8d0e8);$('combo').hidden=true;
   storm.on=false;storm.left=0;round++;phase='taunt';introT=0;seekDuel=[false,false];avoidDuel=false;aim.mode=false;timers=[];anchor[0]=-28;anchor[1]=28;orders[0]='charge';orders[1]='hold';aiT=0;chalT=0;chal=null;duel.on=false;duel.cd=6;withdrawArm=0;
   for(let s=0;s<2;s++){const r=active[s],g=fg[s];{const pf=MPPROF[r.d.troop]||MPPROF.inf,pe=r.relic==='pearl';mpMax[s]=pf.max+(pe||r.relic==='wyrm'?1:0);mp[s]=pe?mpMax[s]:pf.start;}spellCD[s]=0;morale[s]=0.5+0.15*(r.hp/r.d.hp)+(r.relic==='lion'?0.15:0);g.rec=r;g.x=s?52:-52;g.z=0;g.cast=0;g.cd=0;g.flee=false;g.dead=false;g.captured=false;g.lunge=0;g.t=0;g.sta=1;g.burst=0;g.sp.visible=true;}
   for(const u of units){const r=active[u.side];
@@ -2426,7 +2443,7 @@ function castSpell(side,tgt){if(side===0)DE4LOG.mark('castSpell '+(active[0]&&ac
     morale[V]=clamp(morale[V]-0.2,0,1);morale[side]=clamp(morale[side]+0.12,0,1);showBanner(side?'The sun goes dark! Your army falters':'Eclipse! The enemy falters in the dark',side===1);
     const sp2=eclSun();sp2.visible=true;sp2.position.set(cx,Hb(cx,cz)+18,cz);sp2.scale.set(1,1,1);
     for(let i=0;i<Math.round(3*K);i++)schedule(0.35+i*0.3,()=>{const[x,z]=cl(cx+R(-2.5,2.5),cz+R(-2.5,2.5));darkBolt(x,z,V);});}
-  else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
+  else if(sp==='mend'){for(const u of alive[side])u.hp=STATS[u.type].hp;let n=0;const cap=Math.round(25*pw*(engT>90?0.5:1)),r=g.rec;for(const u of units){if(n>=cap)break;if(u.side!==side||u.state!=='gone'||u.i>=startN[side])continue;const st=STATS[r.d.troop];u.type=r.d.troop;
       Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0,0.8),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});u.x=clamp(g.x+R(-3,3),-FW/2+1,FW/2-1);u.z=clamp(g.z+R(-3,3),-FD/2+1.5,FD/2-1.5);if(navAt(u.x,u.z)===1){u.x=g.x;u.z=g.z;}n++;}
     morale[side]=clamp(morale[side]+0.12,0,1);for(let i=0;i<30;i++)spawn({x:g.x+R(-5,5),y:Hb(g.x,g.z)+R(0,1),z:g.z+R(-5,5),vy:R(2,5),tex:T_SPARK,w:0.5,h:0.5,life:R(0.6,1.3),blink:true});
     spawn({x:g.x,y:Hb(g.x,g.z)+10,z:g.z,tex:T_BOLT,w:4,h:22,life:0.9,blink:true});spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:9,h:9,life:1.2,grow:1.5,blink:true});
