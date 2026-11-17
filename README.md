@@ -94,7 +94,7 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 
 ## Sieges
 
-When a general flees at the end of a round, the castle wall is opened so the winner can chase him down; it is back in place (with whatever damage it had) at the start of the next round.
+When a general flees at the end of a round, the gate is thrown open so the winner can chase him down through it; the rest of the wall stays up. If the gate was still standing, it is shut again at the start of the next round with the damage it had.
 
 
 Every battle for a castle is a siege. A stone wall with towers runs the full width of the field in front of the defenders, with a wooden gate placed in the clearest lane across the field; rocks and ruin walls in that lane are cleared away, and a causeway crosses any water, so the gate can always be reached. Attackers path to the gate and batter it (Knights ×2.2, Dragonriders ×1.8, Mages ×1.4, Infantry ×1.2, Cavalry ×0.6, Archers and Monks barely scratch it). The gate starts at 180 HP plus 120 per level of fortification. Defenders behind the wall take 30% less damage from arrows, bolts and spells, and the defending AI holds the wall while the gate stands. Harpies and Dragonriders fly straight over. When the gate falls the defenders lose heart and the attackers surge. A broken gate stays broken for the rest of the battle. The HUD shows the gate's health. Skirmish can also set up a siege either way round.
