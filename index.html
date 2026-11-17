@@ -526,7 +526,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 104';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 105';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1070,12 +1070,13 @@ const uMesh=new THREE.InstancedMesh(uGeo,uMat,UN);uMesh.frustumCulled=false;uMes
 const sidePal=[0,1],UMAT=uMesh.instanceMatrix.array,UCELL=uCellAttr.array,USCL=CELL*PX,TI=Object.fromEntries(TYPES.map((t,i)=>[t,i]));
 const units=[];
 for(let s=0;s<2;s++)for(let i=0;i<NPS;i++)units.push({uid:s*NPS+i,side:s,type:'inf',i,state:'gone',vis:false,x:0,z:0,y:0,rx:0,rz:0});
+const flapF=u=>Math.floor(performance.now()/1000*(u.type==='drag'?3.2:5)+u.i*0.37)%2;
 function flyAlt(u){const lx=u.x+(u.vx||0)*0.45,lz=u.z+(u.vz||0)*0.45,gy=Hb(u.x,u.z);let tg=1.7;
   for(const [px,pz] of [[u.x,u.z],[lx,lz]]){const top=Hb(px,pz)+obH(px,pz)+1.1-gy;if(top>tg)tg=top;}
   const a=u.fa===undefined?tg:u.fa;u.fa=a+(tg-a)*(tg>a?0.14:0.05);return u.fa;}
 function writeUnit(u,f){u.f=f;const o=u.uid*16;UMAT.fill(0,o,o+16);UMAT[o+15]=1;
   if(!u.vis){UMAT[o+13]=-999;return;}
-  UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y+(FLY[u.type]&&u.state!=='dying'?flyAlt(u)+Math.sin(u.walk*2+u.i)*0.25:0);UMAT[o+14]=u.z;
+  UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y+(FLY[u.type]&&u.state!=='dying'?flyAlt(u)+Math.sin(u.walk*2+u.i+performance.now()/1000*2.6)*0.22:0);UMAT[o+14]=u.z;
   const idx=(sidePal[u.side]*NT+TI[u.type])*4+f;UCELL[u.uid*2]=idx%ATL_C;UCELL[u.uid*2+1]=ATL_R-1-Math.floor(idx/ATL_C);}
 units.forEach(u=>writeUnit(u,0));
 /* spatial grid for targeting and spacing */
@@ -1348,7 +1349,7 @@ function bfs(a,b){const prev=new Map([[a,-1]]),q=[a];while(q.length){const v=q.s
   if(!prev.has(b))return null;const p=[];for(let v=b;v!==-1;v=prev.get(v))p.unshift(v);return p;}
 function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.length){const v=q.shift();if(CASTLES[v].o===nat&&v!==from)return v;for(const w of CASTLES[v].adj)if(!seen.has(w)){seen.add(w);q.push(w);}}
   const any=CASTLES.find(c=>c.o===nat);return any?any.id:null;}
-function initCampaign(){if(CAMP){CAMP.gold=null;CAMP.merch=null;}if(merchSp)merchSp.visible=false;
+function initCampaign(){if(CAMP){CAMP.gold=null;CAMP.merch=null;}if(merchSp)merchSp.visible=false;if(merchTok)merchTok.visible=false;
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);});
   if(endCard){kingdom.remove(endCard);endCard=null;}
   Object.assign(CAMP,{vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
@@ -1383,6 +1384,7 @@ function campTick(dt,now){
     for(const r of GENS)if(r.alive&&typeof r.loc==='number'){const pl=isHum(r.nat),c=CASTLES[r.loc],tk=pl?c.task:'rest',m=tk==='rest'?1.5:tk==='fortify'?0.6:1;r.hp=Math.min(r.d.hp,r.hp+r.d.hp*(pl?DIFF.recHP:0.3)*m);r.troops=Math.max(r.troops,Math.min(r.troopsMax,Math.round(r.troops+r.troopsMax*(pl?DIFF.recTr:0.4)*m)));}
     let woke=[];for(const r of GENS)if(r.alive&&r.rest>0&&typeof r.loc==='number'){r.rest--;if(!r.rest&&isHum(r.nat))woke.push(r.d.short);}
     clog('Week '+CAMP.week+'. Garrisons rest and muster fresh troops.'+(woke.length?' '+woke.join(', ')+(woke.length>1?' are':' is')+' rested and ready to march.':''));weekTasks();marchBeat();updateCampPanel();}
+  merchTick(sdt);
   for(const a of CAMP.armies.slice()){
     const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]];if(!A||!B){DE4LOG.info('army '+a.id+' had no road left; arriving');if(A)arrive(a,A);else removeArmy(a);if(state!=='kingdom')return;continue;}const L=Math.hypot(B.x-A.x,B.z-A.z);
     if(!a.halt)a.t+=sdt*0.9/L;a.x=A.x+(B.x-A.x)*Math.min(1,a.t);a.z=A.z+(B.z-A.z)*Math.min(1,a.t);a.dir=B.x>=A.x?0:1;
@@ -1625,7 +1627,7 @@ function campClick(hit){
   updateCampPanel();
 }
 function pickAt(o,d){ray.set(o,d);const h=pickFirst(ray.intersectObjects(pickables,false));return h?h.object:null;}
-function campTokens(now){
+function campTokens(now){merchToken(now,now-(campTokens.l||now));campTokens.l=now;
   for(const a of CAMP.armies){const lead=a.gens[0];if(!lead)continue;const fr=GMF[lead.d.key][a.dir||0][Math.floor(now*4)%2];
     a.tok.material=fr.m;a.tok.scale.set(fr.w*0.7,fr.h*0.7,1);const y=Hk(a.x,a.z);a.tok.position.set(a.x,y,a.z);a.pick.position.set(a.x,y+1.1,a.z);if(a.lab)a.lab.position.set(a.x,y+fr.h*0.7+0.2,a.z);}
   const ra=CAMP.sel&&CAMP.sel.army?CAMP.sel.army:flashT>0&&!CAMP.sel&&flashArmy&&CAMP.armies.includes(flashArmy)?flashArmy:null;
@@ -2222,7 +2224,7 @@ function updateUnits(dt){
     u.x=clamp(u.x,-FW/2+0.6,FW/2-0.6);u.z=clamp(u.z,-FD/2+1.2,FD/2-1.2);
     if(u.state==='alive'&&!FLY[u.type]){if(u.lx!==undefined&&solid(u.x,u.z)){u.x=u.lx;u.z=u.lz;}else{u.lx=u.x;u.lz=u.z;}}
     const cheer=phase==='duel'&&u.state==='alive'&&Math.hypot(u.x-u.rx,u.z-u.rz)<0.5;
-    const f=u.state==='dying'?3:u.atk>0?2:(u.moving||u.state==='flee')?(Math.floor(u.walk*3)%2):cheer?(Math.floor((performance.now()/1000+u.i*0.37)*3)%2):0;
+    const f=u.state==='dying'?3:u.atk>0?2:FLY[u.type]?flapF(u):(u.moving||u.state==='flee')?(Math.floor(u.walk*3)%2):cheer?(Math.floor((performance.now()/1000+u.i*0.37)*3)%2):0;
     writeUnit(u,f);
   }
   uMesh.instanceMatrix.needsUpdate=true;uCellAttr.needsUpdate=true;
@@ -3140,7 +3142,7 @@ function shopItems(){const S=CAMP.sel,out=[];if(!S||state!=='kingdom'||CAMP.over
     if(m)add('merc','Sellswords for '+m.d.short,'+'+(Math.min(mercCap(m),m.troops+Math.round(m.troopsMax*0.25))-m.troops)+' troops, above the usual limit',PRICE.merc,{c:c.id,g:GENS.indexOf(m)});
     const rf=pk.find(needsRefill)||Gn.filter(needsRefill).sort((a,b)=>a.troops/a.troopsMax-b.troops/b.troopsMax)[0];
     if(rf)add('refill','Reinforce '+rf.d.short,'full troops and health, ready to march now',refillCost(rf),{c:c.id,g:GENS.indexOf(rf)});
-    const M=CAMP.merch;if(M&&M.c===c.id)M.items.forEach((k,i)=>{const r=pk.find(x=>!x.relic)||Gn.find(x=>!x.relic);add('relic','Merchant: '+RELICS[k].n,RELICS[k].d+(r?' (for '+r.d.short+')':' (to the vault)'),PRICE.relic,{c:c.id,i,g:r?GENS.indexOf(r):-1});});}
+    const M=CAMP.merch;if(M&&M.c===c.id&&!(M.to>=0))M.items.forEach((k,i)=>{const r=pk.find(x=>!x.relic)||Gn.find(x=>!x.relic);add('relic','Merchant: '+RELICS[k].n,RELICS[k].d+(r?' (for '+r.d.short+')':' (to the vault)'),PRICE.relic,{c:c.id,i,g:r?GENS.indexOf(r):-1});});}
   return out;}
 function buy(nat,k,arg){arg=arg||{};const g=goldOf(nat),me=nat===NET.me||NET.actor===nat,say=t=>{if(me)clog(t);};
   const pay=c=>{if(g<c){say('Not enough gold: that costs '+c+'.');return false;}addGold(nat,-c);return true;};
@@ -3151,23 +3153,42 @@ function buy(nat,k,arg){arg=arg||{};const g=goldOf(nat),me=nat===NET.me||NET.act
     if(k==='merc'){if(r.troops>=mercCap(r)||!pay(PRICE.merc))return false;r.troops=Math.min(mercCap(r),r.troops+Math.round(r.troopsMax*0.25));say('Sellswords join '+r.d.short+': '+r.troops+' troops.');}
     else{if(!needsRefill(r)||!pay(refillCost(r)))return false;r.troops=Math.max(r.troops,r.troopsMax);r.hp=r.d.hp;r.rest=0;say(r.d.short+' is reinforced and ready to march.');}
     refreshCastle(c);return true;}
-  if(k==='relic'){const M=CAMP.merch;if(!M||M.c!==c.id||!M.items[arg.i]||!pay(PRICE.relic))return false;const rk=M.items.splice(arg.i,1)[0],r=GENS[arg.g];
+  if(k==='relic'){const M=CAMP.merch;if(!M||M.c!==c.id||M.to>=0||!M.items[arg.i]||!pay(PRICE.relic))return false;const rk=M.items.splice(arg.i,1)[0],r=GENS[arg.g];
     if(r&&r.alive&&r.nat===nat&&r.loc===c.id&&!r.relic){giveRelic(r,rk);say(r.d.short+' buys the '+RELICS[rk].n+': '+RELICS[rk].d+'.');}else{(CAMP.vault=CAMP.vault||[]).push(rk);say('The '+RELICS[rk].n+' goes to your vault.');}
     if(!M.items.length){clog('The merchant has sold out and moves on.');merchLeave();}return true;}
   return false;}
 function actBuy(k,arg){if(GUEST()){netAct('buy',{k,arg});sfx('lock');return;}if(buy(NET.me,k,arg))sfx('lvlup');else sfx('blip',200);shopHash='';castHash='';NET.panelH='';updateCampPanel();}
 let merchSp=null;
-function merchMark(){const M=CAMP.merch;if(!M){if(merchSp)merchSp.visible=false;return;}if(!merchSp){merchSp=makeLabel('MERCHANT','#f0c055');merchSp.scale.multiplyScalar(0.8);kingdom.add(merchSp);}const c=CASTLES[M.c];merchSp.visible=true;merchSp.position.set(c.x,c.y+6.2,c.z);}
+let merchTok=null,merchFr=null;
+function drawMerch(g,f){const L=f===1?[6,11]:[7,10];g(L[0],19,3,3,'#3a2e24');g(L[1],19,3,3,'#3a2e24');
+  g(1,5,6,11,'#8a5a2b');g(1,5,6,2,'#b98a4a');g(0,8,2,5,'#6b4420');g(2,3,4,2,'#d8c090');g(1,16,5,2,'#c9d3e0');
+  g(6,9,7,10,'#7a3fa0');g(6,9,7,1,'#a56ad0');g(6,14,7,1,'#f0c055');g(6,17,7,2,'#55296f');
+  g(7,4,5,5,'#f0b98a');g(6,1,7,4,'#f0c055');g(5,4,9,1,'#c9962e');g(8,0,3,1,'#f0c055');g(10,6,1,1,'#2a1a10');g(8,8,4,1,'#e8e0d0');
+  g(15,2,1,20,'#8a5a2b');g(14,0,3,3,'#7fe8c8');g(13,11,2,2,'#f0b98a');}
+function merchPos(M){const A=CASTLES[M.c],B=M.to>=0?CASTLES[M.to]:A,t=M.to>=0?M.t:0;return[A.x+(B.x-A.x)*t+1.5,A.z+(B.z-A.z)*t+1.3];}
+function merchMark(){const M=CAMP&&CAMP.merch;if(!M){if(merchSp)merchSp.visible=false;if(merchTok)merchTok.visible=false;return;}
+  if(!merchSp){merchSp=makeLabel('MERCHANT','#f0c055');merchSp.scale.multiplyScalar(0.6);kingdom.add(merchSp);}
+  if(!merchTok){merchFr=[0,1].map(sd=>[0,1].map(f=>{const c=cv(18,22);drawMerch(rectFn(c.getContext('2d')),f);finish(c);const cc=sd?mirror(c):c;return{m:smat(cc),w:18*PX*1.5,h:22*PX*1.5};}));merchTok=card(merchFr[0][0].m,0.5,0.02);kingdom.add(merchTok);}
+  const [x,z]=merchPos(M);if(!merchTok.visible||M.px===undefined){M.px=x;M.pz=z;}merchSp.visible=merchTok.visible=true;}
+function merchToken(now,dt){const M=CAMP&&CAMP.merch;if(!M){if(merchTok&&merchTok.visible)merchMark();return;}if(!merchTok||!merchTok.visible||M.px===undefined)merchMark();
+  const [x,z]=merchPos(M),k=Math.min(1,(dt||0.016)*8);M.px+=(x-M.px)*k;M.pz+=(z-M.pz)*k;const walk=M.to>=0,dir=walk&&CASTLES[M.to].x<CASTLES[M.c].x?1:0,fr=merchFr[dir][walk?Math.floor(now*4)%2:0];
+  const y=Hk(M.px,M.pz);merchTok.material=fr.m;merchTok.scale.set(fr.w,fr.h,1);merchTok.position.set(M.px,y+(walk?0:Math.abs(Math.sin(now*1.6))*0.05),M.pz);merchSp.position.set(M.px,y+fr.h+0.45,M.pz);}
+function merchTick(sdt){const M=CAMP.merch;if(!M)return;
+  if(M.to>=0){const A=CASTLES[M.c],B=CASTLES[M.to],L=Math.hypot(B.x-A.x,B.z-A.z)||1;M.t+=sdt*0.6/L;
+    if(M.t>=1){M.from=M.c;M.c=M.to;M.to=-1;M.t=0;M.wait=WEEK*1.2;const c=CASTLES[M.c];clog(`The merchant arrives at ${c.n}`+(c.o!=='none'?` (${NATIONS[c.o].name})`:'')+'.');if(c.o===NET.me)showBanner('The merchant has come to '+c.n);updateCampPanel();}return;}
+  M.wait=(M.wait===undefined?WEEK*1.2:M.wait)-sdt;if(M.wait>0)return;
+  if(CAMP.week>=M.until){clog('The merchant leaves the realm from '+CASTLES[M.c].n+'.');merchLeave();updateCampPanel();return;}
+  const adj=CASTLES[M.c].adj;if(!adj||!adj.length){M.wait=WEEK;return;}let op=adj.filter(i=>i!==M.from);if(!op.length)op=adj.slice();const own=op.filter(i=>CASTLES[i].o!=='none');if(own.length&&Math.random()<0.8)op=own;
+  M.to=op[(Math.random()*op.length)|0];M.t=0;clog(`The merchant sets out from ${CASTLES[M.c].n} toward ${CASTLES[M.to].n}.`);updateCampPanel();}
 function merchLeave(){CAMP.merch=null;merchMark();}
 function weekEconomy(){ensureGold();const aiK={squire:0.6,knight:0.85,warlord:1.1}[diffKey]||0.85;
   for(const n of NATS){const cs=CASTLES.filter(c=>c.o===n);if(cs.length)addGold(n,cs.reduce((a,c)=>a+8+(c.cap?6:0),0)*(isHum(n)?1:aiK));}
-  const M=CAMP.merch;if(M&&CAMP.week>=M.until){clog('The merchant packs up and leaves '+CASTLES[M.c].n+'.');merchLeave();}
-  else if(!M&&CAMP.week>=3&&Math.random()<0.3){const cs=CASTLES.filter(c=>c.o!=='none');if(cs.length){const c=cs[(Math.random()*cs.length)|0],ks=Object.keys(RELICS).sort(()=>Math.random()-0.5).slice(0,2);CAMP.merch={c:c.id,items:ks,until:CAMP.week+3};
-      clog(`A wandering merchant sets up at ${c.n} (${NATIONS[c.o].name}) for three weeks, selling ${ks.map(k=>RELICS[k].n).join(' and ')}.`);merchMark();if(c.o===NET.me)showBanner('A merchant has come to '+c.n);}}
+  const M=CAMP.merch;if(!M&&CAMP.week>=3&&Math.random()<0.3){const cs=CASTLES.filter(c=>c.o!=='none');if(cs.length){const c=cs[(Math.random()*cs.length)|0],ks=Object.keys(RELICS).sort(()=>Math.random()-0.5).slice(0,2);CAMP.merch={c:c.id,to:-1,t:0,from:-1,wait:WEEK*1.2,items:ks,until:CAMP.week+6};
+      clog(`A wandering merchant arrives at ${c.n} (${NATIONS[c.o].name}) and will walk the roads for a few weeks, selling ${ks.map(k=>RELICS[k].n).join(' and ')}.`);merchMark();if(c.o===NET.me)showBanner('A merchant has come to '+c.n);}}
   for(const n of NATS)if(!isHum(n)&&!(NET.dead&&NET.dead.has(n))&&CASTLES.some(c=>c.o===n))aiSpend(n);}
 function aiSpend(n){const M=CAMP.merch;
   for(const a of CAMP.armies){if(a.nat===n)continue;const c=CASTLES[a.path[a.path.length-1]];if(c&&c.o===n&&(c.oil||0)<1&&goldOf(n)>=PRICE.oil+20&&garrison(c).length)buy(n,'oil',{c:c.id});}
-  if(M&&CASTLES[M.c].o===n&&goldOf(n)>=PRICE.relic&&Math.random()<0.5){const r=garrison(CASTLES[M.c]).find(x=>!x.relic);if(r)buy(n,'relic',{c:M.c,i:0,g:GENS.indexOf(r)});}
+  if(M&&!(M.to>=0)&&CASTLES[M.c].o===n&&goldOf(n)>=PRICE.relic&&Math.random()<0.5){const r=garrison(CASTLES[M.c]).find(x=>!x.relic);if(r)buy(n,'relic',{c:M.c,i:0,g:GENS.indexOf(r)});}
   if(goldOf(n)>=120){const r=GENS.filter(x=>x.alive&&x.nat===n&&typeof x.loc==='number'&&x.troops<x.troopsMax*0.6).sort((a,b)=>a.troops/a.troopsMax-b.troops/b.troopsMax)[0];if(r&&goldOf(n)>=refillCost(r)+40)buy(n,'refill',{c:r.loc,g:GENS.indexOf(r)});}}
 function aiGear(n,a,t){if(!a||!t||(t.o==='none'&&!garrison(t).length))return;const p={squire:0.3,knight:0.6,warlord:0.9}[diffKey]||0.6;
   if(goldOf(n)>=PRICE.ram&&Math.random()<p)buy(n,'ram',{a:a.id});if((t.fort||0)>=1&&goldOf(n)>=PRICE.lad+30&&Math.random()<p*0.6)buy(n,'lad',{a:a.id});if(diffKey==='warlord'&&goldOf(n)>=PRICE.cat+60&&Math.random()<0.5)buy(n,'cat',{a:a.id});}
@@ -3435,7 +3456,7 @@ function netCampSend(full){if(!HOSTMP()||!NTX.conns.size)return;const G=JSON.str
     A:CAMP.armies.map(a=>[a.id,a.nat,a.gens.map(r=>GENS.indexOf(r)),a.path,a.seg,r3(a.t),a.from,a.halt?1:0,a.retreat?1:0,a.dir||0,a.gear||null])});}
 function netClog(t){if(!HOSTMP()||!NTX.conns.size)return;if(NET.actor){const c=netPeerOf(NET.actor);if(c)netSendTo(c,{t:'clog',s:t});return;}netBcast({t:'clog',s:t});}
 function netApplyCamp(m){
-  if(m.go)CAMP.gold=m.go;{const was=JSON.stringify(CAMP.merch||null);CAMP.merch=m.me||null;if(was!==JSON.stringify(CAMP.merch))merchMark();}
+  if(m.go)CAMP.gold=m.go;{const o=CAMP.merch;CAMP.merch=m.me||null;if(CAMP.merch&&o&&o.px!==undefined){CAMP.merch.px=o.px;CAMP.merch.pz=o.pz;}merchMark();}
   CAMP.week=m.w;CAMP.t=m.ct;CAMP.paused=!!m.pa;CAMP.speed=m.sp||1;CAMP.vault=m.va||[];NET.dead=new Set(m.dead||[]);
   if(m.G){const n=m.G.length;for(let i=0;i<n;i++)GENS[i]=deserRec(GENS[i],m.G[i]);GENS.length=n;}
   const gc=new Map();for(const r of GENS)if(r.alive&&typeof r.loc==='number')gc.set(r.loc,(gc.get(r.loc)||0)+1);
@@ -3449,7 +3470,7 @@ function netApplyCamp(m){
   for(const a of CAMP.armies.slice())if(!seen.has(a.id))removeArmy(a);
   if(CAMP.sel&&CAMP.sel.army&&!CAMP.armies.includes(CAMP.sel.army)){CAMP.sel=null;CAMP.target=false;}
   for(const r of [...CAMP.picked])if(!GENS.includes(r)||!r.alive)CAMP.picked.delete(r);
-  const S=CAMP.sel,h=S?(S.castle?'c'+S.castle.id+':'+S.castle.o+':'+S.castle.task+':'+garrison(S.castle).map(r=>r.d.key+r.troops+'/'+(r.rest||0)+'/'+Math.round(r.hp)+'/'+(r.relic||'')).join(','):'a'+S.army.id+':'+S.army.halt+':'+S.army.path.join('.'))+':'+CAMP.target+':'+(CAMP.vault||[]).length+':'+goldOf(NET.me)+':'+JSON.stringify(CAMP.merch||0)+':'+(S.castle?S.castle.oil:JSON.stringify(S.army.gear||0)):'';
+  const S=CAMP.sel,h=S?(S.castle?'c'+S.castle.id+':'+S.castle.o+':'+S.castle.task+':'+garrison(S.castle).map(r=>r.d.key+r.troops+'/'+(r.rest||0)+'/'+Math.round(r.hp)+'/'+(r.relic||'')).join(','):'a'+S.army.id+':'+S.army.halt+':'+S.army.path.join('.'))+':'+CAMP.target+':'+(CAMP.vault||[]).length+':'+goldOf(NET.me)+':'+(CAMP.merch?CAMP.merch.c+'/'+(CAMP.merch.to>=0)+'/'+CAMP.merch.items.join():0)+':'+(S.castle?S.castle.oil:JSON.stringify(S.army.gear||0)):'';
   if(h!==NET.panelH){NET.panelH=h;if(state==='kingdom')updateCampPanel();}
   if(m.ov&&!CAMP.over){CAMP.over=true;CAMP.winner=m.win;campaignOver(m.win===NET.me);}}
 function netGuestCamp(dt){if(CAMP.paused)return;const sdt=dt*(CAMP.speed||1);for(const a of CAMP.armies){const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]];if(!A||!B)continue;const L=Math.hypot(B.x-A.x,B.z-A.z)||1;
@@ -3574,7 +3595,7 @@ function netGuestBin(b){const a=new Int16Array(b);if(a[0]!==7777)return;const n=
   for(const u of units)if(!u._seen&&u.vis){u.vis=false;u.state='gone';writeUnit(u,0);}}
 function netGuestUnits(dt){const k=1-Math.exp(-dt*14);alive[0].length=0;alive[1].length=0;
   for(const u of units){if(!u.vis){continue;}const ox=u.x,oz=u.z;u.x+=(u.tx-u.x)*k;u.z+=(u.tz-u.z)*k;u.y+=(u.ty-u.y)*Math.min(1,k*1.4);u.vx=(u.x-ox)/Math.max(dt,1e-3);u.vz=(u.z-oz)/Math.max(dt,1e-3);
-    const sp=Math.hypot(u.vx,u.vz);u.walk=(u.walk||0)+sp*dt*0.9;if(u.state==='alive')alive[u.side].push(u);writeUnit(u,u.f||0);}
+    const sp=Math.hypot(u.vx,u.vz);u.walk=(u.walk||0)+sp*dt*0.9;if(u.state==='alive')alive[u.side].push(u);writeUnit(u,FLY[u.type]&&u.state!=='dying'&&(u.f||0)<2?flapF(u):u.f||0);}
   uMesh.instanceMatrix.needsUpdate=true;uCellAttr.needsUpdate=true;}
 function netGuestGens(dt){const k=1-Math.exp(-dt*12);for(let s=0;s<2;s++){const g=fg[s],T=NG.fgT[s];if(!g.rec||!T){g.sp.visible=false;continue;}g.t+=dt;g.x+=(T.x-g.x)*k;g.z+=(T.z-g.z)*k;
     const set=GMF[g.rec.d.key]&&GMF[g.rec.d.key][g.side];if(!set)continue;const fr=set[(g.dead||g.captured)?3:g.cast>0?2:g.moving?(Math.floor(g.t*5)%2):(Math.floor(g.t*2)%2)];
