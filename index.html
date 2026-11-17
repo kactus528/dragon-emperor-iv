@@ -178,6 +178,10 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .esg.lv{box-shadow:0 0 0 1px var(--gold),0 0 18px rgba(240,192,85,.35)}
 #esSpoils{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:11px;color:var(--ink)}
 @media (max-width:560px){.egrade{top:8px;right:8px}.egrade b{font-size:38px}#endp .panel.res #endText{padding-right:48px}}
+#esGold{display:grid;justify-items:center;gap:4px;padding:8px 4px;background:rgba(11,9,18,.7);border:1px solid var(--line);opacity:0;transition:opacity .25s}#esGold.on{opacity:1}
+#esGold span{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}#esGold i{font-style:normal;font-size:11px;color:var(--gold);min-height:14px;opacity:0;transition:opacity .3s}#esGold.won i{opacity:1}
+#esGold .reels{display:flex;gap:4px}#esGold .reels b{font-family:var(--f-display);font-weight:900;font-size:clamp(24px,6vw,34px);width:1.1em;text-align:center;color:#8d84a3;background:#0b0912;border:2px solid #4a3f63;border-radius:4px;padding:2px 0;font-variant-numeric:tabular-nums}
+#esGold .reels b.lk{color:#fff;border-color:var(--gold);animation:slam .25s cubic-bezier(.2,1.6,.4,1)}#esGold.won .reels b{color:var(--gold);box-shadow:0 0 14px rgba(240,192,85,.45)}
 #esSpoils li{opacity:0;transition:opacity .3s}#esSpoils li.on{opacity:1}#esSpoils li.big{color:var(--gold);font-weight:700;font-size:13px}#esSpoils li.bad{color:#ffb09a}
 /* title / box art */
 #title{position:fixed;inset:0;z-index:8;overflow:auto;display:grid;place-items:center;padding-block:calc(env(safe-area-inset-top,0px) + 18px) calc(env(safe-area-inset-bottom,0px) + 18px);
@@ -267,6 +271,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 </style>
 </head>
 <body>
+
 
 <canvas id="gl" aria-label="Dragon Emperor IV battlefield"></canvas>
 
@@ -387,6 +392,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
       <div class="estats"><div><b id="esK">0</b><span>Enemy slain</span></div><div><b id="esL">0</b><span>Soldiers lost</span></div><div><b id="esR">0–0</b><span>Rounds won</span></div></div>
       <div id="esGens"></div>
       <ul id="esSpoils"></ul>
+      <div id="esGold" hidden><span>Gold won</span><div class="reels" id="esReels"></div><i id="esGoldT"></i></div>
     </div>
     <div class="row">
       <button id="againBtn">Fight again</button>
@@ -520,7 +526,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 103';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 104';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2594,7 +2600,7 @@ function beginCampaign(){
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();
 }
 function togglePause(){if(state!=='kingdom')return;if(GUEST()){netAct('pause',{});return;}CAMP.paused=!CAMP.paused;clog(CAMP.paused?'Paused.':'The war resumes.');}
-function showResults(){DE4LOG.trace(6000);DE4LOG.mark('showResults');if(!RES)return;RES.t=0;RES.live=true;
+function showResults(){DE4LOG.trace(6000);DE4LOG.mark('showResults');if(!RES)return;RES.t=0;RES.live=true;goldPrep(RES);
   $('endStats').hidden=false;$('endp').firstElementChild.classList.add('res');const g=$('esGrade');g.hidden=true;g.classList.remove('slam');$('esGradeL').textContent=RES.grade;
   $('esGens').innerHTML=RES.rows.map((x,i)=>`<div class="esg" id="esg${i}"><img src="${portrait(x.r.d.key)}" alt=""><div><div class="nm"><span>${x.r.d.short}</span><em id="esLv${i}">${rankOf(x.lv0)} · Lv ${x.lv0}</em></div><div class="xb"><i id="esX${i}" style="width:0"></i></div></div><span class="tag ${x.cls}" id="esT${i}">${x.tag||'+0 XP'}</span></div>`).join('');
   $('esSpoils').innerHTML=RES.spoils.map(([c,t])=>`<li class="${c}">${t}</li>`).join('');
@@ -2615,8 +2621,19 @@ function updateResults(dt){const Q=RES;if(!Q||!Q.live)return;const pt=Q.t;Q.t=Ma
   if(t>=2.9&&!Q.stamped){Q.stamped=true;const g=$('esGrade');g.hidden=false;g.classList.add('slam');sfx('stamp');buzz(0.8,160);if(Q.grade==='S')cheer(0,1);}
   const nS=Math.min(Q.spoils.length,Math.floor(Math.max(0,t-3.2)/0.3)+(t>=3.2?1:0));
   while(Q.spoiled<nS){const li=$('esSpoils').children[Q.spoiled];if(li){li.classList.add('on');if(li.classList.contains('big'))sfx('fanfare');}Q.spoiled++;}
+  goldTick(Q,t,dt);
   if(xrActive&&resBoard&&resBoard.visible&&(t!==pt||dt===0)){const rn=performance.now();if(dt===0||t>=Q.T||rn-resLast>80){resLast=rn;drawResBoard();}}}
 let resLast=0;
+function goldPrep(Q){const i=Q.spoils.findIndex(([c,t])=>/^Gold: \+\d+/.test(t));Q.gold=null;const G=$('esGold');G.hidden=true;G.className='';
+  if(i<0)return;const m=/^Gold: \+(\d+)(?: \(you now have (\d+)\))?/.exec(Q.spoils[i][1]);Q.spoils=Q.spoils.filter((_,j)=>j!==i);
+  const n=+m[1],dg=String(n).padStart(3,'0').split('').map(Number),t0=3.5+0.3*Q.spoils.length;
+  Q.gold={n,tot:m[2]!=null?+m[2]:null,dg,t0,lock:dg.map((_,k)=>t0+1.0+k*0.45),locked:0,done:false,tick:0,shown:dg.map(()=>0)};Q.gold.tEnd=Q.gold.lock[dg.length-1];Q.T=Q.gold.tEnd+0.7;
+  G.hidden=false;$('esReels').innerHTML=dg.map(()=>'<b>0</b>').join('');$('esGoldT').textContent=Q.gold.tot!=null?'Treasury: '+Q.gold.tot+' gold':'';}
+function goldTick(Q,t,dt){const g=Q.gold;if(!g||t<g.t0)return;const G=$('esGold'),bs=$('esReels').children,skip=dt>1;G.classList.add('on');
+  for(let k=0;k<g.dg.length;k++){const lk=t>=g.lock[k];g.shown[k]=lk?g.dg[k]:(Math.floor(t*(22+k*5))+k*3)%10;if(bs[k]){bs[k].textContent=g.shown[k];if(lk)bs[k].classList.add('lk');}}
+  if(!skip&&g.locked<g.dg.length&&t-g.tick>0.07){g.tick=t;sfx('blip',500+((t*40|0)%5)*90);}
+  while(g.locked<g.dg.length&&t>=g.lock[g.locked]){g.locked++;if(!skip){sfx('clang');buzz(0.5,40);}}
+  if(!g.done&&t>=g.tEnd){g.done=true;G.classList.add('won');sfx('lvlup');buzz(0.9,160);}}
 function skipResults(){if(!RES||!RES.live||RES.t>=RES.T)return false;updateResults(RES.T);return true;}
 function drawResBoard(){const Q=RES,x=resX,W=1024,H=640;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.92)';x.fillRect(0,0,W,H);x.strokeStyle='#f0c055';x.lineWidth=6;x.strokeRect(6,6,W-12,H-12);
   x.textBaseline='top';x.textAlign='center';x.font='900 64px Silkscreen, monospace';x.fillStyle=Q.win?'#f0c055':'#ff5a3a';x.fillText(Q.why==='tyrant'?'THE TYRANT FALLS':Q.why==='surrender'?'SURRENDER':Q.win?'VICTORY':'DEFEAT',W/2,24);
@@ -2629,7 +2646,11 @@ function drawResBoard(){const Q=RES,x=resX,W=1024,H=640;x.clearRect(0,0,W,H);x.f
     const up=tg&&tg.classList.contains('up');x.font='700 18px Silkscreen, monospace';x.fillStyle=up?'#f0c055':tg&&tg.classList.contains('bad')?'#ffb09a':'#9ab8ff';x.fillText(tg?tg.textContent.toUpperCase():'',640,y+14);});
   if(Q.stamped){x.save();x.translate(W-130,250);x.rotate(-0.2);x.textAlign='center';x.font='900 120px Silkscreen, monospace';x.fillStyle='#0b0912';x.fillText(Q.grade,5,5);x.fillStyle='#f0c055';x.fillText(Q.grade,0,0);x.font='18px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('RANK',0,126);x.restore();}
   x.textAlign='center';x.font='700 18px Silkscreen, monospace';const sp=Q.spoils.slice(0,Q.spoiled).slice(-2);sp.forEach(([c,t],i)=>{x.fillStyle=c==='bad'?'#ffb09a':'#f0c055';x.fillText(t.slice(0,70),W/2,546+i*26-(sp.length>1?13:0));});
-  x.font='16px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText(Q.t<Q.T?'TRIGGER: SKIP':'TRIGGER: RETURN TO THE WAR TABLE',W/2,604);resT.needsUpdate=true;}
+  if(Q.gold&&Q.t>=Q.gold.t0){const g=Q.gold,n=g.dg.length,cw=46,bx=W-60-n*cw,by=420;x.textAlign='center';x.fillStyle='rgba(11,9,18,0.9)';x.fillRect(bx-14,by-30,n*cw+24,118);x.strokeStyle=g.done?'#f0c055':'#4a3f63';x.lineWidth=3;x.strokeRect(bx-14,by-30,n*cw+24,118);
+    x.font='14px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('GOLD WON',bx+n*cw/2-2,by-22);
+    for(let k=0;k<n;k++){const lk=Q.t>=g.lock[k];x.fillStyle='#17122a';x.fillRect(bx+k*cw,by,cw-6,52);x.strokeStyle=lk?'#f0c055':'#4a3f63';x.lineWidth=2;x.strokeRect(bx+k*cw,by,cw-6,52);x.font='900 40px Silkscreen, monospace';x.fillStyle=g.done?'#f0c055':lk?'#fff':'#8d84a3';x.fillText(g.shown[k],bx+k*cw+(cw-6)/2,by+5);}
+    if(g.done&&g.tot!=null){x.font='14px Silkscreen, monospace';x.fillStyle='#f0c055';x.fillText('TREASURY '+g.tot,bx+n*cw/2-2,by+62);}}
+  x.textAlign='center';x.font='16px Silkscreen, monospace';x.fillStyle='#857aa0';x.fillText(Q.t<Q.T?'TRIGGER: SKIP':'TRIGGER: RETURN TO THE WAR TABLE',W/2,604);resT.needsUpdate=true;}
 function backToKingdom(){if(state==='title')return;if(skipResults())return;if(SK){backToTitle();return;}
   if(GUEST()&&state!=='kingdom'){if(NET.bs>=0&&!NG.contSent){NG.contSent=true;netToHost({t:'cmd',c:'cont',d:{}});}$('endp').hidden=true;if(resBoard)resBoard.visible=false;showBanner('Waiting for the other commander…');return;}
   if(HOSTMP()&&state==='end'&&!NET.bypassBack){if(NET.cont)NET.cont.add(NET.me);$('endp').hidden=true;if(resBoard)resBoard.visible=false;showBanner('Waiting for the other commander…');return;}
