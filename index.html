@@ -540,7 +540,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 120';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 121';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -949,11 +949,12 @@ function mapColor(c,x,z,y){const b=BIO,chk=((Math.floor(x)+Math.floor(z))&1);
   for(const s of MAP.walls)if(segD(x,z,s)<s.th/2+1.3)c.setRGB(...b.pave);
   for(const r of MAP.rivers){const d=Math.abs(x-rX(r,z)),ct=crossAt(r,z),lava=r.kind==='lava';
     if(ct==='bridge'&&d<r.w+2.2){c.set(b.bridge==='stone'?(chk?'#8a8478':'#7a7468'):(chk?'#8a6034':'#7a5228'));continue;}
+    if(lava&&d<r.w+LAVA_RW+0.35){c.set(d<r.w+LAVA_RW?'#ff7a1a':'#140806');continue;}
     if(d<r.w+0.8)c.set(lava?(chk?'#ff7a1a':'#ffb03a'):FROZEN?(chk?'#dceff9':'#c6e1f1'):ct==='ford'?(chk?'#7aa0c0':'#8aa890'):(chk?b.water[0]:b.water[1]));
     else if(d<r.w+1.8)c.set(lava?'#2a1a18':b.bank);}
   for(const p of MAP.pools){const q=ell(x,z,p);
     if(p.k==='water'){if(q<0.9)c.set(FROZEN?(chk?'#dceff9':'#c6e1f1'):(chk?b.water[0]:b.water[1]));else if(q<1.25)c.set(b.bank);}
-    else if(p.k==='lava'){if(q<0.9)c.set(chk?'#ff7a1a':'#ffb03a');else if(q<1.2)c.set('#2a1a18');}
+    else if(p.k==='lava'){if(q<1)c.set('#ff7a1a');else if(q<1.25)c.set('#140806');else if(q<1.6)c.set('#2a1a18');}
     else if(p.k==='ice'){if(q<1)c.set(chk?'#b8dcf0':'#a4cce4');}
     else if(p.k==='marsh'){if(q<1)c.set(chk?'#4f5e34':'#5a6a3a');}}
 }
@@ -1041,7 +1042,7 @@ function buildBattlefield(type){efOk=false;FROZEN=false;CRN=0;CRT.fill(0);if(crI
   for(let a=0;a<14;a++){mapSeed=(mapSeed*48271)%2147483647;genMap(type,mapSeed);fillNAV();fillRB();if(mapIsSound())break;}
   if(MIRX){mirrorMap();fillNAV();fillRB();}
   clearMapGroup();
-  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);fillRB();
+  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);buildLava();fillRB();
   const D=new THREE.Object3D();
   if(MAP.rocks.length){const im=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),new THREE.MeshPhongMaterial({color:BIO.rock,flatShading:true,shininess:4}),MAP.rocks.length);
     MAP.rocks.forEach((b,i)=>{b.i=i;D.position.set(b.x,Hb(b.x,b.z)+b.r*0.3,b.z);D.rotation.set(mrand()*3,mrand()*3,mrand()*3);D.scale.set(b.r*1.1,b.r*0.8,b.r);D.updateMatrix();im.setMatrixAt(i,D.matrix);});mapGroup.add(im);MAP.rockIM=im;}
@@ -1133,7 +1134,31 @@ function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!
     if(ox&&oz&&(BLK(cz*GW+x)||BLK(z*GW+cx)))continue;if(F[k]<best-1e-3){best=F[k];bx=ox;bz=oz;}}
   if(!bx&&!bz)return[dx/d,dz/d];const wx=(cx+bx+0.5)*GC-FW/2-5,wz=(cz+bz+0.5)*GC-FD/2-5,ex=wx-e.x,ez=wz-e.z,el=Math.hypot(ex,ez)||1;return[ex/el,ez/el];}
 /* exact collision with wall and fence blocks and rocks (the nav grid is only 2 units fine, so diagonal walls leaked through) */
-function solid(x,z){if(navAt(x,z)===1)return true;
+/* lava: one place that defines its edge, so the glowing surface, the no-go zone and the shove all agree */
+const LAVA={rivers:[],pools:[],mat:null,rim:null};
+const LAVA_RW=0.6,LAVA_BUF=0.9;
+function lavaPrep(){LAVA.rivers=MAP.rivers.filter(r=>r.kind==='lava');LAVA.pools=MAP.pools.filter(p=>p.k==='lava');}
+function lavaDist(x,z){let d=1e9;for(const r of LAVA.rivers){if(crossAt(r,z)==='bridge')continue;d=Math.min(d,Math.abs(x-rX(r,z))-(r.w+LAVA_RW));}
+  for(const p of LAVA.pools){const q=ell(x,z,p);d=Math.min(d,(Math.sqrt(q)-1)*Math.min(p.rx,p.rz));}return d;}
+function lavaDir(x,z){let best=1e9,dx=0,dz=0;for(const r of LAVA.rivers){if(crossAt(r,z)==='bridge')continue;const rx=rX(r,z),d=Math.abs(x-rx);if(d<best){best=d;dx=Math.sign(rx-x)||1;dz=0;}}
+  for(const p of LAVA.pools){const q=Math.sqrt(ell(x,z,p))*Math.min(p.rx,p.rz);if(q<best){best=q;const l=Math.hypot(p.x-x,p.z-z)||1;dx=(p.x-x)/l;dz=(p.z-z)/l;}}return[dx,dz];}
+function buildLava(){lavaPrep();if(!LAVA.rivers.length&&!LAVA.pools.length)return;
+  if(!LAVA.mat){LAVA.mat=new THREE.MeshBasicMaterial({color:0xff7a1a,side:THREE.DoubleSide});LAVA.rim=new THREE.MeshBasicMaterial({color:0x140806,side:THREE.DoubleSide});SHARED.add(LAVA.mat);SHARED.add(LAVA.rim);}
+  const yAt=(x,z,o)=>Hbase(x,z)+featH(x,z)-cut(x,z)+o;
+  const strip=(pts,mat)=>{const g=new THREE.BufferGeometry(),P=[];for(let i=0;i<pts.length-1;i++){const[a,b]=pts[i],[c,d]=pts[i+1];P.push(...a,...b,...c,...b,...d,...c);}g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));const m=new THREE.Mesh(g,mat);m.renderOrder=1;mapGroup.add(m);};
+  for(const r of LAVA.rivers){let run=[],rimL=[],rimR=[];const flush=()=>{if(run.length>1){strip(run,LAVA.mat);strip(rimL,LAVA.rim);strip(rimR,LAVA.rim);}run=[];rimL=[];rimR=[];};
+    for(let z=-FD/2;z<=FD/2+0.01;z+=0.5){if(crossAt(r,z)==='bridge'){flush();continue;}const cx=rX(r,z),w=r.w+LAVA_RW,a=cx-w,b=cx+w;
+      run.push([[a,yAt(a,z,0.12),z],[b,yAt(b,z,0.12),z]]);rimL.push([[a-0.35,yAt(a-0.35,z,0.14),z],[a,yAt(a,z,0.14),z]]);rimR.push([[b,yAt(b,z,0.14),z],[b+0.35,yAt(b+0.35,z,0.14),z]]);}flush();}
+  for(const p of LAVA.pools){const N=40,P=[],Rg=[];for(let i=0;i<N;i++){const a0=i/N*Math.PI*2,a1=(i+1)/N*Math.PI*2,pt=(a,k)=>{const x=p.x+Math.cos(a)*p.rx*k,z=p.z+Math.sin(a)*p.rz*k;return[x,yAt(x,z,0.12),z];};
+      P.push(p.x,yAt(p.x,p.z,0.12),p.z,...pt(a0,1),...pt(a1,1));const o0=pt(a0,1),o1=pt(a1,1),q0=pt(a0,1+0.35/Math.min(p.rx,p.rz)),q1=pt(a1,1+0.35/Math.min(p.rx,p.rz));o0[1]+=0.02;o1[1]+=0.02;q0[1]+=0.02;q1[1]+=0.02;Rg.push(...o0,...q0,...o1,...q0,...q1,...o1);}
+    for(const [arr,mat] of [[P,LAVA.mat],[Rg,LAVA.rim]]){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3));const m=new THREE.Mesh(g,mat);m.renderOrder=1;mapGroup.add(m);}}}
+/* no lava pool may sit by a castle gate: any pool in the gate's approach is filled in before the wall goes up (same on every player's machine) */
+function lavaClearGate(wx,gz){if(!LAVA.pools.length)return;const near=p=>{for(let x=wx-9;x<=wx+9;x+=1.5)for(let dz=-6;dz<=6;dz+=1.5)if(ell(x,gz+dz,p)<1.7)return true;return false;};
+  const drop=MAP.pools.filter(p=>p.k==='lava'&&near(p));if(!drop.length)return;MAP.pools=MAP.pools.filter(p=>!drop.includes(p));fillNAV();PTF.clear();efOk=false;
+  for(const m of mapGroup.children.slice())if(m.material===LAVA.mat||m.material===LAVA.rim){mapGroup.remove(m);if(m.geometry)m.geometry.dispose();}
+  const om=battleTerrain.material;mapGroup.remove(battleTerrain);battleTerrain.geometry.dispose();if(om&&!SHARED.has(om)){if(om.map)om.map.dispose();om.dispose();}
+  battleTerrain=buildTerrain(Hb,mapColor,FW,FD);mapGroup.add(battleTerrain);buildLava();fillRB();DE4LOG.info('siege: filled '+drop.length+' lava pool(s) by the gate');}
+function solid(x,z){if(navAt(x,z)===1)return true;if((LAVA.rivers.length||LAVA.pools.length)&&lavaDist(x,z)<LAVA_BUF)return true;
   for(const w of MAP.walls){if(x<(w.x1<w.x2?w.x1:w.x2)-1.3||x>(w.x1>w.x2?w.x1:w.x2)+1.3||z<(w.z1<w.z2?w.z1:w.z2)-1.3||z>(w.z1>w.z2?w.z1:w.z2)+1.3)continue;if(segD(x,z,w)<w.th/2+0.35)return true;}
   for(const b of MAP.rocks){const dx=x-b.x,dz=z-b.z,r=b.r+0.3;if(dx*dx+dz*dz<r*r)return true;}
   return false;}
@@ -1209,9 +1234,12 @@ arrows.forEach(a=>writeArrow(a,0,0,0,0));
 const reticle=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:T_RUNE,alphaTest:0.5,side:THREE.DoubleSide,depthTest:false}));
 reticle.rotation.x=-Math.PI/2;reticle.scale.set(7,7,1);reticle.renderOrder=10;reticle.visible=false;battle.add(reticle);
 const aim={valid:false,x:0,z:0,mode:false},ray=new THREE.Raycaster();
-function aimAt(o,d){ray.set(o,d);const h=ray.intersectObject(battleTerrain,false)[0];if(!h){aim.valid=false;return null;}
-  const p=battle.worldToLocal(h.point.clone());aim.valid=Math.abs(p.x)<FW/2&&Math.abs(p.z)<FD/2;aim.x=p.x;aim.z=p.z;return h;}
-function placeReticle(show,now){reticle.visible=show&&aim.valid;if(reticle.visible){reticle.position.set(aim.x,Hb(aim.x,aim.z)+0.15,aim.z);reticle.rotation.z=now*0.9;reticle.material.color.set(mp[0]>=1?0xffffff:0x5e5476);}}
+function aimAt(o,d){ray.set(o,d);let h=ray.intersectObject(battleTerrain,false)[0];aim.y=null;
+  /* a castle wall in the way catches the pointer, so the cursor rides on top of the rampart instead of sinking through it */
+  if(SIEGE&&siegeGrp&&siegeGrp.visible){const w=ray.intersectObjects(siegeGrp.children,false).find(x=>x.object.visible);if(w&&(!h||w.distance<h.distance)){h=w;}}
+  if(!h){aim.valid=false;return null;}
+  const p=battle.worldToLocal(h.point.clone());aim.valid=Math.abs(p.x)<FW/2&&Math.abs(p.z)<FD/2;aim.x=p.x;aim.z=p.z;if(h.object!==battleTerrain&&p.y>Hb(p.x,p.z)+0.3)aim.y=p.y;return h;}
+function placeReticle(show,now){reticle.visible=show&&aim.valid;if(reticle.visible){reticle.position.set(aim.x,(aim.y!=null?aim.y:Hb(aim.x,aim.z))+0.15,aim.z);reticle.rotation.z=now*0.9;reticle.material.color.set(mp[0]>=spellCost(0)&&spellCD[0]<=0?0xffffff:0x5e5476);}}
 function mouseAim(e){const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);aimAt(ray.ray.origin.clone(),ray.ray.direction.clone());}
 const storm={on:false,left:0,t:0,gap:0,tot:0,kind:'thunder'};
 function aiStrikePoint(V,cx,cz){const near=alive[V].filter(u=>u.state==='alive'&&Math.hypot(u.x-cx,u.z-cz)<9),L=near.length?near:alive[V].filter(u=>u.state==='alive');
@@ -1260,7 +1288,11 @@ const ROADS=[];
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));kingdom.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xc8b07a,side:THREE.DoubleSide})));}
 const roadNear=(x,z)=>ROADS.some(([i,j])=>segD(x,z,{x1:CASTLES[i].x,z1:CASTLES[i].z,x2:CASTLES[j].x,z2:CASTLES[j].z})<0.9);
 const pickables=[];const armyPickGeo=new THREE.CylinderGeometry(1.25,1.25,2.6,8),armyPickMat=new THREE.MeshBasicMaterial({visible:false});
-const pickFirst=hs=>{if(CAMP&&CAMP.sel&&CAMP.sel.army&&CAMP.sel.army.nat===NET.me){const c=hs.find(h=>h.object.userData.castle);if(c)return c;}const a=hs.find(h=>h.object.userData.army);return a||hs[0]||null;};
+const pickFirst=hs=>{const c=hs.find(h=>h.object.userData.castle),a=hs.find(h=>h.object.userData.army);
+  if(c&&CAMP&&CAMP.sel&&((CAMP.sel.army&&CAMP.sel.army.nat===NET.me)||(CAMP.sel.castle&&CAMP.picked&&CAMP.picked.size)))return c;
+  /* pointing at a castle selects the castle, even when a party is just leaving it or passing by: to re-route a party you point at the party itself out on the road */
+  if(a&&c){const p=a.object.position,A=a.object.userData.army,atCastle=!(A&&(A.halt||A.bsg!=null))&&CASTLES.some(k=>Math.hypot(k.x-p.x,k.z-p.z)<2.6);return atCastle||c.distance<=a.distance?c:a;}
+  return a||c||hs[0]||null;};
 CASTLES.forEach(c=>{c.sp=sprite(castleMats.grey,c.cap?3.7:3,c.cap?4.4:3.6);c.sp.position.set(c.x,c.y,c.z);c.sp.userData.castle=c;kingdom.add(c.sp);pickables.push(c.sp);});
 _s=133;for(let i=0;i<110;i++){const x=-19+srand()*38,z=-11+srand()*22;const y=Hk(x,z),rz=4*Math.sin(x*0.18)+3;if(Math.abs(z-rz)<1.6||y>1.5)continue;
   if(CASTLES.some(k=>Math.hypot(k.x-x,k.z-z)<2.2)||roadNear(x,z))continue;
@@ -1554,7 +1586,7 @@ function aiCampaign(n){
     if(best&&Math.random()<DIFF.aiP){/* the ruler rides along only when capture is unlikely: escorted, against an empty or badly outmatched castle, with no hostile army on either end of the road */
       {const ru=all.find(r=>isRuler(r)&&ready(r)),g=garrison(best).reduce((s,r)=>s+power(r),0),threat=CAMP.armies.some(a=>hostile(a.nat,n)&&(a.path.slice(a.seg).includes(c.id)||a.path.slice(a.seg).includes(best.id)));
         if(ru&&send.length&&send.length<5&&!threat&&(g===0||my>g*2.2)&&Math.random()<0.5)send.push(ru);}
-      const a=dispatch(n,send,c.id,best.id);aiGear(n,a,best);if(TAC.on&&a){const gg=garrison(best).reduce((q,r)=>q+power(r),0);if(gg>0&&my<gg*1.8&&Math.random()<0.5)a.blk=true;}if(a&&isHum(best.o)){clog(`${NATIONS[n].name} marches on ${best.n}!`);warDrums(1,1,124);}refreshCastle(c);continue;}
+      const a=dispatch(n,send,c.id,best.id);aiGear(n,a,best);if(TAC.on&&a){const gg=garrison(best).reduce((q,r)=>q+power(r),0);if(gg>0&&my<gg*1.8&&Math.random()<0.5&&!a.gens.some(isRuler))a.blk=true;}if(a&&isHum(best.o)){clog(`${NATIONS[n].name} marches on ${best.n}!`);warDrums(1,1,124);}refreshCastle(c);continue;}
     /* a ruler deep inside his own land may move up, escorted, to a neighbouring castle of his that no one threatens and that his company can comfortably hold */
     if(!opts.length&&hasRu&&G.length&&Math.random()<0.12){const ru=all.find(r=>isRuler(r)&&ready(r));if(ru){const esc=G.slice(0,2),pw=esc.reduce((s,r)=>s+power(r),power(ru));
         const tg=c.adj.map(i=>CASTLES[i]).filter(t=>t.o===n&&!CAMP.armies.some(a=>hostile(a.nat,n)&&a.path.slice(a.seg).includes(t.id))&&t.adj.some(i=>CASTLES[i].o!==n)&&t.adj.every(i=>{const e=CASTLES[i];return e.o===n||garrison(e).reduce((s,r)=>s+power(r),0)*1.5<pw+garrison(t).reduce((s,r)=>s+power(r),0);}))[0];
@@ -1661,7 +1693,7 @@ function campClick(hit){
   if(c&&S&&(CAMP.target||canMarch)&&!(S.castle===c)){
     if(S.castle&&!CAMP.picked.size){clog(`No one at ${S.castle.n} can march. Tick a general first.`);updateCampPanel();return;}
     if(CAMP.sel.castle){const from=CAMP.sel.castle;
-      const gens=[...CAMP.picked].filter(r=>canMarchGen(r)&&r.loc===from.id);const army=actDispatch(NET.me,gens,from.id,c.id);
+      const gens=[...CAMP.picked].filter(r=>canMarchGen(r)&&r.loc===from.id);if(TAC.on&&!tacRulerOk(from,gens)){updateCampPanel();return;}const army=actDispatch(NET.me,gens,from.id,c.id);
       if(army){const more=ownReady().filter(o=>o!==from).length;clog(`Your army marches from ${from.n} to ${c.n}.`+(more?' Select another castle to send more.':''));sfx('fanfare');CAMP.picked.clear();CAMP.sel=null;CAMP.target=false;flashArmy=army;flashT=1.2;}else clog('No road leads there.');}
     else if(CAMP.sel.army)actRedirect(CAMP.sel.army,c.id);
     updateCampPanel();return;}
@@ -1700,6 +1732,7 @@ function sfx(k){if(!AC)return;const t=AC.currentTime;
   if(k==='clang'){if(t-lastClang<0.07)return;lastClang=t;noise(t,0.06,'bandpass',2600+Math.random()*1200,0,0.16,4);tone(t,'square',1100+Math.random()*600,0,0.04,0.035);}
   else if(k==='arrow'){if(t-lastArrow<0.1)return;lastArrow=t;noise(t,0.08,'highpass',3500,7000,0.05);}
   else if(k==='boom'){noise(t,1.0,'lowpass',1200,60,0.8);tone(t,'sine',90,30,0.8,0.55);}
+  else if(k==='scream'){if(t-(sfx.scrT||0)<0.35)return;sfx.scrT=t;const f=700+Math.random()*350;tone(t,'sawtooth',f,f*0.38,0.75,0.12);tone(t+0.02,'triangle',f*1.5,f*0.5,0.7,0.07);noise(t,0.5,'bandpass',f*2,f,0.06,3);}
   else if(k==='roar'){tone(t,'sawtooth',150,55,1.6,0.22);tone(t,'sawtooth',158,60,1.6,0.18);noise(t,1.4,'bandpass',600,250,0.3,2);}
   else if(k==='chant'){[523,659,784,1047].forEach((f,i)=>tone(t+i*0.09,'triangle',f,0,0.9,0.1));}
   else if(k==='fanfare'){[392,523,659,784,659,784].forEach((f,i)=>tone(t+i*0.11,'square',f,0,i===5?0.6:0.13,0.07));}
@@ -2011,13 +2044,13 @@ const AMB0=0xffe8d0,SUN0=0xfff0d8;
 let SIEGE=null;const wallGeo=new THREE.BoxGeometry(1,1,1),wallMat=new THREE.MeshLambertMaterial({color:0x8a8478}),crenMat=new THREE.MeshLambertMaterial({color:0x9d978b}),gateMat=new THREE.MeshLambertMaterial({color:0x6a4424}),siegeGrp=new THREE.Group();
 function clearSiege(){SIEGE=null;SOBH.fill(0);CLB.fill(0);siegeGrp.visible=true;while(siegeGrp.children.length)siegeGrp.remove(siegeGrp.children[0]);}
 const _zm=new THREE.Matrix4().makeScale(0,0,0);
-function laneCost(zc){let c=0;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b.r)c+=3;for(const w of MAP.walls)if(Math.min(w.z1,w.z2)<zc+6&&Math.max(w.z1,w.z2)>zc-6)c+=4;
+function laneCost(zc,wx){let c=0;if(wx!=null&&(LAVA.rivers.length||LAVA.pools.length))for(let x=wx-8;x<=wx+8;x+=2)for(const dz of[-5,-2.5,0,2.5,5])if(lavaDist(x,zc+dz)<4)c+=60;for(const b of MAP.rocks)if(Math.abs(b.z-zc)<5.4+b.r)c+=3;for(const w of MAP.walls)if(Math.min(w.z1,w.z2)<zc+6&&Math.max(w.z1,w.z2)>zc-6)c+=4;
   for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++)if(NAV[gcz(zc)*GW+x]===1)c+=1;return c+Math.abs(zc)*0.05;}
 function clearLane(zc){const half=5.4;let n=0;
   MAP.rocks=MAP.rocks.filter(b=>{if(Math.abs(b.z-zc)<half+b.r){if(MAP.rockIM&&b.i!==undefined){MAP.rockIM.setMatrixAt(b.i,_zm);MAP.rockIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
   MAP.walls=MAP.walls.filter(w=>{const zmin=Math.min(w.z1,w.z2)-1,zmax=Math.max(w.z1,w.z2)+1;if(zmax>zc-half&&zmin<zc+half){if(MAP.wallIM&&w.bi){for(const i of w.bi)MAP.wallIM.setMatrixAt(i,_zm);MAP.wallIM.instanceMatrix.needsUpdate=true;}n++;return false;}return true;});
   fillRB();if(n)DE4LOG.info('siege lane at z '+zc+' cleared '+n+' obstacles');}
-function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;for(let z=-24;z<=24;z+=2){const c=laneCost(z);if(c<best){best=c;gzc=z;}}clearLane(gzc);
+function setupSiege(def,fort){clearSiege();if(!siegeGrp.parent)battle.add(siegeGrp);let gzc=0,best=1e9;const wx0=(def?1:-1)*18;for(let z=-24;z<=24;z+=2){const c=laneCost(z,wx0);if(c<best){best=c;gzc=z;}}clearLane(gzc);lavaClearGate(wx0,gzc);
   const sg=def?1:-1,wx=sg*18,att=1-def,x0=gcx(wx-1.5),x1=gcx(wx+1.5),gz0=gcz(gzc-3.2),gz1=gcz(gzc+3.2),gate=[];
   for(let z=gz0-1;z<=gz1+1;z++)for(let x=gcx(-FW/2+2);x<=gcx(FW/2-2);x++){const k=z*GW+x;if(NAV[k]===1)NAV[k]=2;}
   SOBH.fill(0);const Hs=3.4+fort*0.6;for(let z=0;z<GD;z++)for(let x=x0-1;x<=x1+1;x++){const k=z*GW+x;if(x>=x0&&x<=x1){NAV[k]=1;if(z>=gz0&&z<=gz1)gate.push(k);}SOBH[k]=Hs+(z<gz0-1||z>gz1+1?0.6:0)+((z===gz0-2||z===gz1+2)?2:0);}
@@ -2204,7 +2237,9 @@ function kill(u,fx,fz,power=3,launch=0){
   killTally[1-u.side]++;BST.kills[1-u.side]++;{const ks=1-u.side;bzAdd(ks,1);bzAdd(u.side,0.5);if(GSRC>0&&state==='battle'){const b=KB[ks];b.n++;b.sx+=u.x;b.sz+=u.z;b.t=0;}}if(state==='battle')onKill(1-u.side);mp[1-u.side]=Math.min(mpMax[1-u.side],mp[1-u.side]+(active[1-u.side]?KILLMP[active[1-u.side].d.troop]||0.012:0.012));gainXP(active[1-u.side],0.35);if(!TAC.on){morale[u.side]=clamp(morale[u.side]-0.0016,0,1);morale[1-u.side]=clamp(morale[1-u.side]+0.001,0,1);}
 }
 function startFlee(u){if(u.state==='alive'){u.state='flee';u.t=0;}}
+function lavaShove(T,att){const[dx,dz]=lavaDir(T.x,T.z);T.lavaDeath=true;kill(T,T.x-dx*2,T.z-dz*2,7,4);sfx('scream');if(state==='battle')schedule(0.6,()=>{const x=T.x+dx*1.5,z=T.z+dz*1.5;for(let i=0;i<6;i++)spawn({x:x+R(-0.6,0.6),y:Hb(x,z)+0.3,z:z+R(-0.6,0.6),frames:FLAME,w:1.4,h:1.4,life:0.7,grow:0.8,vy:1.2});sfx('flame');});}
 function hit(T,dmg,att,raw){
+  if(!raw&&T.state==='alive'&&att.uid!==undefined&&!T.wall&&!FLY[T.type]&&!FLY[att.type]&&(LAVA.rivers.length||LAVA.pools.length)&&Math.hypot(att.x-T.x,att.z-T.z)<2.2&&lavaDist(T.x,T.z)<LAVA_BUF+0.9&&Math.random()<0.07){lavaShove(T,att);return;}
   if(T.state!=='alive')return;hitsAcc++;if(T.wall)dmg*=0.4;const s=att.side!=null?att.side:1-T.side;
   if(SIEGE&&(RANGED[att.type]||raw)&&behindWall(T))dmg*=0.7;
   const tm=TAC.on?tacHit(T,att,raw,s):1;
@@ -2316,6 +2351,11 @@ function updateUnits(dt){
   uMesh.instanceMatrix.needsUpdate=true;uCellAttr.needsUpdate=true;
 }
 function ord2spd(u){if(phase==='duel')return 1;const s=u.side;return(orders[s]==='charge'?1.12:orders[s]==='hold'?0.8:1)*(MOD==='blizzard'&&!FLY[u.type]?0.8:1)*FSPD[form[s]]*(reform[s]>0?0.85:1)*(abil[s].t>0&&active[s]?ABIL[active[s].d.troop].spd:1);}
+/* a duel is only fought where both generals can be seen: not under trees, not tucked against a wall or a castle rampart, not among boulders and not at the very edge of the field */
+function spotSeen(x,z){if(Math.abs(x)>FW/2-3||Math.abs(z)>FD/2-3)return false;if(inWoods(x,z)||inRock(x,z,1.2))return false;
+  for(const w of MAP.walls)if(segD(x,z,w)<w.th/2+2)return false;if(SIEGE&&SIEGE.hp>0&&Math.abs(x-SIEGE.wx)<3.2)return false;return true;}
+function pathCrowd(g,o){const dx=o.x-g.x,dz=o.z-g.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d;let n=0;
+  for(const u of alive[1-g.side]){const rx=u.x-g.x,rz=u.z-g.z;if(Math.abs(rx)>7||Math.abs(rz)>7)continue;const f=rx*ux+rz*uz,l=Math.abs(-rx*uz+rz*ux);if((f>-1.5&&f<6&&l<2.4)||rx*rx+rz*rz<6.25)n++;}return n;}
 function updateGenerals(dt){
   for(const g of fg){if(!g.rec||!g.sp.visible&&!g.flee)continue;g.t+=dt;g.cast=Math.max(0,g.cast-dt);g.cd-=dt;g.moving=false;const dir=g.side?-1:1;
     if(g.captured){g.sp.visible=true;}
@@ -2338,7 +2378,11 @@ function updateGenerals(dt){
         if(orders[g.side]==='retreat'){if(!efOk)edgeFields();const E=nearEdge(g);tx=g.x+E.nx*(E.d+4);tz=g.z+E.nz*(E.d+4);spd=3.2;g.chase='edge';if(nearestFoe(g)<6)sprint(g,true);}
         else if(g.side===1&&avoidDuel&&oOk&&Math.hypot(o.x-g.x,o.z-g.z)<16){tx=g.x+(g.x-o.x)*2;tz=g.z+(g.z-o.z)*2;spd=3.4;if(Math.hypot(o.x-g.x,o.z-g.z)<7)sprint(g,true);}
         else if(seekDuel[g.side]&&oOk&&TAC.on&&!seekDuel[1-g.side]&&!tacGuardThin(1-g.side)){const dd=Math.hypot(o.x-g.x,o.z-g.z)||1;tx=o.x+(g.x-o.x)/dd*6;tz=o.z+(g.z-o.z)/dd*6;spd=3.2;}
-        else if(seekDuel[g.side]&&oOk){tx=o.x;tz=o.z;spd=3.6;g.chase='gen';if(g.burst<=0&&g.sta>0.55&&Math.hypot(o.x-g.x,o.z-g.z)>14)sprint(g,true);}
+        else if(seekDuel[g.side]&&oOk){tx=o.x;tz=o.z;spd=3.6;g.chase='gen';
+          /* soldiers packed around him or in his way stop a duel-seeking general from dashing, and now and then he is jostled to a crawl; a clear road lets him run */
+          const cr=pathCrowd(g,o);if(cr>=6){g.burst=0;spd*=cr>=14?0.5:0.7;if(!(g.stumble>0)&&Math.random()<dt*0.7)g.stumble=0.6;if(g.stumble>0){g.stumble-=dt;spd*=0.35;}
+            if(g.side===1&&engT-(g.blockMsg||-99)>8){g.blockMsg=engT;showBanner('Your soldiers crowd '+active[1].d.short+' and slow him down');}}
+          else if(g.burst<=0&&g.sta>0.55&&Math.hypot(o.x-g.x,o.z-g.z)>14)sprint(g,true);}
         else if(own.length>30&&orders[g.side]!=='retreat'){const c=centroid(own,g);tx=c.x-dir*7;tz=c.z*0.6;}
         else{let best=null,bd=1e9;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}if(best){tx=best.x;tz=best.z;g.chase=true;}}
         if(g.cd<=0){let best=null,bd=2.2;for(const v of alive[1-g.side]){const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
@@ -2503,10 +2547,15 @@ function staTick(g,dt){if(g.burst>0){g.burst-=dt;g.sta=Math.max(0,g.sta-STA.drai
   g.sta=Math.min(1,g.sta+STA.regen*dt*(g.rec&&g.rec.relic==='swift'?1.6:1));return 1;}
 function nearestFoe(g){let bd=1e9;for(const u of alive[1-g.side]){if(u.state!=='alive')continue;const d=Math.abs(u.x-g.x)+Math.abs(u.z-g.z);if(d<bd)bd=d;}return bd;}
 function startDuel(){DE4LOG.trace(6000);DE4LOG.mark("startDuel");
-  if(phase!=='fight')return;stormEnd(false);stormEndS(1,false);phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
+  if(phase!=='fight')return;
+  /* the duel ring goes on open ground both players can see; if there is none near, the generals cannot duel here yet */
+  const mx=clamp((fg[0].x+fg[1].x)/2,-FW/2+6,FW/2-6),mz=clamp((fg[0].z+fg[1].z)/2,-FD/2+6,FD/2-6);let spot=null;
+  {let bd=400;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){if(NAV[z*GW+x]!==0)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5,d=(wx-mx)**2+(wz-mz)**2;if(d>=bd)continue;let ok=true;for(let oz=-2;oz<=2&&ok;oz++)for(let ox=-2;ox<=2;ox++){const k=(z+oz)*GW+x+ox;if(z+oz<0||z+oz>=GD||x+ox<0||x+ox>=GW||NAV[k]!==0){ok=false;break;}}
+    if(ok&&spotSeen(wx,wz)&&spotSeen(wx-2.4,wz)&&spotSeen(wx+2.4,wz)){bd=d;spot=[wx,wz];}}}
+  if(!spot){duel.cd=4;DE4LOG.info('duel put off: no open, visible ground nearby');if(engT-(duel.noSpotT||-99)>6){duel.noSpotT=engT;showBanner('The generals need open ground to duel');}return;}
+  stormEnd(false);stormEndS(1,false);phase='duel';duel.on=true;aim.mode=false;chal=null;$('chal').hidden=true;seekDuel[0]=seekDuel[1]=false;avoidDuel=false;
   for(const a of arrows){a.active=false;writeArrow(a,0,0,0,0);}
-  duel.cx=clamp((fg[0].x+fg[1].x)/2,-FW/2+6,FW/2-6);duel.cz=clamp((fg[0].z+fg[1].z)/2,-FD/2+6,FD/2-6);
-  {let best=null,bd=64;for(let z=0;z<GD;z++)for(let x=0;x<GW;x++){if(NAV[z*GW+x]!==0)continue;const wx=(x+0.5)*GC-FW/2-5,wz=(z+0.5)*GC-FD/2-5,d=(wx-duel.cx)**2+(wz-duel.cz)**2;if(d>=bd)continue;let ok=true;for(let oz=-2;oz<=2&&ok;oz++)for(let ox=-2;ox<=2;ox++){const k=(z+oz)*GW+x+ox;if(z+oz<0||z+oz>=GD||x+ox<0||x+ox>=GW||NAV[k]!==0){ok=false;break;}}if(ok){bd=d;best=[wx,wz];}}if(best){duel.cx=best[0];duel.cz=best[1];}}
+  duel.cx=spot[0];duel.cz=spot[1];
   for(let s=0;s<2;s++){const L=alive[s],n=Math.max(1,L.length-1);L.forEach((u,i)=>{const t=i/n,a=s?Math.PI*(1.55+0.4*t):Math.PI*(1.05+0.4*t),r=8+(i%9)*1.3;u.rx=duel.cx+Math.cos(a)*r;u.rz=clamp(duel.cz+Math.sin(a)*r*0.75,-FD/2+1.5,FD/2-1.5);});}
   duel.stage='approach';duel.t=0;duel.pick=null;duel.eLocked=false;duel.reveal=null;duel.round=0;duel.log='';
   showBanner('Duel!');sfx('horn');cheer(0,0.8);cheer(1,0.8);updateModeUI();hudAcc=1;
@@ -2795,7 +2844,7 @@ function persuade(r){if(netIn('pers',{i:roster[1].indexOf(r)}))return;DE4LOG.mar
   renderSelect();hudAcc=1;
 }
 function chooseGeneral(r){
-  if(phase!=='select')return;if(netIn('sel',{i:roster[0].indexOf(r)})){if(GUEST()&&NET.bs>=0){NG.picked=true;updateModeUI();showBanner('Waiting for the other commander…');}return;}chooseSide(0,r);}
+  if(phase!=='select')return;if(TAC.on&&isRuler(r)&&avail(0).some(x=>x!==r&&!isRuler(x))){showBanner(r.d.short+' fights last: send another general first',true);sfx('blip',200);return;}if(netIn('sel',{i:roster[0].indexOf(r)})){if(GUEST()&&NET.bs>=0){NG.picked=true;updateModeUI();showBanner('Waiting for the other commander…');}return;}chooseSide(0,r);}
 function chooseSide(side,rr){if(phase!=='select'||!rr||!avail(side).includes(rr))return;NET.pick[side]=rr;
   const need0=!NET.on||NET.ctl[0]!=='ai',need1=NET.on&&NET.ctl[1]!=='ai';
   if((need0&&!NET.pick[0])||(need1&&!NET.pick[1])){if(side===0&&NET.ctl[0]==='local'){updateModeUI();showBanner('Waiting for the other commander…');}return;}
@@ -3043,7 +3092,7 @@ function drawVrHudInner(){
     else if(phase==='pursuit'&&pursuit){const g=fg[pursuit.L];line(pursuit.L===0?'FLEE! L STICK STEER · A SPRINT · R TRIG MAGIC':'RUN HIM DOWN! AIM + R TRIG: MAGIC',96,'#f0c055');x.fillStyle='#2a2238';x.fillRect(24,130,400,12);x.fillStyle=g.burst>0?'#fff3a0':'#ffb347';x.fillRect(24,130,400*(g.sta||0),12);line('STAMINA '+Math.round((g.sta||0)*100)+'%',150,'#a99fb8','16px');}
     else{if(bossActive()){x.fillStyle='#2a0e0e';x.fillRect(470,20,270,12);x.fillStyle='#e8401a';x.fillRect(470,20,270*BOSS.hp/BOSS.max,12);x.font='700 14px Silkscreen, monospace';x.fillStyle='#ff7a4a';x.fillText('ASHEN WYRM',470,38);}
       line('ORDER: '+orders[0].toUpperCase()+' · '+FNAME[form[0]].toUpperCase()+' · MORALE '+Math.round(morale[0]*100),96);line('R-STICK CLICK: SQUAD'+(squadCD>0?' '+Math.ceil(squadCD):'')+' · Y FORM · L-STICK: '+ABIL[A.d.troop].n.toUpperCase()+(abil[0].t>0?' ON':abil[0].cd>0?' '+Math.ceil(abil[0].cd):' READY')+(pups.length?' · '+pups.length+' POWER-UPS':''),190,abil[0].cd<=0?'#9ab8ff':'#857aa0','15px');
-      line(storm.on?(storm.kind==='volley'?'VOLLEYS: HOLD R TRIG · ':'STORM: HOLD R TRIG · ')+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=1?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+' x'+Math.floor(mp[0]):'R trig charge · L trig next order',128,storm.on||mp[0]>=1?'#f0c055':'#857aa0');
+      line(storm.on?(storm.kind==='volley'?'VOLLEYS: HOLD R TRIG · ':'STORM: HOLD R TRIG · ')+storm.left+' LEFT · '+Math.ceil(storm.t)+'s':mp[0]>=spellCost(0)?'AIM + R TRIG: '+SPELL[A.d.spell].toUpperCase()+(spellCost(0)?' x'+Math.floor(mp[0]/spellCost(0)):' FREE'):'R trig charge · L trig next order',128,storm.on||mp[0]>=spellCost(0)?'#f0c055':'#857aa0');
       line(withdrawArm>0?'Press X again to withdraw':'A squad/gate · hold A '+(seekDuel[0]?'stop seeking':'duel')+' · X withdraw',160,withdrawArm>0?'#ffb09a':'#857aa0');}
   }
   if(vrMsgT>0&&vrMsg){/* short banners sit right-aligned; long ones scroll across like a ticker so the whole message can be read */
@@ -3231,7 +3280,7 @@ function vrAim(now){
   if(state!=='battle'||!castPhase(0)||!battle.visible||!rc){reticle.visible=false;aim.valid=false;return;}
   world.updateMatrixWorld(true);rc.updateMatrixWorld(true);
   const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
-  const h=aimAt(o,d),L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:4;L.material.color.set(mp[0]>=1?0xf0c055:0x7a6f98);placeReticle(true,now);
+  const h=aimAt(o,d),L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:4;L.material.color.set(mp[0]>=spellCost(0)&&spellCD[0]<=0?0xf0c055:0x7a6f98);placeReticle(true,now);
 }
 /* ================= LOOP ================= */
 let last=performance.now()/1000;
@@ -4147,6 +4196,9 @@ function tacSuccession(n){const L=GENS.filter(r=>r.nat===n&&r.alive&&!r.prisoner
   for(const c of CASTLES)if(c.o===n)refreshCastle(c);return true;}
 
 function tacToggle(v){TAC.on=!!v;try{localStorage.setItem('de4-tac',TAC.on?'1':'0');}catch(e){}const c=$('tacX');if(c)c.checked=TAC.on;if(!TAC.on){tacHideMarkers();TAC.sq=[[],[]];for(const u of units)u.hid=false;}sfx('lock');}
+function tacRulerOk(from,gens){const G=garrison(from),ru=G.find(r=>isRuler(r)&&r.nat===NET.me);if(!ru||!gens.length)return true;
+  if(gens.includes(ru)&&gens.length<2){const m=ru.d.short+' will not march without another general. Tick one to escort him.';clog(m);showBanner(m,true);return false;}
+  if(!gens.includes(ru)&&!G.some(r=>r!==ru&&!gens.includes(r))){const m='Someone must stay with '+ru.d.short+'. Untick a general, or take '+ru.d.short+' along.';clog(m);showBanner(m,true);return false;}return true;}
 function tacBlkBtn(a){if(!a||a.nat!==NET.me)return;if(a.bsg!=null){const c=CASTLES[a.bsg];clog(`Your army storms ${c.n}!`);tacStorm(a,c);return;}a.blk=!a.blk;clog(a.blk?'Your army will blockade the castle when it arrives, starving the garrison week by week.':'Your army will storm the castle on arrival.');}
 function tacPupTick(p,dt){if(p.pend>0){p.pend-=dt;if(p.pad&&p.pad.material)p.pad.material.opacity=((p.pend*4)|0)%2?0.95:0.3;if(p.pend<=0){p.pend=0;p.sp.visible=true;if(p.pad&&p.pad.material)p.pad.material.opacity=0.8;showBanner('A '+PU[p.k].n+' crystal is ready. Hold the ground beside it to claim it!');sfx('lock');}return true;}
   const c=[0,0];for(let q=0;q<2;q++)for(const u of alive[q])if(u.state==='alive'&&Math.abs(u.x-p.x)<2&&Math.abs(u.z-p.z)<2)c[q]++;p.ch=p.ch||[0,0];
@@ -4155,7 +4207,7 @@ const tacAvgCoh=s=>{let w=0,n=0;for(const q of TAC.sq[s])if(!q.dead){w+=q.coh*q.
 slotPos=(f=>u=>TAC.on&&u.sqd!=null&&tsq(u)?tacSlot(u):f(u))(slotPos);
 ord2spd=(f=>u=>f(u)*(TAC.on&&u.sqd!=null&&phase!=='duel'?tacSpd(u):1))(ord2spd);
 deploy=(f=>()=>{for(const u of units){u.sqd=null;u.hid=false;}const r=f();if(TAC.on&&state==='battle'){tacDeploy();if(active[1]){const msg=active[0].d.short+' faces '+active[1].d.short+' ('+PNAME[persOf(active[1])]+')';schedule(0.05,()=>showBanner(msg));}}else TAC.sq=[[],[]];return r;})(deploy);
-updateUnits=(f=>dt=>{f(dt);if(TAC.on&&state==='battle'){if(phase==='fight'||phase==='intro'||phase==='plan'||phase==='taunt')tacTick(dt);else tacHideMarkers();}})(updateUnits);
+updateUnits=(f=>dt=>{f(dt);if(LAVA.mat&&(LAVA.rivers.length||LAVA.pools.length)){const t=performance.now()/1000;LAVA.mat.color.setRGB(1,0.42+0.1*Math.sin(t*1.7),0.06+0.04*Math.sin(t*2.9));}if(TAC.on&&state==='battle'){if(phase==='fight'||phase==='intro'||phase==='plan'||phase==='taunt')tacTick(dt);else tacHideMarkers();}})(updateUnits);
 setOrder=(f=>o=>{if(!TAC.on||GUEST()||state!=='battle'||!TAC.sq[0].length)return f(o);
   if(phase==='fight'&&TAC.sel[0]>=0){if(tacSetOrder(0,o)){showBanner('Squad '+(TAC.sel[0]+1)+': '+o.toUpperCase());sfx('lock');}return;}
   const r=f(o);TAC.ao[0]=orders[0];if(phase==='fight')tacSetOrder(0,o);else for(const q of TAC.sq[0])tacApply(q,o);return r;})(setOrder);
