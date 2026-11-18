@@ -145,6 +145,20 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Relic powers:** every relic now also gives its bearer one special move per round, on the right thumbstick click in VR or T on the keyboard. Enemy generals use theirs too.
+  - Sunsteel Blade, *Blinding Flash*: enemy troops near your general are dazzled and can't strike for 3 s.
+  - Aegis of Highmere, *Bulwark*: your troops take half damage for 7 s.
+  - Heartwood Charm, *Regrowth*: heals your general by a third and restores every soldier.
+  - War Standard, *Call the Banners*: 14 reinforcements charge in.
+  - Mana Pearl, *Wellspring*: refills all your magic.
+  - Stormglass Orb, *Stormcall*: four bolts strike the thickest enemy ranks.
+  - Duelist's Gauntlet, *Call Out*: forces a duel the enemy can't refuse.
+  - Swiftmail, *Forced March*: troops move 45% faster for 6 s and your general gets full stamina.
+  - Lion Banner, *Lion's Roar*: big morale boost, enemy loses heart, routed troops come back.
+  - Ember Ring, *Ring of Fire*: fire bursts in a ring around your general.
+  - Ward of Ash, *Veil of Ash*: enemy magic can't hurt your army or general for 8 s.
+  - Crown of Echoes, *Echo*: your general's ability recharges and fires again.
+  - Wyrmheart, *Wyrm's Call*: a dragon sweeps across the enemy army.
 - **Thundercloud:** the cloud rises right over the crystal that was claimed, then darts to the enemy standing in the thickest knot of his comrades, follows him and strikes, catching as many as the blast reaches. It then darts to another dense knot some distance away and strikes again, about once every 0.8 seconds, until it is spent.
 - **Upright overhead effects:** the Thundercloud and the Eclipse sun turn to face you but stay upright, so tilting your head in VR no longer spins them.
 - **Stunning a fleeing general:** any attacking spell that hits a general running for the edge stuns him for 1.3 seconds (sparks circle his head), long enough for your soldiers to catch up; he can't be stunned again for 2.5 seconds after that. Spells aimed at or near him are led to where he'll be when they land, and a dragon's fire bends toward him. Mending Light doesn't stun.
