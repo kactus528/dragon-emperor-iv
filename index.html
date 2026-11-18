@@ -543,7 +543,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 130';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 131';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2905,11 +2905,11 @@ function withdraw(){if(SIM&&(state==='battle'||state==='end'))return;
 function matchup(a,b){const v=adv(a,b);return v>1.25?'Strong':v<0.8?'Weak':'Even';}
 const PORT={};function portrait(k){return PORT[k]||(PORT[k]=GCV[k][0].toDataURL());}
 const BV={theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0};
-function selItems(){return avail(0).map(r=>({k:'gen',r})).concat(roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>({k:'cap',r}))).concat([{k:'sur',r:null}]);}
+function selItems(){return avail(0).map(r=>({k:'gen',r})).concat(roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>({k:'cap',r}))).concat(SIM?[]:[{k:'sur',r:null}]);}/* in Watch mode there is no concede/withdraw option: the computer must send its next general */
 let surArm=0;
 function surLabel(){const B=pendingBattle;if(SK||!B||B.ctx.kind==='skirmish')return 'Concede the battle';if(B.ctx.kind==='castle')return B.ctx.attN===(B.pNat||'aldmere')?'Abandon the siege':'Surrender the castle';return 'Withdraw from the field';}
 function surBlurb(){const t=avail(0).reduce((a,r)=>a+r.troops,0),L=surLabel();return L==='Surrender the castle'?`Give up ${pendingBattle.ctx.castle.n}. Your generals march back to your nearest castle with ${t} troops.`:L==='Abandon the siege'?`Call off the attack. Your generals march home with ${t} troops.`:L==='Withdraw from the field'?`Leave the field to the enemy. Your generals march home with ${t} troops.`:'End this battle as a defeat.';}
-function surrender(){if(netIn('sur',{}))return;DE4LOG.mark('surrender');DE4LOG.info('surrender: '+surLabel());surArm=0;endBattle(false,'surrender');}
+function surrender(){if(SIM)return;if(netIn('sur',{}))return;DE4LOG.mark('surrender');DE4LOG.info('surrender: '+surLabel());surArm=0;endBattle(false,'surrender');}
 function selAct(x){if(!x)return;if(x.k==='gen')chooseGeneral(x.r);else if(x.k==='sur'){if(phase!=='select')return;if(performance.now()<surArm)surrender();else{surArm=performance.now()+4000;showBanner('Press again to '+surLabel().toLowerCase(),true);sfx('lock');renderSelect();hudAcc=1;}}else persuade(x.r);}
 function startSelect(){DE4LOG.mark('startSelect');
   phase='select';NET.pick=[null,null];NET.selT=0;const it=selItems();
@@ -3070,7 +3070,7 @@ function fightTick(dt){
 }
 function aiThink(){
   const me=alive[1],them=alive[0],myT=active[1].d.troop,thT=active[0].d.troop;let o;
-  if(morale[1]<0.3)o=me.length<NPS*0.2&&!SIM?'retreat':'hold';/* in Watch mode neither side may retreat */
+  if(morale[1]<0.3)o=me.length<NPS*0.2?'retreat':'hold';
   else if(adv(thT,myT)>1.3)o=Math.random()<0.55?'flank':'hold';
   else if(RANGED[myT]||myT==='monk')o=Math.random()<0.7?'hold':'flank';
   else if(me.length>them.length*1.15||adv(myT,thT)>1.3)o='charge';
@@ -3099,7 +3099,7 @@ function simPick(){const A=avail(0);if(!A.length)return null;const L=A.filter(r=
 function simDuelPick(){const w={strike:0.4,guard:0.3,power:0.3};if(duel.tell)w.guard+=0.25;if(active[0].hp<active[0].d.hp*0.3)w.guard+=0.15;
   const tot=w.strike+w.guard+w.power;let r=Math.random()*tot;for(const k of['strike','guard','power']){r-=w[k];if(r<=0)return k;}return'strike';}
 function simThink(){const me=alive[0],them=alive[1],myT=active[0].d.troop,thT=active[1].d.troop;let o;
-  if(morale[0]<0.3)o='hold';
+  if(morale[0]<0.3)o=me.length<NPS*0.2?'retreat':'hold';
   else if(adv(thT,myT)>1.3)o=Math.random()<0.55?'flank':'hold';
   else if(RANGED[myT]||myT==='monk')o=Math.random()<0.7?'hold':'flank';
   else if(me.length>them.length*1.15||adv(myT,thT)>1.3)o='charge';
@@ -4124,7 +4124,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 130; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 131; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
