@@ -494,7 +494,6 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
           <label class="bloodset" for="bloodR"><span>Blood</span><input type="range" id="bloodR" min="0" max="100" step="5" value="50"><b id="bloodV">50%</b></label>
           <label class="bloodset"><input type="checkbox" id="goreX"> <span>Ludicrous gore</span></label>
           <label class="bloodset"><input type="checkbox" id="closeX" checked> <span>VR close-ups (taunts &amp; duels)</span></label>
-          <label class="bloodset" title="Squads with cohesion and morale, flanking, charge momentum, a smarter enemy and war-table blockades"><input type="checkbox" id="tacX"> <span>Tactical mode (experimental)</span></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="start" id="startBtn">Press Start</button><button class="start" id="ageBtn" hidden>Continue</button>
           <button id="vrBtn2" disabled>Enter VR</button>
           <button id="howBtn">How to play</button><button id="skBtn">Skirmish</button><button id="mpBtn">Multiplayer</button><button id="dbgBtn">Debug log</button></div>
@@ -541,7 +540,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 126';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 127';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1935,7 +1934,7 @@ const BLOODT=[0,1,2,3].map(i=>{const c=cv(128,128),x=c.getContext('2d');const rn
 const T_DROP=(()=>{const c=cv(8,8),x=c.getContext('2d');x.fillStyle='#8a0a0c';x.beginPath();x.arc(4,4,3.5,0,7);x.fill();return tex(c);})();
 const TAC={on:false,sq:[[],[]],sel:[-1,-1],acc:0,am:[0.5,0.5],ao:['charge','hold'],tel:null,mk:[],haz:[],warnT:new Map(),ai:[{},{}],sk:['',''],mem:new Map(),
   duelInit:-1,inEv:false,inClaim:false,rl:null,bopLog:'',auto0:null,skillOver:null};
-try{TAC.on=localStorage.getItem('de4-tac')==='1';}catch(e){}
+TAC.on=true;/* Tactical is now the game; the classic rules stay in the code but are no longer offered */
 let goreX=false;try{goreX=localStorage.getItem('de4-gore')==='1';}catch(e){}
 let closeUps=true;try{closeUps=localStorage.getItem('de4-close')!=='0';}catch(e){}
 const T_BPUFF=(()=>{const c=cv(64,64),x=c.getContext('2d'),g=x.createRadialGradient(32,32,2,32,32,30);g.addColorStop(0,'rgba(200,10,14,1)');g.addColorStop(0.6,'rgba(140,4,8,0.9)');g.addColorStop(1,'rgba(90,0,4,0)');x.fillStyle=g;x.beginPath();x.arc(32,32,30,0,7);x.fill();return tex(c,true);})();
@@ -2743,6 +2742,8 @@ const TUT_PAGES=[
   d:[['1–9 / click','Pick a general or a prisoner']],v:[['L trigger','Next card'],['R trigger','Deploy (or persuade a prisoner)']]},
  {h:'Command the battle',q:['lt','rt','x'],b:'Your soldiers follow orders, not the mouse. <b>Charge</b> attacks, <b>Hold</b> freezes them where they stand, <b>Flank</b> swings round the sides, <b>Retreat</b>: your soldiers scatter for the nearest edge of the field and every one who makes it is saved; if your general reaches your own edge, he escapes the battle with them plus 60% of those still fighting. Losing hurts <b>morale</b>, and an army whose morale breaks runs for it. You win the round by beating his general or breaking his army.',
   d:[['1  2  3  4','Charge · Hold · Flank · Retreat'],['6','Withdraw this general to save him']],v:[['L trigger','Cycle orders'],['R trigger','Charge (when no magic is ready)'],['X twice','Withdraw']]},
+ {h:'Squads',q:['a','lt'],b:'Your army fights as several <b>squads</b>, each with its own <b>cohesion</b> (how well it holds together) and <b>morale</b> (the bar over its banner). Squads hit in the <b>flank or rear</b> lose both fast, a squad whose morale breaks <b>routs</b> and can shake its neighbours, and a squad near your <b>general</b> holds steadier. Cavalry charges build <b>momentum</b> before they hit. Orders take a moment to reach the squads, and a squad locked in melee cannot simply walk away. Orders go to the whole army unless you <b>select a squad</b>: point at it and press A (or Tab on the keyboard), then point at the ground to send just that squad there. Select it again to give orders back to the whole army.',
+  d:[['Tab / Shift+Tab','Select the next or previous squad'],['0','Orders to the whole army'],['Click a squad','Select it; click the ground to send it']],v:[['A on a squad','Select it (again: whole army)'],['A on the ground','Send the selected squad there'],['L trigger','Order for the selected squad or the army']]},
  {h:'Battle tactics',q:['y','ls','rs'],b:'<b>Formations</b>: Wedge smashes Line and Spread but breaks on a Square; Square stops Wedges but is slow and soaks magic; Spread halves magic damage but hits softer. Each general also has an <b>ability</b> on a timer (War Cry, Thunder Charge, Eagle Eye). Fight Vorgrath and his <b>Ashen Wyrm</b> joins the battle as a boss: it swoops with fire and lands to stomp, and while it is down your troops and spells can wound it. Queen Ysolde can cast <b>Eclipse</b>, darkening the sun and weakening your troops. Castle battles are <b>sieges</b>: the defender sits behind a wall, and attackers must batter down the gate first (knights and dragonriders hit it hardest; flyers just fly over). <b>Power-up crystals</b> appear between the armies and nearby soldiers rush for them: the first side to touch one gets it (a Thundercloud, a Meteor Shower, a Cyclone that hurls soldiers into the sky, Berserk Rage, a Dread Horn that frightens enemies to death, a Holy Nova, a charge of Reinforcements, a Mana Surge, or a red Resurrection). Rarely a huge gold <b>legendary</b> crystal appears with a pillar of light: grab it and a dragon burns a path through the enemy army. Nearly wiped out armies make a <b>last stand</b>, routed troops can <b>rally</b> if their general survives, and some battles roll <b>fog, night or a storm</b>.',
   d:[['F / buttons','Change formation'],['R','General ability'],['T','Relic power (once per round)'],['G, then click','Send a squad of 12 (e.g. to a crystal)']],v:[['Y','Cycle formation'],['L stick click','General ability'],['R stick click','Relic power (once per round)'],['A (tap)','Send a squad where you point; point at your own gate to open or shut it']]},
  {h:'Magic',q:['rt','rs'],b:'Each general has a spell. Charges fill up over time and faster when your troops land kills. <b>Archer generals get the most charges</b>; cavalry recharge slowest. Spells hit hard against packed troops, so aim where the enemy is thickest. <b>Thunder Lance</b> (cavalry) and <b>Arrow Storm</b> (archers) are aimed by hand: one charge gives you a run of bolts or tight arrow volleys, and every click or trigger pull lands one exactly where you aim. Snipe the enemy general or pick apart his clumps. Anything unused fires on its own after 10 seconds.',
@@ -3140,7 +3141,7 @@ function drawVrHudInner(){
   const x=hudX,W=768,H=240;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.88)';x.fillRect(0,0,W,H);x.fillStyle='#4a3d63';x.fillRect(0,0,W,3);x.fillRect(0,H-3,W,3);
   x.textBaseline='top';x.textAlign='left';x.font='700 30px Silkscreen, monospace';x.fillStyle='#f0c055';
   const line=(t,y,c='#f1e8d4',f='18px')=>{x.font=f+' Silkscreen, monospace';x.fillStyle=c;x.fillText(t,24,y);};
-  if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Difficulty: '+DIFF.name+'  (L trig to change)',110,'#f0c055','18px');line('Tactical mode: '+(TAC.on?'ON':'OFF')+'  (A to change)',168,TAC.on?'#7fe07a':'#a99fb8','16px');line('Right trigger to start',140,'#a99fb8','20px');line(BUILD,196,'#857aa0','14px');}
+  if(state==='title'){x.fillText('DRAGON EMPEROR IV',24,22);line('THE ETERNAL WAR',64,'#f1e8d4','20px');line('Difficulty: '+DIFF.name+'  (L trig to change)',110,'#f0c055','18px');line('Right trigger to start',140,'#a99fb8','20px');line(BUILD,196,'#857aa0','14px');}
   else if(state==='kingdom'&&CAMP.over){x.font='700 34px Silkscreen, monospace';x.fillStyle=CAMP.won?'#f0c055':'#ff5a3a';x.fillText(CAMP.won?'THE REALM IS YOURS':'ALDMERE FALLS',24,22);
     line(CAMP.won?'Every castle flies the banner of Aldmere.':'The Eternal War goes on without you.',80,'#f1e8d4','18px');line((CAMP.won?'Won':'Lost')+' in week '+CAMP.week,112,'#a99fb8','16px');line(CAMP.won?'A: begin Age '+ROMAN(AGE+1)+' · X: start over':'Right trigger: new campaign',170,'#f0c055','20px');}
   else if(state==='kingdom'||state==='transition'){x.fillText('WEEK '+CAMP.week+' · GOLD '+goldOf(NET.me)+(CAMP.paused?' · PAUSED':CAMP.ff?' · FAST':''),24,16);
@@ -3202,7 +3203,7 @@ $('wdBtn').addEventListener('click',withdraw);$('ofYes').addEventListener('click
 $('chalYes').addEventListener('click',()=>answerChallenge(true));
 $('chalNo').addEventListener('click',()=>answerChallenge(false));
 $('startBtn').addEventListener('click',startGame);
-setBlood(blood);$('bloodR').addEventListener('input',e=>setBlood(+e.target.value/100));$('tacX').checked=TAC.on;$('tacX').addEventListener('change',e=>tacToggle(e.target.checked));$('goreX').checked=goreX;$('goreX').addEventListener('change',e=>{goreX=e.target.checked;try{localStorage.setItem('de4-gore',goreX?'1':'0');}catch(err){}if(goreX)sfx('boom');});$('closeX').checked=closeUps;$('closeX').addEventListener('change',e=>{closeUps=e.target.checked;try{localStorage.setItem('de4-close',closeUps?'1':'0');}catch(err){}DE4LOG.info('VR close-ups '+(closeUps?'on':'off'));});
+setBlood(blood);$('bloodR').addEventListener('input',e=>setBlood(+e.target.value/100));$('goreX').checked=goreX;$('goreX').addEventListener('change',e=>{goreX=e.target.checked;try{localStorage.setItem('de4-gore',goreX?'1':'0');}catch(err){}if(goreX)sfx('boom');});$('closeX').checked=closeUps;$('closeX').addEventListener('change',e=>{closeUps=e.target.checked;try{localStorage.setItem('de4-close',closeUps?'1':'0');}catch(err){}DE4LOG.info('VR close-ups '+(closeUps?'on':'off'));});
 $('skBtn').addEventListener('click',openSkirm);
 $('mpBtn').addEventListener('click',mpOpen);$('mpBack').addEventListener('click',()=>{$('mpp').hidden=true;});$('mpHost').addEventListener('click',mpHost);$('mpJoin').addEventListener('click',mpJoin);$('mpGo').addEventListener('click',mpStartWar);
 $('mpCode').addEventListener('keydown',e=>{if(e.key==='Enter')mpJoin();});
@@ -3255,7 +3256,7 @@ function xrSelect(hand){DE4LOG.trace(6000);DE4LOG.mark('trigger '+hand+' '+state
     else if(phase==='fight'){if(hand==='left')cycleOrder();else if(storm.on){if(aim.valid)stormStrike(aim.x,aim.z);}else if(mp[0]>=spellCost(0)&&spellCD[0]<=0)castSpell(0,aim.valid?{x:aim.x,z:aim.z}:null);else if(mp[0]<1&&orders[0]!=='retreat')setOrder('charge');else if(orders[0]==='retreat')showBanner(mp[0]<1?'No magic yet':'Spell recharging');}
   }
   else if(state==='end'&&endT>1.5)backToKingdom();}
-function xrFace(hand){DE4LOG.trace(6000);DE4LOG.mark('button '+hand+' '+state+'/'+phase);if(state==='title'){tacToggle(!TAC.on);drawVrHud();return;}
+function xrFace(hand){DE4LOG.trace(6000);DE4LOG.mark('button '+hand+' '+state+'/'+phase);if(state==='title')return;
   if(TUT.open){closeTut();return;}
   if(state==='kingdom'&&CAMP.over&&CAMP.won){if(performance.now()-(CAMP.endAt||0)>2500){if(hand==='left')restartAgeOne();else startNextAge();}return;}
   if(state==='kingdom'&&openOffer()){actOffer(hand!=='left');drawVrHud();return;}
@@ -4006,9 +4007,9 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL MODE (optional, title-screen toggle). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 127; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
-   time to reach the squads. Off = the classic game, unchanged.
+   time to reach the squads.
    ===================================================================== */
 
 const TSKILL={squire:{int:3,flank:0.3,res:0,adapt:false,mist:0.4},knight:{int:1.6,flank:0.65,res:1,adapt:true,mist:0.2},warlord:{int:0.8,flank:1,res:2,adapt:true,mist:0.05}};
@@ -4308,7 +4309,7 @@ function tacSuccession(n){const L=GENS.filter(r=>r.nat===n&&r.alive&&!r.prisoner
   if(n===NET.me){showBanner(heir.d.short+' takes the crown of '+NATIONS[n].name,true);sfx('horn');}
   for(const c of CASTLES)if(c.o===n)refreshCastle(c);return true;}
 
-function tacToggle(v){TAC.on=!!v;try{localStorage.setItem('de4-tac',TAC.on?'1':'0');}catch(e){}const c=$('tacX');if(c)c.checked=TAC.on;if(!TAC.on){tacHideMarkers();TAC.sq=[[],[]];for(const u of units)u.hid=false;}sfx('lock');}
+function tacToggle(v){TAC.on=!!v;if(!TAC.on){tacHideMarkers();TAC.sq=[[],[]];for(const u of units)u.hid=false;}sfx('lock');}
 function tacRulerOk(from,gens){const G=garrison(from),ru=G.find(r=>isRuler(r)&&r.nat===NET.me);if(!ru||!gens.length)return true;
   if(gens.includes(ru)&&gens.length<2){const m=ru.d.short+' will not march without another general. Tick one to escort him.';clog(m);showBanner(m,true);return false;}
   if(!gens.includes(ru)&&!G.some(r=>r!==ru&&!gens.includes(r))){const m='Someone must stay with '+ru.d.short+'. Untick a general, or take '+ru.d.short+' along.';clog(m);showBanner(m,true);return false;}return true;}

@@ -6,9 +6,9 @@ A miniature war-table kingdom drops into stereoscopic battles of 400 vs 400 spri
 
 New players get an nine-page **How to play** guide when they press Start, covering the war table, match-ups, orders, magic, duels, spoils and the view controls. Every page lists both keyboard and Quest 2 controls, with a controller diagram that lights up the buttons that page uses (the Quest list comes first when opened in the Quest browser). It can be skipped, the "Don't show this at start" choice is remembered, and it can be reopened from **How to play** on the title screen. It works on desktop and in VR.
 
-## Tactical mode (experimental)
+## Tactical rules (the game since Build 127)
 
-Tick **Tactical mode** on the title screen (in VR, press A on the title panel) to play with a deeper battle and war-table model. Untick it and the game is exactly the classic one. The setting is remembered. In multiplayer the host's setting applies to everyone.
+As of Build 127 Tactical is simply how the game plays: the title-screen toggle is gone and every battle and war uses these rules, single player and multiplayer alike. The classic rules are still in the code (Build 126 and the build-119 branch play them) but are no longer offered.
 
 **Squads.** Each army is split into up to eight squads, each with its own **cohesion** (blue bar) and **morale** (green/gold/red bar), shown on a marker above it. The marker letter shows its state: `!` wavering, `X` routing, `>` charge at full speed, `~` re-forming, `H` hidden, `.` an order on its way.
 - Cohesion falls with casualties, flank and rear blows, broken charges, spells and formation changes, and recovers out of contact (faster near the general). A disordered squad hits softer and takes more damage.
@@ -145,6 +145,7 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Tactical is the game:** the Tactical mode toggle is gone from the title screen and VR title panel; squads, cohesion, flanking, charges, blockades and the smarter enemy are always on. A new **Squads** page in the How to play guide explains squads and how to select one.
 - **Relic powers:** every relic now also gives its bearer one special move per round, on the right thumbstick click in VR or T on the keyboard. Enemy generals use theirs too.
   - Sunsteel Blade, *Blinding Flash*: enemy troops near your general are dazzled and can't strike for 3 s.
   - Aegis of Highmere, *Bulwark*: your troops take half damage for 7 s.
