@@ -543,7 +543,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 136';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 137';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1225,7 +1225,8 @@ function spawn(o){
   let p=null;for(let k=0;k<PMAX;k++){const c=pool[(pIdx+k)%PMAX];if(!c.active){p=c;pIdx=(pIdx+k+1)%PMAX;break;}}
   if(!p){for(let k=0;k<PMAX;k++){const c=pool[(pIdx+k)%PMAX];if(!c.onEnd&&!c.keep){p=c;pIdx=(pIdx+k+1)%PMAX;break;}}
     if(!p){if(!o.onEnd&&!o.keep)return PDUMMY;p=pool[pIdx];pIdx=(pIdx+1)%PMAX;}}
-  Object.assign(p,{active:true,x:0,y:0,z:0,vx:0,vy:0,vz:0,g:0,life:1,age:0,frames:null,tex:T_SPARK,w:0.3,h:0.3,grow:0,update:null,onEnd:null,keep:false,ground:false,splat:false,blink:false,rot:0},o);
+  Object.assign(p,{active:true,x:0,y:0,z:0,vx:0,vy:0,vz:0,g:0,life:1,age:0,frames:null,tex:T_SPARK,w:0.3,h:0.3,grow:0,update:null,onEnd:null,keep:false,ground:false,splat:false,blink:false,rot:0,op:1},o);
+  {const m=p.s.material,tr=p.op<1;if(m.transparent!==tr){m.transparent=tr;m.alphaTest=tr?0.02:0.5;m.depthWrite=!tr;m.needsUpdate=true;}m.opacity=p.op;}
   p.s.material.map=p.frames?p.frames[0]:p.tex;p.s.rotation.z=p.rot;p.s.visible=true;return p;
 }
 function updateParticles(dt){
@@ -2321,10 +2322,24 @@ function LAVA_ON(){return LAVA.rivers.length>0||LAVA.pools.length>0;}
 function lavaShove(T,att){lavaFall(T,false);}
 function lavaFall(T,fly){if(T.state!=='alive')return;const[dx,dz]=lavaDir(T.x,T.z);T.lavaDeath=true;const d=Math.max(0.6,lavaDist(T.x,T.z)+0.8);
   if(fly)kill(T,T.x-dx*0.2,T.z-dz*0.2,0.6,1);else kill(T,T.x-dx*2,T.z-dz*2,Math.min(9,3.2+d*2.2),4);sfx('scream');}
+/* the splash: a big burst of molten rock, a few globs that land on the bank and leave burning patches, and a thin wisp of smoke */
 function lavaSplash(x,z){const y=Hb(x,z)+0.2;sfx('splash');
-  spawn({x,y:y+0.8,z,frames:EXPLO,w:2.8,h:2.8,life:0.55,grow:0.6});
-  for(let i=0;i<16;i++){const a=R(0,6.283),v=R(2,5.5);spawn({x:x+R(-0.3,0.3),y:y+0.3,z:z+R(-0.3,0.3),vx:Math.cos(a)*v,vz:Math.sin(a)*v,vy:R(5,10),g:-22,frames:FLAME,w:R(0.45,0.8),h:R(0.45,0.8),life:R(0.55,0.9)});}
-  for(let i=0;i<4;i++)spawn({x:x+R(-0.5,0.5),y:y+0.6,z:z+R(-0.5,0.5),frames:SMOKE,w:R(2,3),h:R(2,3),life:R(1.2,1.8),grow:1.6,vy:R(1.2,2.2)});}
+  spawn({x,y:y+1,z,frames:EXPLO,w:3.8,h:3.8,life:0.6,grow:0.7});spawn({x,y:y+0.4,z,tex:glowTex,w:5,h:5,life:0.45,grow:0.4});
+  for(let i=0;i<26;i++){const a=R(0,6.283),v=R(2.5,7);spawn({x:x+R(-0.3,0.3),y:y+0.3,z:z+R(-0.3,0.3),vx:Math.cos(a)*v,vz:Math.sin(a)*v,vy:R(6,12),g:-24,frames:FLAME,w:R(0.6,1.1),h:R(0.6,1.1),life:R(0.6,1.0),ground:true});}
+  /* globs thrown onto dry ground become burning patches */
+  let n=0;for(let k=0;k<10&&n<2;k++){const a=R(0,6.283),d=R(1.6,3.4),tx=clamp(x+Math.cos(a)*d,-FW/2+1,FW/2-1),tz=clamp(z+Math.sin(a)*d,-FD/2+1.5,FD/2-1.5);if(lavaDist(tx,tz)<0.3||navAt(tx,tz)===1)continue;n++;
+    const sx=x,sz=z,sy=y+0.4,ty=Hb(tx,tz)+0.2,T=R(0.55,0.75);spawn({x:sx,y:sy,z:sz,frames:FLAME,w:1.1,h:1.1,life:T,keep:true,update:(p)=>{const k=p.age/p.life;p.x=sx+(tx-sx)*k;p.z=sz+(tz-sz)*k;p.y=sy+(ty-sy)*k+Math.sin(k*Math.PI)*3.2;},onEnd:()=>lavaPatch(tx,tz)});}
+  for(let i=0;i<2;i++)spawn({x:x+R(-0.4,0.4),y:y+1.2,z:z+R(-0.4,0.4),frames:SMOKE,w:R(1.3,1.9),h:R(1.3,1.9),life:R(1.0,1.4),grow:1.2,vy:R(1.2,2),op:0.4});}
+/* burning patches of splashed lava: they glow on the ground for a few seconds, hurt anyone standing in them, and the burnt troops scramble out */
+const LPATCH=[],LPM=[];
+function lavaPatch(x,z){if(state!=='battle'||LPATCH.length>=14)return;let m=LPM.find(o=>!o.visible);if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:glowTex,color:0xff7a1a,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));m.rotation.x=-Math.PI/2;m.renderOrder=3;battle.add(m);LPM.push(m);}
+  const r=R(0.9,1.3);m.visible=true;m.scale.set(r*2.6,r*2.6,1);m.position.set(x,Hb(x,z)+0.08,z);LPATCH.push({x,z,r,t:6,T:6,k:0.2,m});
+  for(let i=0;i<5;i++)spawn({x:x+R(-r,r)*0.6,y:Hb(x,z)+0.3,z:z+R(-r,r)*0.6,frames:FLAME,w:R(0.8,1.2),h:R(0.8,1.2),life:R(0.4,0.7),vy:0.8});}
+function lavaPatchTick(dt){for(let i=LPATCH.length-1;i>=0;i--){const h=LPATCH[i];h.t-=dt;if(h.t<=0||state!=='battle'){h.m.visible=false;LPATCH.splice(i,1);continue;}
+    h.m.material.opacity=Math.min(1,h.t/1.5)*(0.75+0.25*Math.sin(h.t*9+h.x));if(Math.random()<dt*5)spawn({x:h.x+R(-h.r,h.r)*0.6,y:Hb(h.x,h.z)+0.25,z:h.z+R(-h.r,h.r)*0.6,frames:FLAME,w:R(0.5,0.9),h:R(0.5,0.9),life:R(0.35,0.6),vy:0.7});
+    if(phase!=='fight')continue;h.k-=dt;if(h.k>0)continue;h.k=0.5;
+    for(let s=0;s<2;s++)for(const u of alive[s]){if(u.state!=='alive'||FLY[u.type]||Math.abs(u.x-h.x)>h.r||Math.abs(u.z-h.z)>h.r)continue;const dx=u.x-h.x,dz=u.z-h.z,d=Math.hypot(dx,dz);if(d>h.r)continue;
+      u.hp-=0.9;if(u.hp<=0){kill(u,h.x,h.z,2.5,2);continue;}const l=d||1;u.dodx=d?dx/l:R(-1,1);u.dodz=d?dz/l:R(-1,1);u.dodgeT=0.7;}}}
 /* crowds pressed against the lava lose people over the edge, and the bigger the press the more often; flyers over lava now and then drop in */
 let lavaAcc=0;
 function lavaTick(dt){lavaAcc+=dt;if(lavaAcc<0.25)return;const st=lavaAcc;lavaAcc=0;if(!LAVA_ON()||phase!=='fight')return;
@@ -4147,7 +4162,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 136; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 137; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
@@ -4499,8 +4514,8 @@ finishDuel=(f=>w=>{const L=1-w;const r=f(w);if(TAC.on){for(const q of TAC.sq[w])
 enemyPick=(f=>()=>TAC.on?tacEnemyPick(f):f())(enemyPick);
 endBattle=(f=>(win,why)=>{const r=f(win,why);if(TAC.on&&TAC.tel){const t=tacTelText();DE4LOG.info(t);if(RES&&RES.spoils)RES.spoils.push(['good',t]);}tacHideMarkers();return r;})(endBattle);
 /* battle report hooks */
-updateUnits=(f=>dt=>{f(dt);if(state==='battle'&&LAVA_ON())lavaTick(dt);})(updateUnits);
-deploy=(f=>()=>{const r=f();try{repRoundStart();}catch(e){DE4LOG.err(e,'report');}return r;})(deploy);
+updateUnits=(f=>dt=>{f(dt);if(state==='battle'&&LAVA_ON())lavaTick(dt);if(LPATCH.length)lavaPatchTick(dt);})(updateUnits);
+deploy=(f=>()=>{for(const h of LPATCH)h.m.visible=false;LPATCH.length=0;const r=f();try{repRoundStart();}catch(e){DE4LOG.err(e,'report');}return r;})(deploy);
 endBattle=(f=>(win,why)=>{try{repFinish((win?'LEFT army wins':'RIGHT army wins')+(why?' ('+why+')':''));}catch(e){DE4LOG.err(e,'report');}return f(win,why);})(endBattle);
 showBanner=(f=>(txt,red)=>{try{if(state==='battle')repEv(txt);}catch(e){}return f(txt,red);})(showBanner);
 tacQueue=(f=>(sq,o,extra)=>{try{if(state==='battle'&&sq){const side=TAC.sq[1].includes(sq)?'R':'L',tg=extra&&(extra.tgt||extra.ftgt);repDec(side+(sq.ai?' AI':' player')+' sq'+((sq.k|0)+1)+' '+o+(tg&&tg.k!=null?' → enemy sq'+(tg.k+1):''));}}catch(e){}return f(sq,o,extra);})(tacQueue);
