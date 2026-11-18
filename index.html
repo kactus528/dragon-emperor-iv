@@ -439,7 +439,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
       <label>Army ratio <select id="skRatio"><option value="1">1 : 1</option><option value="1.5">You 1 : 1.5 enemy</option><option value="2">You 1 : 2 enemy</option><option value="3">You 1 : 3 enemy</option></select></label>
       <label class="skchk"><input type="checkbox" id="skRel" checked> Random relics</label>
     </div>
-    <div class="row skbtns"><button id="skBack">Back</button><button id="skGo" class="go">To battle</button></div>
+    <div class="row skbtns"><button id="skBack">Back</button><button id="skWatch" title="The computer commands both armies; sit back and watch">Watch AI vs AI</button><button id="skGo" class="go">To battle</button></div>
   </div>
 </div>
 <div id="story" hidden>
@@ -540,7 +540,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 127';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 128';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1892,12 +1892,12 @@ function useRelic(s){if(state!=='battle'||phase!=='fight'||!active[s])return;con
   else if(k==='ward'){Q.k=k;Q.t=8;}
   else if(k==='echo'){abil[s].cd=0;abil[s].t=0;schedule(0.4,()=>useAbility(s));}
   else if(k==='wyrm'){dragonWrath(s);morale[V]=clamp(morale[V]-0.1,0,1);}}
-function aiRelic(){const k=relOf(1),Q=rel[1];if(!k||Q.used||engT<8||!okGen(fg[1]))return;const me=alive[1],th=alive[0],g=fg[1],r=active[1];let go=false;
+function aiRelic(s=1){const k=relOf(s),Q=rel[s];if(!k||Q.used||engT<8||!okGen(fg[s]))return;const me=alive[s],th=alive[1-s],g=fg[s],r=active[s];let go=false;
   const near=th.filter(u=>u.state==='alive'&&Math.hypot(u.x-g.x,u.z-g.z)<7).length;
-  if(k==='pearl')go=mp[1]<spellCost(1)*0.5;else if(k==='heart')go=r.hp<r.d.hp*0.55||me.length<startN[1]*0.55;
-  else if(k==='lion'||k==='standard')go=morale[1]<0.42||me.length<th.length*0.8;else if(k==='gauntlet')go=okGen(fg[0])&&strength(r)>strength(active[0])*1.2&&r.hp>r.d.hp*0.5;
-  else if(k==='echo')go=abil[1].cd>8;else if(k==='ward')go=mp[0]>=spellCost(0)&&Math.random()<0.5;else if(k==='sunsteel'||k==='ember')go=near>=7;
-  else go=engT>12&&Math.random()<0.3;if(go)useRelic(1);}
+  if(k==='pearl')go=mp[s]<spellCost(s)*0.5;else if(k==='heart')go=r.hp<r.d.hp*0.55||me.length<startN[s]*0.55;
+  else if(k==='lion'||k==='standard')go=morale[s]<0.42||me.length<th.length*0.8;else if(k==='gauntlet')go=okGen(fg[1-s])&&strength(r)>strength(active[1-s])*1.2&&r.hp>r.d.hp*0.5;
+  else if(k==='echo')go=abil[s].cd>8;else if(k==='ward')go=mp[1-s]>=spellCost(1-s)&&Math.random()<0.5;else if(k==='sunsteel'||k==='ember')go=near>=7;
+  else go=engT>12&&Math.random()<0.3;if(go)useRelic(s);}
 const STREAKS=[[20,'Carnage!'],[45,'Rampage!'],[80,'Slaughter!'],[130,'Unstoppable!'],[200,'Legendary!']];
 function onKill(ks){streak[ks]++;streakT[ks]=2.4;frameK++;const n=streak[ks];
   for(let i=0;i<STREAKS.length;i++)if(n===STREAKS[i][0]){showBanner((ks?active[1].d.short+': ':'')+STREAKS[i][1]+' ×'+n,ks===1);sfx('blip',380+i*140);if(i>=2)sfx('lvlup');
@@ -2257,11 +2257,11 @@ const FDESC={line:'Balanced. A wide front that can wrap around the enemy.',wedge
 const WALLOPT=[[0,'No archers on the wall','Everyone stays on the ground behind the gate.'],[0.15,'A few archers on the wall (15%)','They reach over a quarter of the way down the field, hit harder and take far less damage.'],[0.3,'Many archers on the wall (30%)','A strong wall, but fewer soldiers on the ground.']];
 const planWall=()=>!!(SIEGE&&SIEGE.def===0&&SIEGE.hp>0),planOil=()=>!!(SIEGE&&SIEGE.gear&&SIEGE.gear.oil>0);
 function planItems(){return PLN.step?WALLOPT.map((o,i)=>({n:o[1],d:o[2]+(planOil()?(i?' They also pour your boiling oil.':' Your boiling oil will go unused.'):'')})):FORMS.map(f=>({n:FNAME[f]+' formation',d:FDESC[f]}));}
-function planMine(){return state==='battle'&&phase==='plan'&&(GUEST()?NET.bs>=0&&!NG.planned:(!NET.on||NET.ctl[0]==='local')&&!!PLAN&&!PLAN.done[0]);}
+function planMine(){return !SIM&&state==='battle'&&phase==='plan'&&(GUEST()?NET.bs>=0&&!NG.planned:(!NET.on||NET.ctl[0]==='local')&&!!PLAN&&!PLAN.done[0]);}
 function placeSide(s){for(const u of units){if(u.side!==s||!u.vis||u.state!=='alive'||u.wall)continue;const[x,z]=slotPos(u);u.x=x+R(-0.15,0.15);u.z=z+R(-0.15,0.15);for(let k=0;k<40&&navAt(u.x,u.z)===1;k++)u.x+=(u.side?1:-1)*0.8;u.lx=undefined;writeUnit(u,0);}uMesh.instanceMatrix.needsUpdate=true;uCellAttr.needsUpdate=true;}
 function planAI(s){const S=SIEGE;return{f:'line',w:S&&S.def===s&&S.hp>0?(diffKey==='squire'?0.1:S.gear&&S.gear.oil>0?0.25:0.2):0};}
 function startPlan(){phase='plan';PLAN={done:[false,false],t:0};PLN.step=0;PLN.f=lastPlan.f;PLN.idx=Math.max(0,FORMS.indexOf(lastPlan.f));
-  for(let s=0;s<2;s++){const ai=NET.on?NET.ctl[s]==='ai':s===1;if(ai||window.__noPlan){const a=planAI(s);planSet(s,a.f,ai?a.w:0);if(phase!=='plan')return;}}
+  for(let s=0;s<2;s++){const ai=NET.on?NET.ctl[s]==='ai':s===1||SIM;if(ai||window.__noPlan){const a=planAI(s);planSet(s,a.f,ai?a.w:0);if(phase!=='plan')return;}}
   if(planMine()){form[0]=PLN.f;placeSide(0);}renderPlan();updateModeUI();hudAcc=1;setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.8);showBanner('Plan your battle');}
 function planSet(s,f,w){if(phase!=='plan'||!PLAN||PLAN.done[s])return;form[s]=FORMS.includes(f)?f:'line';reform[s]=0;placeSide(s);if(w>0)manWall(s,+w||0);PLAN.done[s]=true;DE4LOG.info('plan side '+s+': '+form[s]+' wall '+(w||0));
   if(PLAN.done[0]&&PLAN.done[1])endPlan();else{updateModeUI();hudAcc=1;if(s===0&&NET.on&&NET.ctl[0]==='local')showBanner('Waiting for the other commander…');}}
@@ -2812,8 +2812,8 @@ function renderSkirm(){for(let s=0;s<2;s++){const box=$(s?'skB':'skA');box.inner
     return `<button data-sk="${s}:${d.key}" class="${on?'on':''}"${taken?' disabled':''}><img src="${portrait(d.key)}" alt=""><span>${d.short} <small>${TROOP[d.troop]} · ${SPELL[d.spell]} · Lv ${d.lvl}</small></span></button>`;}).join('');
     $(s?'skNB':'skNA').textContent=skSel[s].length+'/3';}
   document.querySelectorAll('[data-sk]').forEach(b=>b.addEventListener('click',()=>{const[sd,k]=b.dataset.sk.split(':'),L=skSel[+sd],i=L.indexOf(k);if(i>=0)L.splice(i,1);else if(L.length<3)L.push(k);else{L.shift();L.push(k);}sfx('blip',300);renderSkirm();}));
-  $('skGo').disabled=!skSel[0].length||!skSel[1].length;}
-function startSkirm(){if(!skSel[0].length||!skSel[1].length)return;const lv=+$('skLvl').value,rel=$('skRel').checked;
+  $('skGo').disabled=$('skWatch').disabled=!skSel[0].length||!skSel[1].length;}
+function startSkirm(watch){if(!skSel[0].length||!skSel[1].length)return;if(watch!==true)simOff();const lv=+$('skLvl').value,rel=$('skRel').checked;
   SK={cond:$('skCond').value,map:$('skMap').value,lvl:lv,rel,siege:$('skSiege').value,ratio:+$('skRatio').value||1};launchSkirm();}
 function launchSkirm(){const P=skSel[0].map(k=>skRec(GENDEFS.find(d=>d.key===k),0,SK.lvl)),E=skSel[1].map(k=>skRec(GENDEFS.find(d=>d.key===k),1,SK.lvl));
   if(SK.rel){for(const r of P.concat(E))if(Math.random()<0.6)giveRelic(r,RELK[(Math.random()*RELK.length)|0]);}
@@ -2821,14 +2821,14 @@ function launchSkirm(){const P=skSel[0].map(k=>skRec(GENDEFS.find(d=>d.key===k),
   const eNat=E[0].nat;pendingBattle={ctx:{kind:'skirmish'},p:P,e:E,eNat};sidePal[1]=NATIONS[eNat].pal;
   mapChoice=SK.map==='random'?'random':SK.map;$('skirm').hidden=true;$('title').hidden=true;$('endp').hidden=true;
   state='transition';trT=0.79;swapped=false;sfx('fanfare');updateModeUI();setOrbitGoal({theta:0,phi:1.08,r:100,ty:0,tx:0,tz:0},0.9);}
-function backToTitle(){if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();clearSiege();SK=null;pendingBattle=null;mapChoice='random';
+function backToTitle(){simOff();if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();clearSiege();SK=null;pendingBattle=null;mapChoice='random';
   state='title';phase='intro';battle.visible=false;kingdom.visible=true;$('endp').hidden=true;$('selp').hidden=true;$('title').hidden=false;updateModeUI();
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});}
 function rematch(){if(!SK)return;if(RES)RES.live=false;if(resBoard)resBoard.visible=false;clearMod();clearPU();launchSkirm();}
 function startGame(){
   if(state!=='title'||TUT.open)return;if(tutWanted){audioInit();openTut(beginCampaign);return;}beginCampaign();}
 function beginCampaign(){
-  if(state!=='title')return;audioInit();sfx('fanfare');$('title').hidden=true;state='kingdom';AGE=1;ageDiff();initCampaign();
+  if(state!=='title')return;simOff();audioInit();sfx('fanfare');$('title').hidden=true;state='kingdom';AGE=1;ageDiff();initCampaign();
   setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});updateModeUI();
 }
 function togglePause(){if(state!=='kingdom')return;if(GUEST()){netAct('pause',{});return;}CAMP.paused=!CAMP.paused;clog(CAMP.paused?'Paused.':'The war resumes.');}
@@ -3085,16 +3085,54 @@ function aiThink(){
   const av=seekDuel[0]&&ratio<0.75;if(av&&!avoidDuel){showBanner(active[1].d.short+' avoids the duel!');morale[0]=clamp(morale[0]+0.1,0,1);morale[1]=clamp(morale[1]-0.08,0,1);}avoidDuel=av;
 }
 
+/* ================= WATCH MODE =================
+   Skirmish "Watch" puts the computer in charge of both armies. An autopilot drives side 0 through the very inputs a player
+   would use (pick a general, orders, formations, spells, storm bolts, abilities, relic powers, duel moves, challenges, sprinting
+   away in a pursuit), and in Tactical play TAC.auto0 hands its squads to the same squad AI the enemy uses. */
+let SIM=false;const simS={t:0,think:0,form:0,pickT:0,cast:false};
+function simPick(){const A=avail(0);if(!A.length)return null;const L=A.filter(r=>!isRuler(r)),C=L.length?L:A,e=active[1]&&!active[1].out&&active[1].hp>0?active[1]:null;
+  if(e){const ctr=C.filter(r=>adv(r.d.troop,e.d.troop)>1.25);if(ctr.length&&Math.random()<0.7)return ctr[0];}
+  return C.slice().sort((a,b)=>power(b)-power(a))[Math.random()<0.6?0:(Math.random()*C.length)|0];}
+function simDuelPick(){const w={strike:0.4,guard:0.3,power:0.3};if(duel.tell)w.guard+=0.25;if(active[0].hp<active[0].d.hp*0.3)w.guard+=0.15;
+  const tot=w.strike+w.guard+w.power;let r=Math.random()*tot;for(const k of['strike','guard','power']){r-=w[k];if(r<=0)return k;}return'strike';}
+function simThink(){const me=alive[0],them=alive[1],myT=active[0].d.troop,thT=active[1].d.troop;let o;
+  if(morale[0]<0.3)o=me.length<NPS*0.2?'retreat':'hold';
+  else if(adv(thT,myT)>1.3)o=Math.random()<0.55?'flank':'hold';
+  else if(RANGED[myT]||myT==='monk')o=Math.random()<0.7?'hold':'flank';
+  else if(me.length>them.length*1.15||adv(myT,thT)>1.3)o='charge';
+  else o=Math.random()<0.5?'charge':'flank';
+  if(SIEGE&&SIEGE.hp>0)o=SIEGE.def===0&&!SIEGE.open?'hold':'charge';
+  const tacOwn=TAC.on&&tacSkill(0).int<=1.6;
+  if(!tacOwn&&o!==orders[0])setOrder(o);
+  if(engT>3&&simS.form<=0&&!tacOwn){let want='line';if(mp[1]>=spellCost(1))want='spread';else if(form[1]==='wedge')want='square';else if(form[1]==='square'||form[1]==='spread')want='wedge';else if(o==='charge')want='wedge';
+    if(want!==form[0]){setForm(0,want);simS.form=9;}}
+  if(mp[0]>=spellCost(0)&&spellCD[0]<=0&&!storm.on&&!simS.cast&&!(fg[0].rec&&fg[0].rec.d.spell==='breath'&&dragon.mode!=='idle')){simS.cast=true;const g=fg[0];g.cast=1.8;showBanner(active[0].d.short+' gathers power!');sfx('charge');
+    spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:4.5,h:4.5,life:1.6,grow:0.3,blink:true});schedule(1.6,()=>{simS.cast=false;if(SIM)castSpell(0,null);});}
+  if(abil[0].cd<=0&&engT>6&&Math.random()<0.5)useAbility(0);aiRelic(0);
+  const ratio=strength(active[0])/strength(active[1]);seekDuel[0]=ratio>DIFF.seekR&&active[0].hp>active[0].d.hp*0.4;}
+function simTick(dt){if(!SIM||state!=='battle')return;simS.t+=dt;simS.form-=dt;
+  if(phase==='select'){simS.pickT+=dt;if(simS.pickT>1.4){simS.pickT=0;const r=simPick();if(r)chooseGeneral(r);}return;}simS.pickT=0;
+  if(storm.on&&storm.gap<=0){const c=phase==='pursuit'&&pursuit&&pursuit.L===1?fg[1]:densest(alive[1]);if(c)stormStrike(clamp(c.x+R(-0.8,0.8),-FW/2+1,FW/2-1),clamp(c.z+R(-0.8,0.8),-FD/2+1.5,FD/2-1.5));}
+  if(phase==='fight'&&active[0]&&active[1]){
+    if(chal){const ratio=strength(active[0])/strength(active[1]);answerChallenge(ratio>0.8&&active[0].hp>active[0].d.hp*0.35);}
+    simS.think+=dt;if(simS.think>3){simS.think=0;simThink();}}
+  else if(phase==='duel'&&duel.stage==='choose'&&!duel.pick&&duel.t>0.5+Math.random()*0.6)duelPick(simDuelPick());
+  else if(phase==='pursuit'&&pursuit){const g=fg[0];
+    if(pursuit.L===0&&g.burst<=0&&g.sta>0.3&&nearestFoe(g)<7)sprint(g,true);
+    if(pursuit.L===1&&mp[0]>=spellCost(0)&&spellCD[0]<=0&&!storm.on)castSpell(0,null);}}
+function startWatch(){if(!skSel[0].length||!skSel[1].length)return;SIM=true;TAC.auto0=true;simS.t=0;simS.think=0;simS.form=0;simS.pickT=0;simS.cast=false;startSkirm(true);showBanner('Watching: the computer commands both armies');}
+function simOff(){SIM=false;TAC.auto0=null;}
+
 /* ================= UI ================= */
 function showBanner(txt,red){recentEv(txt);const b=$('bannerTxt');b.textContent=txt;b.className='';void b.offsetWidth;b.className='show'+(red?' red':'');vrMsg=String(txt);{const n=vrMsg.length;vrMsgLong=n>36;vrMsgT=vrMsgD=vrMsgLong?(768*0.3+n*17)/TICK_V+0.4:1.8;}}
 const _fv=new THREE.Vector3();let flashV=0;function flash(v){if(reduceMotion||xrActive)return;flashV=Math.max(flashV,v);}
 function updateModeUI(){
   const inBattle=state==='battle'||state==='end';
   $('bars').hidden=!inBattle||phase==='select'||phase==='duel'||!active[0];$('viewbar').hidden=state==='battle'&&phase==='duel';
-  $('dockBattle').hidden=!(state==='battle'&&(phase==='fight'||phase==='intro'||(phase==='pursuit'&&pursuit&&pursuit.L===1)))||(NET.on&&(GUEST()?NET.bs<0:NET.ctl[0]!=='local'));
+  $('dockBattle').hidden=SIM||!(state==='battle'&&(phase==='fight'||phase==='intro'||(phase==='pursuit'&&pursuit&&pursuit.L===1)))||(NET.on&&(GUEST()?NET.bs<0:NET.ctl[0]!=='local'));
   $('duelp').hidden=!(state==='battle'&&phase==='duel');
   $('planp').hidden=!planMine()||xrActive;
-  $('selp').hidden=!(state==='battle'&&phase==='select')||xrActive||(NET.on&&(GUEST()?(NET.bs<0||NG.picked):(NET.ctl[0]!=='local'||!!NET.pick[0])));
+  $('selp').hidden=SIM||!(state==='battle'&&phase==='select')||xrActive||(NET.on&&(GUEST()?(NET.bs<0||NG.picked):(NET.ctl[0]!=='local'||!!NET.pick[0])));
   $('kbar').hidden=!(state==='kingdom'||state==='transition');$('dockKingdom').hidden=state!=='kingdom';
   if(state==='kingdom'||state==='transition'){const cnt=n=>CASTLES.filter(c=>c.o===n).length;
     $('kPlace').textContent=`Week ${CAMP.week}${CAMP.paused?' · Paused':CAMP.ff?' · Fast-forward':''}`;
@@ -3213,7 +3251,7 @@ $('dbgBtn').addEventListener('click',openDbg);$('dbgBtn2').addEventListener('cli
 $('dbgClear').addEventListener('click',()=>{DE4LOG.clear();openDbg();});
 $('dbgCopy').addEventListener('click',()=>{const t=$('dbgT');t.focus();t.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(()=>{$('dbgCopy').textContent='Copied!';},()=>{});else if(ok)$('dbgCopy').textContent='Copied!';setTimeout(()=>{$('dbgCopy').textContent='Copy';},1500);});
 $('dbgDl').addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([DE4LOG.text()],{type:'text/plain'}));a.download='dragon-emperor-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
-let toastT=null;DE4LOG.onError=()=>{if(xrActive)return;const t=$('errToast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);};$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',startSkirm);
+let toastT=null;DE4LOG.onError=()=>{if(xrActive)return;const t=$('errToast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);};$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',()=>startSkirm());$('skWatch').addEventListener('click',startWatch);
 $('howBtn').addEventListener('click',()=>{audioInit();openTut(null);});
 $('tutNext').addEventListener('click',()=>tutGo(1));$('tutBack').addEventListener('click',()=>tutGo(-1));$('tutSkip').addEventListener('click',closeTut);
 $('tut').addEventListener('click',e=>{if(e.target.id==='tut')closeTut();});
@@ -4007,7 +4045,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 127; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 128; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
@@ -4436,7 +4474,7 @@ function loopInner(tms){
   if(shake>0&&!reduceMotion){camera.position.x+=R(-1,1)*shake*0.5;camera.position.y+=R(-1,1)*shake*0.5;}shake=Math.max(0,shake-dt*1.8);
   if(flashV>0){flashV=Math.max(0,flashV-dt*2.2);$('flash').style.opacity=flashV.toFixed(3);}
   placeReticle((aim.mode||squadAim)&&state==='battle',now);tickHoldFire();
-  faceUp();DE4LOG.beat('render');render();DE4LOG.beat('frame end');
+  if(SIM)simTick(dt);faceUp();DE4LOG.beat('render');render();DE4LOG.beat('frame end');
 }
 /* the thundercloud and the eclipse sun turn to face you but always stay upright, so tilting your head never spins them */
 const _camW=new THREE.Vector3();
