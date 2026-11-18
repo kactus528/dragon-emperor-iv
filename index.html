@@ -540,7 +540,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 124';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 125';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1915,12 +1915,21 @@ function clearBlood(){for(const D of decals){D.i=0;D.n=0;D.m.count=0;}}
 function setBlood(v){blood=clamp(v,0,1);try{localStorage.setItem('de4-blood',String(Math.round(blood*100)));}catch(e){}const r=document.getElementById('bloodR'),b=document.getElementById('bloodV');if(r)r.value=Math.round(blood*100);if(b)b.textContent=blood?Math.round(blood*100)+'%':'Off';}
 const tcloud=[{t:0,n:0},{t:0,n:0}];
 const cloudTex=(()=>{const c=cv(256,128),x=c.getContext('2d');for(const[cx,cy,r,col]of[[70,78,40,'#3b3550'],[128,60,52,'#4a4363'],[188,76,42,'#3b3550'],[105,90,36,'#2c2740'],[160,92,38,'#2c2740'],[128,48,34,'#5a5278']]){const g=x.createRadialGradient(cx,cy-r*0.3,r*0.2,cx,cy,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(30,26,44,0.0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();}return tex(c,true);})();
-const cloudSp=[0,1].map(()=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cloudTex,transparent:true,depthWrite:false,color:0xffffff}));sp.scale.set(22,11,1);sp.visible=false;sp.renderOrder=7;battle.add(sp);return sp;});
+const UPRIGHT_GEO=new THREE.PlaneGeometry(1,1);
+const cloudSp=[0,1].map(()=>{const sp=new THREE.Mesh(UPRIGHT_GEO,new THREE.MeshBasicMaterial({map:cloudTex,transparent:true,depthWrite:false,color:0xffffff,side:THREE.DoubleSide}));sp.scale.set(22,11,1);sp.visible=false;sp.renderOrder=7;battle.add(sp);return sp;});
+/* Thundercloud: it rises over the crystal that was claimed, then darts to the enemy standing in the thickest knot of his comrades, tracks him and strikes
+   (catching as many as the blast will reach), then darts off to another dense knot some distance away, and so on until it is spent */
+function cloudPick(V,last){const A=alive[V];if(!A.length)return null;let best=null,bs=-1;const n=Math.min(A.length,60);
+  for(let i=0;i<n;i++){const u=A.length<=60?A[i]:A[(Math.random()*A.length)|0];if(u.state!=='alive')continue;let sc=localCount(u.x,u.z,V);if(last&&Math.hypot(u.x-last.x,u.z-last.z)<7)sc*=0.25;if(sc>bs){bs=sc;best=u;}}return best;}
 function tickClouds(dt,now){for(let s=0;s<2;s++){const C=tcloud[s],sp=cloudSp[s],V=1-s;if(C.t<=0||phase!=='fight'||!alive[V].length){sp.visible=false;if(phase!=='fight')C.t=0;continue;}
-  C.t-=dt;C.n-=dt;const c=centroid(alive[V],fg[V]);sp.visible=true;sp.position.x+=(c.x-sp.position.x)*Math.min(1,dt*1.5);sp.position.z+=(c.z-sp.position.z)*Math.min(1,dt*1.5);sp.position.y=Hb(sp.position.x,sp.position.z)+13;
-  if(C.n<=0){C.n=R(0.8,1.2);const u=alive[V][(Math.random()*alive[V].length)|0];if(u){const x=clamp(u.x+R(-0.8,0.8),-FW/2+1,FW/2-1),z=clamp(u.z+R(-0.8,0.8),-FD/2+1.5,FD/2-1.5);
-    spawn({x,y:Hb(x,z)+8,z,tex:T_BOLT,w:2.2,h:12,life:0.25,blink:true});lightning(x,z,V,false);sp.material.color.setHex(0xe8e0ff);}}
-  else sp.material.color.lerp(_cloudC,Math.min(1,dt*6));}}
+  C.t-=dt;C.cd=(C.cd||0)-dt;sp.visible=true;
+  if(C.pop>0){C.pop-=dt;const k=0.15+0.85*Math.min(1,1-Math.max(0,C.pop)/0.4);sp.scale.set(22*k,11*k,1);}else sp.scale.set(22,11,1);
+  if(!C.u||C.u.state!=='alive'||C.u.side!==V)C.u=cloudPick(V,C.last);
+  if(C.u&&!(C.pop>0)){const dx=C.u.x-sp.position.x,dz=C.u.z-sp.position.z,d=Math.hypot(dx,dz),m=Math.min(d,(16+d*3)*dt);if(d>0.01){sp.position.x+=dx/d*m;sp.position.z+=dz/d*m;}
+    if(d<1.2&&C.cd<=0){const x=clamp(C.u.x,-FW/2+1,FW/2-1),z=clamp(C.u.z,-FD/2+1.5,FD/2-1.5);spawn({x,y:Hb(x,z)+8,z,tex:T_BOLT,w:2.2,h:12,life:0.25,blink:true});lightning(x,z,V,false);sp.material.color.setHex(0xe8e0ff);
+      C.last={x,z};C.cd=0.8;C.u=null;}}
+  sp.position.y=Hb(sp.position.x,sp.position.z)+13;
+  sp.material.color.lerp(_cloudC,Math.min(1,dt*6));}}
 const _cloudC=new THREE.Color(0x9a90b8);
 const glowTex=(()=>{const c=cv(128,128),x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.25,'rgba(255,255,255,0.55)');g.addColorStop(0.6,'rgba(255,255,255,0.12)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return tex(c,true);})();
 const orbGeo=new THREE.SphereGeometry(0.75,24,16),coreGeo=new THREE.SphereGeometry(0.42,16,12),orbRingGeo=new THREE.TorusGeometry(1.15,0.07,8,40),padGeo=new THREE.PlaneGeometry(1,1);
@@ -1960,7 +1969,7 @@ function claimPU(p,s){battle.remove(p.sp);battle.remove(p.pad);if(p.sp.traverse)
       Object.assign(u,{hs:-1,lx:undefined,lz:undefined,state:'alive',hp:st.hp,dodgeT:0,cd:R(0.5,1.2),atk:0,walk:Math.random(),moving:false,y:0,vy:0,t:0,target:null,retarget:0,vx:0,vz:0,vis:true});n++;
       if(n%2===0)spawn({x:u.x,y:Hb(u.x,u.z)+0.2,z:u.z,vy:R(3,6),tex:PUT.raise,w:0.6,h:0.6,life:R(0.6,1),blink:true});}
     morale[s]=clamp(morale[s]+0.12,0,1);flash(0.25);DE4LOG.info('resurrection side '+s+' raised '+n);if(!n)showBanner('No fallen to raise...',s===1);}
-  else if(p.k==='cloud'){tcloud[s].t=8;tcloud[s].n=0.6;const c=centroid(alive[o],fg[o]);cloudSp[s].position.set(c.x,Hb(c.x,c.z)+13,c.z);sfx('boom');}
+  else if(p.k==='cloud'){const C=tcloud[s];C.t=8;C.n=0.6;C.pop=0.4;C.cd=0.4;C.u=null;C.last=null;cloudSp[s].position.set(p.x,Hb(p.x,p.z)+13,p.z);cloudSp[s].scale.set(3,1.5,1);cloudSp[s].visible=true;sfx('boom');}
   showBanner(PU[p.k].g+' '+who+' the '+PU[p.k].n+'!',s===1);sfx(s?'defeat':'lvlup');if(s===0)buzz(PU[p.k].legend?1:0.6,PU[p.k].legend?300:160);hudAcc=1;}
 /* ---- crystal spectacles ---- */
 const furyK=[0,0],cyc=[{t:0},{t:0}],met=[{t:0},{t:0}],wr=[{t:0},{t:0}];
@@ -1993,7 +2002,7 @@ function dragonWrath(s){const o=1-s,c=centroid(alive[o],fg[o]),dir=s?-1:1;if(!wr
 const eclZ=[null,null];let eclSp=null;
 function eclSun(){if(eclSp)return eclSp;const c=cv(128,128),x=c.getContext('2d'),g=x.createRadialGradient(64,64,18,64,64,62);g.addColorStop(0,'rgba(220,180,255,1)');g.addColorStop(0.42,'rgba(170,110,255,0.9)');g.addColorStop(0.7,'rgba(90,40,170,0.45)');g.addColorStop(1,'rgba(40,10,80,0)');
   x.fillStyle=g;x.fillRect(0,0,128,128);x.fillStyle='#07040c';x.beginPath();x.arc(64,64,25,0,7);x.fill();
-  eclSp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex(c,true),transparent:true,depthWrite:false}));eclSp.visible=false;eclSp.renderOrder=6;battle.add(eclSp);return eclSp;}
+  eclSp=new THREE.Mesh(UPRIGHT_GEO,new THREE.MeshBasicMaterial({map:tex(c,true),transparent:true,depthWrite:false,side:THREE.DoubleSide}));eclSp.visible=false;eclSp.renderOrder=6;battle.add(eclSp);return eclSp;}
 function darkBolt(x,z,V){const y=Hb(x,z);spawn({x,y:y+9,z,tex:T_BOLT,w:2.6,h:18,life:0.3,blink:true});spawn({x,y:y+0.2,z,tex:T_RUNE,w:3,h:3,life:0.6,grow:1.2,blink:true});
   for(let i=0;i<10;i++)spawn({x:x+R(-1.2,1.2),y:y+R(0.3,2),z:z+R(-1.2,1.2),vy:R(2,5),tex:glowTex,w:0.6,h:0.6,life:R(0.4,0.8),blink:true});sfx('zap');impact(x,z,V,true,false);}
 function tickEclipse(dt){let any=false;for(let s=0;s<2;s++){const Z=eclZ[s];if(!Z||ecl[s]<=0||!(phase==='fight'||phase==='pursuit')){if(Z&&ecl[s]<=0){eclZ[s]=null;showBanner('The eclipse passes · '+Z.k+' struck down',s===1);}continue;}any=true;const V=1-s;
@@ -4378,8 +4387,12 @@ function loopInner(tms){
   if(shake>0&&!reduceMotion){camera.position.x+=R(-1,1)*shake*0.5;camera.position.y+=R(-1,1)*shake*0.5;}shake=Math.max(0,shake-dt*1.8);
   if(flashV>0){flashV=Math.max(0,flashV-dt*2.2);$('flash').style.opacity=flashV.toFixed(3);}
   placeReticle((aim.mode||squadAim)&&state==='battle',now);tickHoldFire();
-  DE4LOG.beat('render');render();DE4LOG.beat('frame end');
+  faceUp();DE4LOG.beat('render');render();DE4LOG.beat('frame end');
 }
+/* the thundercloud and the eclipse sun turn to face you but always stay upright, so tilting your head never spins them */
+const _camW=new THREE.Vector3();
+function faceUp(){const L=[cloudSp[0],cloudSp[1],eclSp];if(!L.some(o=>o&&o.visible))return;const cam=xrActive&&renderer.xr.isPresenting?renderer.xr.getCamera(camera):camera;cam.getWorldPosition(_camW);
+  for(const o of L)if(o&&o.visible){o.updateMatrixWorld();o.lookAt(_camW);}}
 function render(){
   if(viewMode==='mono'){renderer.render(scene,camera);return;}
   const w=innerWidth,h=innerHeight;camera.focus=orbit.r;stereo.eyeSep=depth;
