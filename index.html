@@ -286,7 +286,7 @@ html.phone #viewbar .hint{display:none}
 html.phone #phView.off{display:none!important}
 #phView{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:6px;z-index:12;padding:6px 9px;font-size:14px;line-height:1;min-height:30px;align-items:center}
 html.phone .layer{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
-html.phone #top{padding-top:calc(env(safe-area-inset-top,0px) + 4px);padding-right:84px}
+html.phone #top{padding-top:calc(env(safe-area-inset-top,0px) + 4px);padding-right:118px}
 html.phone #bars{gap:4px}
 html.phone .side{padding:4px 6px;gap:5px}
 html.phone .side img{width:24px;height:32px}
@@ -342,9 +342,15 @@ html.phone #duelp button{min-height:48px}
 html.phone #chal button{min-height:44px}
 html.phone .dbgp textarea{min-height:55dvh}
 html.phone #formCyc{justify-content:center;align-items:center}
+/* on a phone the big centre-screen callouts (Rampage, gathers power...) become a small line under the army bars */
+html.phone #banner{top:calc(env(safe-area-inset-top,0px) + 92px);padding:0 8px}
+html.phone #banner span{font-family:var(--f-pixel);font-size:13px;letter-spacing:.06em;filter:drop-shadow(0 1px 0 #000) drop-shadow(0 0 3px #000)}
+html.phone #banner span.show{animation:bannerPh 1.6s ease-out forwards}
+@keyframes bannerPh{0%{opacity:0;transform:translateY(-4px)}12%{opacity:.95;transform:none}75%{opacity:.95}100%{opacity:0}}
+html.phone #combo{transform:translateX(-50%) scale(.6);transform-origin:top center;top:calc(env(safe-area-inset-top,0px) + 80px)}
 /* clear view: everything on top of the battle is put away, leaving one small button to bring it back */
 #clearBtn{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:8px;z-index:13;padding:6px 9px;font-size:15px;line-height:1;min-height:30px;display:flex;align-items:center}
-html.phone #clearBtn{right:46px}
+html.phone #clearBtn{right:46px;font-size:12px}
 #clearBtn.off{display:none!important}
 html.clear #top,html.clear #bottom,html.clear #banner,html.clear #talk,html.clear #combo,html.clear #watchBar,html.clear #phView,html.clear #bossbar{display:none!important}
 html.clear.simw #duelp .sfbottom,html.clear.simw #duelp .sftimer{display:none!important}
@@ -503,7 +509,7 @@ html.clear #clearBtn,html.phone.clear #clearBtn{right:8px;opacity:.45;background
   </div>
 </div>
 
-<button id="clearBtn" class="off" title="Full screen with a clear view (C)">⛶</button>
+<button id="clearBtn" class="off" title="Full screen with a clear view (C)">⛶ Hide</button>
 <button id="phView" class="phoneonly" title="View settings">⚙</button>
 <div id="vbar" hidden><button id="vMic">Mic on</button><button id="vTo" hidden>To: everyone</button><span id="vWho"></span></div>
 <div id="mpp" hidden>
@@ -633,7 +639,7 @@ html.clear #clearBtn,html.phone.clear #clearBtn{right:8px;opacity:.45;background
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 156';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 157';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -3316,7 +3322,7 @@ function simTick(dt){if(!SIM||state!=='battle')return;simS.t+=dt;simS.form-=dt;
   else if(phase==='pursuit'&&pursuit){const g=fg[0];
     if(pursuit.L===0&&g.burst<=0&&g.sta>0.3&&nearestFoe(g)<7)sprint(g,true);
     if(pursuit.L===1&&mp[0]>=spellCost(0)&&spellCD[0]<=0&&!storm.on)castSpell(0,null);}}
-function startWatch(){if(!skSel[0].length||!skSel[1].length)return;SIM=true;TAC.auto0=true;simS.t=0;simS.think=0;simS.form=0;simS.pickT=0;simS.cast=false;startSkirm(true);showBanner('Watching: the computer commands both armies');}
+function startWatch(){if(!skSel[0].length||!skSel[1].length)return;if(PHONE)setClear(true);/* on a phone, watching starts in clear view */SIM=true;TAC.auto0=true;simS.t=0;simS.think=0;simS.form=0;simS.pickT=0;simS.cast=false;startSkirm(true);showBanner('Watching: the computer commands both armies');}
 function simOff(){SIM=false;TAC.auto0=null;SIMC.pause=false;SIMC.spd=1;simHover=-1;if(simBoard)simBoard.visible=false;$('watchBar').hidden=true;}
 /* ---- watch controls: a fixed bar on the desktop, and in VR a small panel high in front of you that stays put in the room ---- */
 const SIMC={pause:false,spd:1};let simHover=-1,simBoard=null,simHash='',DBGMODE='log';
@@ -3401,7 +3407,7 @@ let PHONE=false;
 /* clear view (button ⛶ or C): hides the HUD, docks, banners and speech so only the battle shows, and asks the browser for full screen where it
    allows it (iPhones only allow it for video, so there it is just the clear view). The same button, faded in the corner, brings everything back. */
 let CLEAR=false;
-function setClear(on){CLEAR=!!on;const h=document.documentElement;h.classList.toggle('clear',CLEAR);const b=$('clearBtn');if(b){b.textContent=CLEAR?'◱':'⛶';b.title=CLEAR?'Show the controls (C)':'Full screen with a clear view (C)';}
+function setClear(on){CLEAR=!!on;const h=document.documentElement;h.classList.toggle('clear',CLEAR);const b=$('clearBtn');if(b){b.textContent=CLEAR?'◱ Show':'⛶ Hide';b.title=CLEAR?'Show the controls (C)':'Full screen with a clear view (C)';}
   try{if(CLEAR&&!document.fullscreenElement&&h.requestFullscreen)h.requestFullscreen({navigationUI:'hide'}).catch(()=>{});else if(!CLEAR&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});}catch(e){}}
 const TOUCH_TUT=[['Tap','Buttons, generals, castles; tap the field to aim a spell or move a squad'],['Drag','Turn the view'],['Pinch','Zoom'],['Two fingers','Move the view'],['⚙','View settings (reset view, log)']];
 function phoneAuto(){const ua=navigator.userAgent||'';if(/OculusBrowser|Quest|Pacific/i.test(ua))return false;const small=Math.min(screen.width,screen.height)<=600;
@@ -3414,7 +3420,7 @@ function cycleUI(){const o=['auto','phone','desktop'],p=uiPref();try{localStorag
 function phoneStrip(){if(!PHONE)return;for(const b of document.querySelectorAll('#dockBattle button,#dockKingdom button,[data-duel]')){const t=b.textContent;let n=t.replace(/^[A-Z] · /,'').replace(/^(?:[0-9A-Z]|Space) (?=[^·\s])/,'').replace(/^Click/,'Tap');if(n!==t)b.textContent=n;}
   const fc=$('formCyc');if(fc){const t='Form: '+FNAME[form[0]];if(fc.textContent!==t)fc.textContent=t;}}
 function updateModeUI(){
-  {const cb=$('clearBtn');if(cb)cb.classList.toggle('off',state==='title'||xrActive);if(state==='title'&&CLEAR)setClear(false);document.documentElement.classList.toggle('simw',!!SIM);}
+  {const cb=$('clearBtn');if(cb)cb.classList.toggle('off',state==='title'||xrActive||(state==='battle'&&(phase==='select'||phase==='plan')&&!SIM));if(state==='title'&&CLEAR)setClear(false);document.documentElement.classList.toggle('simw',!!SIM);}
   {const pv=$('phView');if(pv)pv.classList.toggle('off',!(state==='battle'||state==='kingdom')||phase==='select'||phase==='duel');}
   const inBattle=state==='battle'||state==='end';
   $('bars').hidden=!inBattle||phase==='select'||phase==='duel'||!active[0];$('viewbar').hidden=state==='battle'&&phase==='duel';
@@ -4348,7 +4354,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 156; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 157; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
