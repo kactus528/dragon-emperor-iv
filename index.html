@@ -543,7 +543,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 141';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 142';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2352,6 +2352,11 @@ const LPATCH=[],LPM=[];
 function lavaPatch(x,z){if(state!=='battle'||LPATCH.reduce((n,h)=>n+(h.m?1:0),0)>=24)return;/* only the big patches count towards their own cap, so a field full of droplet spots never blocks a new patch */let m=LPM.find(o=>!o.visible);if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:glowTex,color:0xff7a1a,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));m.rotation.x=-Math.PI/2;m.renderOrder=3;battle.add(m);LPM.push(m);}
   const r=R(0.9,1.3);addLavaSplat(x,z,r*2.2);addLavaSplat(x+R(-r,r),z+R(-r,r),R(0.6,1.2));m.visible=true;m.scale.set(r*2.6,r*2.6,1);m.position.set(x,Hb(x,z)+0.08,z);LPATCH.push({x,z,r,t:LCOOL_T,T:LCOOL_T,k:0.2,m});
   for(let i=0;i<5;i++)spawn({x:x+R(-r,r)*0.6,y:Hb(x,z)+0.3,z:z+R(-r,r)*0.6,frames:FLAME,w:R(0.8,1.2),h:R(0.8,1.2),life:R(0.4,0.7),vy:0.8});}
+/* a spell (meteor, bolt, blast, dragon fire) that strikes in the lava or close beside it throws up a lava splash at the nearest lava,
+   with its globs, burning patches and stains, exactly like a body falling in */
+let spellLavaT=0;
+function spellLava(x,z,big){if(state!=='battle'||!LAVA_ON())return;const d=lavaDist(x,z);if(d>(big?1.8:1.2))return;const n=performance.now();if(n-spellLavaT<110)return;spellLavaT=n;
+  let sx=x,sz=z;if(d>-0.2){const[dx,dz]=lavaDir(x,z);sx=x+dx*(d+0.45);sz=z+dz*(d+0.45);}lavaSplash(sx,sz);if(big&&Math.random()<0.5)schedule(0.12,()=>{if(state==='battle')lavaSplash(sx+R(-0.6,0.6),sz+R(-0.6,0.6));});}
 /* the droplet stains burn too, without a glow of their own: a small hot spot that lasts as long as the stain takes to cool */
 function lavaBurnSpot(x,z,r){if(state!=='battle'||LPATCH.length>=140)return;LPATCH.push({x,z,r:Math.max(0.3,r),t:LCOOL_T,T:LCOOL_T,k:0.2,m:null});}
 function lavaPatchTick(dt){for(let i=LPATCH.length-1;i>=0;i--){const h=LPATCH[i];h.t-=dt;if(h.t<=0||state!=='battle'){if(h.m)h.m.visible=false;LPATCH.splice(i,1);continue;}
@@ -2661,7 +2666,7 @@ function breathFlame(){
   const gy=Hb(gx,gz);
   sfx('flame');
   spawn({x:mx,y:my,z:mz,frames:FLAME,w:2.4,h:2.4,life:0.45,grow:1.4,update:(p)=>{const k=p.age/p.life;p.x=mx+(gx-mx)*k;p.y=my+(gy+0.4-my)*k;p.z=mz+(gz-mz)*k+k*1.2;},
-    onEnd:()=>{spawn({x:gx,y:gy+1,z:gz+0.3,frames:FLAME,w:3.2,h:3.2,life:0.7,grow:0.8,vy:1.2,vz:1});if(Math.random()<0.3)chips(gx,gy+0.3,gz,2,2,5,2,[T_CHIPS[5],T_CHIPS[7]]);
+    onEnd:()=>{spawn({x:gx,y:gy+1,z:gz+0.3,frames:FLAME,w:3.2,h:3.2,life:0.7,grow:0.8,vy:1.2,vz:1});if(Math.random()<0.35)spellLava(gx,gz,false);if(Math.random()<0.3)chips(gx,gy+0.3,gz,2,2,5,2,[T_CHIPS[5],T_CHIPS[7]]);
       const V=1-(dragon.side===0?0:1),BK=dragon.sup||1;if(BK>1)spawn({x:gx+R(-1.5,1.5),y:gy+1,z:gz+R(-1.5,1.5),frames:FLAME,w:3.6,h:3.6,life:0.7,grow:0.8,vy:1.2});GSRC++;try{for(const u of alive[V]){if(u.state!=='alive')continue;if(Math.hypot(u.x-gx,u.z-gz)<2.2*(BK>1?1.5:1)){u.hp-=2*BK;if(u.hp<=0)kill(u,gx,gz,R(2,4),R(3,6));}}}finally{GSRC--;}
       if(fg[V].rec&&Math.hypot(fg[V].x-gx,fg[V].z-gz)<(phase==='pursuit'?3:1.6))generalHit(fg[V],2,null);}});
 }
@@ -4181,7 +4186,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 141; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 142; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
@@ -4512,6 +4517,7 @@ setOrder=(f=>o=>{if(!TAC.on||GUEST()||state!=='battle'||!TAC.sq[0].length)return
 setForm=(f=>(s,fm)=>{if(TAC.on&&state==='battle'&&phase==='fight'&&reform[s]>0&&form[s]!==fm){if(s===0)showBanner('Still changing formation ('+Math.ceil(reform[s])+'s)',true);return;}const was=form[s];const r=f(s,fm);
   if(TAC.on&&form[s]!==was&&phase==='fight'){const g=fg[s].rec;reform[s]=5*(1-Math.min(0.4,((g&&g.lvl)||1)*0.02))*(1.4-0.6*tacAvgCoh(s)/100);for(const q of TAC.sq[s])q.coh=Math.max(0,q.coh-8);}return r;})(setForm);
 impact=(f=>(x,z,V,small,lance)=>{f(x,z,V,small,lance);if(TAC.on)tacImpact(x,z,V,small,lance);})(impact);
+impact=(f=>(x,z,V,small,lance)=>{f(x,z,V,small,lance);try{spellLava(x,z,!small);}catch(e){DE4LOG.err(e,'spellLava');}})(impact);
 barrage=(f=>(x,z,V,side)=>{const r=f(x,z,V,side);if(TAC.on)tacBarrage(x,z,V);return r;})(barrage);
 castBreathAt=(f=>(cx,cz,side=1)=>{const r=f(cx,cz,side);if(TAC.on)tacBreath(cx,cz,side);return r;})(castBreathAt);
 castSpell=(f=>(side,tgt)=>{if(TAC.on&&fg[side]&&fg[side].rec)TAC.sk[1-side]=fg[side].rec.d.spell;
