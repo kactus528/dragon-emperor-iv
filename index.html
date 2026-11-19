@@ -544,7 +544,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 151';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 152';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2400,7 +2400,14 @@ function volcanoLand(x,z,onTroops){if(state!=='battle')return;if(lavaDist(x,z)<0
   for(let i=0;i<4;i++){const a=i/4*6.283+R(-0.4,0.4),r=R(1.2,3.6);lavaPatch(clamp(x+Math.cos(a)*r,-FW/2+1,FW/2-1),clamp(z+Math.sin(a)*r,-FD/2+1.5,FD/2-1.5));}
   lavaPatch(x,z);
   schedule(0.5,()=>{if(state!=='battle')return;for(let i=0;i<10;i++){const a=R(0,6.283),r=R(3,7),px=clamp(x+Math.cos(a)*r,-FW/2+1,FW/2-1),pz=clamp(z+Math.sin(a)*r,-FD/2+1.5,FD/2-1.5),sc=R(0.6,1.5);if(addLavaSplat(px,pz,sc))lavaBurnSpot(px,pz,sc*0.42);}});}
-function lavaTick(dt){lavaAcc+=dt;if(lavaAcc<0.25)return;const st=Math.min(0.5,lavaAcc);lavaAcc=0;if(!LAVA_ON()||phase!=='fight')return;
+/* nobody may stand in lava: a soldier found in it dies with a splash; one caught in the no-go strip at its edge (where he cannot move) is
+   nudged out, and if he is still stuck after 1.5 s he goes in. Generals caught in the strip are pushed back onto firm ground. */
+function lavaStuck(st){for(let s=0;s<2;s++){for(const u of alive[s]){if((u.state!=='alive'&&u.state!=='flee')||FLY[u.type]||u.wall)continue;const d=lavaDist(u.x,u.z);
+      if(d>=LAVA_BUF){u.lavaSt=0;continue;}if(d<0.25){lavaDrop(u);continue;}
+      u.lavaSt=(u.lavaSt||0)+st;const[dx,dz]=lavaDir(u.x,u.z),nx=u.x-dx*0.5,nz=u.z-dz*0.5;if(navAt(nx,nz)!==1){u.x=nx;u.z=nz;}if(u.lavaSt>1.5&&lavaDist(u.x,u.z)<LAVA_BUF)lavaDrop(u);}
+    const g=fg[s];if(okGen(g)&&!g.flee){const d=lavaDist(g.x,g.z);if(d<LAVA_BUF){const[dx,dz]=lavaDir(g.x,g.z);for(let k=0;k<6&&lavaDist(g.x,g.z)<LAVA_BUF;k++){g.x-=dx*0.4;g.z-=dz*0.4;}}}}}
+function lavaDrop(u){u.lavaSt=0;if(u.state==='flee')u.state='alive';lavaFall(u,false);}
+function lavaTick(dt){lavaAcc+=dt;if(lavaAcc<0.25)return;const st=Math.min(0.5,lavaAcc);lavaAcc=0;if(!LAVA_ON())return;if(state==='battle'&&phase!=='taunt'&&phase!=='plan'&&phase!=='select')lavaStuck(st);if(phase!=='fight')return;
   volT-=st;volT2-=st;if(volT<=0){volT=R(12,18);volcanoBomb('troop');}if(volT2<=0){volT2=R(16,24);volcanoBomb('random');}
   for(let s=0;s<2;s++)for(const u of alive[s]){if(u.state!=='alive')continue;const d=lavaDist(u.x,u.z);
     if(FLY[u.type]){if(d<0&&Math.random()<st*0.006)lavaFall(u,true);continue;}
@@ -4231,7 +4238,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 151; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 152; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
