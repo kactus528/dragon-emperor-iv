@@ -453,7 +453,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   <div class="panel dbgp" role="dialog" aria-labelledby="dbgH">
     <div class="selhead"><h2 id="dbgH">Debug log</h2><span class="sknote" id="dbgN"></span></div>
     <textarea id="dbgT" readonly spellcheck="false"></textarea>
-    <div class="row skbtns"><button id="dbgClear">Clear</button><button id="dbgDl">Download .txt</button><button id="dbgCopy" class="go">Copy</button><button id="dbgClose">Close</button></div>
+    <div class="row skbtns"><button id="dbgDetail" hidden title="Show the inputs and personality scores behind each AI decision">Personality detail: off</button><button id="dbgClear">Clear</button><button id="dbgDl">Download .txt</button><button id="dbgCopy" class="go">Copy</button><button id="dbgClose">Close</button></div>
   </div>
 </div>
 <div id="errToast" hidden>Something went wrong. It was saved to the debug log (title screen → Debug log).</div>
@@ -544,7 +544,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 152';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 153';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1903,12 +1903,12 @@ function useRelic(s){if(state!=='battle'||phase!=='fight'||!active[s])return;con
   else if(k==='ward'){Q.k=k;Q.t=8;}
   else if(k==='echo'){abil[s].cd=0;abil[s].t=0;schedule(0.4,()=>useAbility(s));}
   else if(k==='wyrm'){dragonWrath(s);morale[V]=clamp(morale[V]-0.1,0,1);}}
-function aiRelic(s=1){const k=relOf(s),Q=rel[s];if(!k||Q.used||engT<8||!okGen(fg[s]))return;const me=alive[s],th=alive[1-s],g=fg[s],r=active[s];let go=false;
+function aiRelic(s=1){const k=relOf(s),Q=rel[s],P=gpOf(active[s]),RW=PWT.relic;if(!k||Q.used||engT<RW.engT+RW.engTAgg*P.A||!okGen(fg[s]))return;const me=alive[s],th=alive[1-s],g=fg[s],r=active[s];let go=false;
   const near=th.filter(u=>u.state==='alive'&&Math.hypot(u.x-g.x,u.z-g.z)<7).length;
   if(k==='pearl')go=mp[s]<spellCost(s)*0.5;else if(k==='heart')go=r.hp<r.d.hp*0.55||me.length<startN[s]*0.55;
   else if(k==='lion'||k==='standard')go=morale[s]<0.42||me.length<th.length*0.8;else if(k==='gauntlet')go=okGen(fg[1-s])&&strength(r)>strength(active[1-s])*1.2&&r.hp>r.d.hp*0.5;
-  else if(k==='echo')go=abil[s].cd>8;else if(k==='ward')go=mp[1-s]>=spellCost(1-s)&&Math.random()<0.5;else if(k==='sunsteel'||k==='ember')go=near>=7;
-  else go=engT>12&&Math.random()<0.3;if(go)useRelic(s);}
+  else if(k==='echo')go=abil[s].cd>8;else if(k==='ward')go=mp[1-s]>=spellCost(1-s)&&Math.random()<0.5;else if(k==='sunsteel'||k==='ember')go=near>=7+RW.nearOpp*Math.max(0,P.O);
+  else go=engT>12+RW.engTAgg*P.A&&Math.random()<RW.chance*(1+RW.chanceAgg*P.A);if(go){repWhy(s,'relic: uses '+RELP[k][0]+' at '+engT.toFixed(1)+'s (earliest '+(RW.engT+RW.engTAgg*P.A).toFixed(1)+'s)');useRelic(s);}}
 const STREAKS=[[20,'Carnage!'],[45,'Rampage!'],[80,'Slaughter!'],[130,'Unstoppable!'],[200,'Legendary!']];
 function onKill(ks){streak[ks]++;streakT[ks]=2.4;frameK++;const n=streak[ks];
   for(let i=0;i<STREAKS.length;i++)if(n===STREAKS[i][0]){showBanner((ks?active[1].d.short+': ':'')+STREAKS[i][1]+' ×'+n,ks===1);sfx('blip',380+i*140);if(i>=2)sfx('lvlup');
@@ -3060,9 +3060,9 @@ function chooseSide(side,rr){if(phase!=='select'||!rr||!avail(side).includes(rr)
     /* the enemy tries to win over every prisoner it holds before it picks who will fight */
     const msg=Math.random()<DIFF.turn?(c.turned=true,roster[1].push(turnRec(c,1,pendingBattle?pendingBattle.eNat:'ashen')),c.d.short+' has turned traitor!'):c.d.short+' refuses to join the enemy';traitorMsg=traitorMsg?traitorMsg+' · '+msg:msg;}
   const e0=active[1],ea0=avail(1),eaN=ea0.filter(x=>!isRuler(x)),ea=eaN.length?eaN:ea0,e=e0&&ea.includes(e0)?e0:null;let pick=null;
-  if(r1)pick=r1;else if(e&&ea.includes(e)&&e.troops>=NPS*0.35)pick=e;
+  const stay=PWT.pick.stay+PWT.pick.stayAgg*cmdrOf(1).A;if(r1)pick=r1;else if(e&&ea.includes(e)&&e.troops>=NPS*stay)pick=e;
   else{const rr=TAC.on&&!r1?tacGuess():r,counters=ea.filter(x=>adv(x.d.troop,rr.d.troop)>1.25).sort((a,b)=>adv(b.d.troop,rr.d.troop)-adv(a.d.troop,rr.d.troop)),nonBoss=ea.filter(x=>x.d.key!=='vorgrath'),pl=nonBoss.length?nonBoss:ea;
-    pick=(counters.length&&Math.random()<DIFF.counter)?counters[0]:pl[(Math.random()*pl.length)|0];}
+    pick=Math.random()<DIFF.counter?gpPick(1,pl,rr):pl[(Math.random()*pl.length)|0];void counters;}
   active[1]=pick;TAC.lastPick=r;DE4LOG.mark('enemy picks '+(pick&&pick.d.key));$('selp').hidden=true;deploy();DE4LOG.mark('deployed');
 }
 function captureGen(L,w){const r=active[L];gainXP(active[w],50);r.out=true;r.troops=0;r.captor=w;fg[L].captured=true;fg[L].flee=false;
@@ -3180,23 +3180,17 @@ function fightTick(dt){
   if(alive[1].length===0&&!holding(1))endEngagement(0,'routed');else if(alive[0].length===0&&!holding(0))endEngagement(1,'routed');
 }
 function aiThink(){
-  const me=alive[1],them=alive[0],myT=active[1].d.troop,thT=active[0].d.troop;let o;
-  if(morale[1]<0.3)o=me.length<NPS*0.2?'retreat':'hold';
-  else if(adv(thT,myT)>1.3)o=Math.random()<0.55?'flank':'hold';
-  else if(RANGED[myT]||myT==='monk')o=Math.random()<0.7?'hold':'flank';
-  else if(me.length>them.length*1.15||adv(myT,thT)>1.3)o='charge';
-  else o=Math.random()<0.5?'charge':'flank';
-  if(SIEGE&&SIEGE.hp>0){if(SIEGE.def===1&&!SIEGE.open&&diffKey!=='squire'&&morale[1]>0.5&&me.length>them.length*1.8&&me.length>30)toggleGate(1);o=SIEGE.def===1&&!SIEGE.open?'hold':'charge';}
-  const tacOwn=TAC.on&&tacIsAI(1)&&tacSkill(1).int<=1.6;
-  if(!tacOwn){if(o==='hold'&&orders[1]!=='hold')holdStamp[1]++;if(o==='charge'&&orders[1]!=='charge')battleCry(1,14,0.8);orders[1]=o;}
-  if(mp[1]>=spellCost(1)&&spellCD[1]<=0&&!aiCast&&!(fg[1].rec&&fg[1].rec.d.spell==='breath'&&dragon.mode!=='idle')){aiCast=true;const g=fg[1];g.cast=1.8;showBanner(active[1].d.short+' gathers power!',true);sfx('charge');buzz(0.4,150);
+  const me=alive[1],them=alive[0];
+  const o=armyDecide(1);
+  if(SIEGE&&SIEGE.hp>0&&SIEGE.def===1&&!SIEGE.open&&diffKey!=='squire'&&morale[1]>0.5&&me.length>them.length*1.8&&me.length>30)toggleGate(1);
+  if(o!==orders[1]){if(o==='hold')holdStamp[1]++;if(o==='charge')battleCry(1,14,0.8);orders[1]=o;}
+  if(mp[1]>=spellCost(1)&&spellCD[1]<=0&&!aiCast&&!(fg[1].rec&&fg[1].rec.d.spell==='breath'&&dragon.mode!=='idle')&&castWant(1)){aiCast=true;const g=fg[1];g.cast=1.8;showBanner(active[1].d.short+' gathers power!',true);sfx('charge');buzz(0.4,150);
     spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:4.5,h:4.5,life:1.6,grow:0.3,blink:true});schedule(1.6,()=>{aiCast=false;castSpell(1,null);});}
-  if(engT>3&&aiFormCD<=0&&!tacOwn){let want='line';if(mp[0]>=spellCost(0))want='spread';else if(form[0]==='wedge')want=Math.random()<DIFF.counter?'square':'line';else if(form[0]==='square'||form[0]==='spread')want=Math.random()<DIFF.counter?'wedge':'line';else if(o==='charge')want='wedge';
-    if(want!==form[1]){setForm(1,want);aiFormCD=9;}}
+  if(engT>3&&aiFormCD<=0){const want=formDecide(1,o);if(want!==form[1]){setForm(1,want);aiFormCD=PWT.form.cd;}}
   if(abil[1].cd<=0&&engT>6&&Math.random()<0.5)useAbility(1);aiRelic();
-  const ratio=strength(active[1])/strength(active[0]),want=ratio>DIFF.seekR&&active[1].hp>active[1].d.hp*0.4;
-  if(want&&!seekDuel[1]){seekDuel[1]=true;showBanner(active[1].d.short+' hunts '+active[0].d.short+'!',true);sfx('horn');buzz(0.7,300);}else if(!want)seekDuel[1]=false;
-  const av=seekDuel[0]&&ratio<0.75;if(av&&!avoidDuel){showBanner(active[1].d.short+' avoids the duel!');morale[0]=clamp(morale[0]+0.1,0,1);morale[1]=clamp(morale[1]-0.08,0,1);}avoidDuel=av;
+  const D=duelWant(1);
+  if(D.want&&!seekDuel[1]){seekDuel[1]=true;showBanner(active[1].d.short+' hunts '+active[0].d.short+'!',true);sfx('horn');buzz(0.7,300);repWhy(1,'duel: hunts the enemy general | strength ratio '+D.ratio.toFixed(2)+' > threshold '+D.thr.toFixed(2));}else if(!D.want)seekDuel[1]=false;
+  const av=seekDuel[0]&&D.avoid;if(av&&!avoidDuel){showBanner(active[1].d.short+' avoids the duel!');morale[0]=clamp(morale[0]+0.1,0,1);morale[1]=clamp(morale[1]-0.08,0,1);repWhy(1,'duel: avoids it | strength ratio '+D.ratio.toFixed(2));}avoidDuel=av;
 }
 
 /* ================= WATCH MODE =================
@@ -3204,26 +3198,22 @@ function aiThink(){
    would use (pick a general, orders, formations, spells, storm bolts, abilities, relic powers, duel moves, challenges, sprinting
    away in a pursuit), and in Tactical play TAC.auto0 hands its squads to the same squad AI the enemy uses. */
 let SIM=false;const simS={t:0,think:0,form:0,pickT:0,cast:false};
+/* choosing who fights next, in the commander's temperament: aggressive commanders send their strongest, cautious and opportunistic ones
+   counter the enemy's troop type, disciplined ones keep to a steady order of battle. Difficulty still decides how often the choice is
+   thought through at all (DIFF.counter); otherwise the pick is random as before. */
+function gpPick(s,C,opp){if(!C.length)return null;const P=cmdrOf(s),W=PWT.pick,mx=Math.max(...C.map(x=>power(x)))||1;let best=null,bs=-1e9,lines=[];
+  C.forEach((x,i)=>{const pw=power(x)/mx*(W.power+W.powerAgg*P.A),ct=opp?(adv(x.d.troop,opp.d.troop)-1)*(W.counter+W.counterOpp*Math.max(0,P.O)+W.counterCaut*Math.max(0,-P.A)):0,od=Math.max(0,P.D)*W.order*(1-i/C.length),v=pw+ct+od+(Math.random()-0.5)*0.3;
+    lines.push(x.d.short+' '+v.toFixed(2));if(v>bs){bs=v;best=x;}});
+  repWhy(s,'next general: '+best.d.short+' | commander aggression '+P.agg+', opportunism '+P.opp+(opp?' vs '+opp.d.short+' ('+TROOP[opp.d.troop]+')':'')+' | '+lines.join(', '));return best;}
 function simPick(){const A=avail(0);if(!A.length)return null;const L=A.filter(r=>!isRuler(r)),C=L.length?L:A,e=active[1]&&!active[1].out&&active[1].hp>0?active[1]:null;
-  if(e){const ctr=C.filter(r=>adv(r.d.troop,e.d.troop)>1.25);if(ctr.length&&Math.random()<0.7)return ctr[0];}
-  return C.slice().sort((a,b)=>power(b)-power(a))[Math.random()<0.6?0:(Math.random()*C.length)|0];}
-function simDuelPick(){const w={strike:0.4,guard:0.3,power:0.3};if(duel.tell)w.guard+=0.25;if(active[0].hp<active[0].d.hp*0.3)w.guard+=0.15;
-  const tot=w.strike+w.guard+w.power;let r=Math.random()*tot;for(const k of['strike','guard','power']){r-=w[k];if(r<=0)return k;}return'strike';}
-function simThink(){const me=alive[0],them=alive[1],myT=active[0].d.troop,thT=active[1].d.troop;let o;
-  if(morale[0]<0.3)o=me.length<NPS*0.2?'retreat':'hold';
-  else if(adv(thT,myT)>1.3)o=Math.random()<0.55?'flank':'hold';
-  else if(RANGED[myT]||myT==='monk')o=Math.random()<0.7?'hold':'flank';
-  else if(me.length>them.length*1.15||adv(myT,thT)>1.3)o='charge';
-  else o=Math.random()<0.5?'charge':'flank';
-  if(SIEGE&&SIEGE.hp>0)o=SIEGE.def===0&&!SIEGE.open?'hold':'charge';
-  const tacOwn=TAC.on&&tacSkill(0).int<=1.6;
-  if(!tacOwn&&o!==orders[0])setOrder(o);
-  if(engT>3&&simS.form<=0&&!tacOwn){let want='line';if(mp[1]>=spellCost(1))want='spread';else if(form[1]==='wedge')want='square';else if(form[1]==='square'||form[1]==='spread')want='wedge';else if(o==='charge')want='wedge';
-    if(want!==form[0]){setForm(0,want);simS.form=9;}}
-  if(mp[0]>=spellCost(0)&&spellCD[0]<=0&&!storm.on&&!simS.cast&&!(fg[0].rec&&fg[0].rec.d.spell==='breath'&&dragon.mode!=='idle')){simS.cast=true;const g=fg[0];g.cast=1.8;showBanner(active[0].d.short+' gathers power!');sfx('charge');
+  return Math.random()<DIFF.counter+0.2?gpPick(0,C,e):C[(Math.random()*C.length)|0];}
+function simThink(){
+  const o=armyDecide(0);if(o!==orders[0])setOrder(o);
+  if(engT>3&&simS.form<=0){const want=formDecide(0,o);if(want!==form[0]){setForm(0,want);simS.form=PWT.form.cd;}}
+  if(mp[0]>=spellCost(0)&&spellCD[0]<=0&&!storm.on&&!simS.cast&&!(fg[0].rec&&fg[0].rec.d.spell==='breath'&&dragon.mode!=='idle')&&castWant(0)){simS.cast=true;const g=fg[0];g.cast=1.8;showBanner(active[0].d.short+' gathers power!');sfx('charge');
     spawn({x:g.x,y:Hb(g.x,g.z)+0.2,z:g.z,tex:T_RUNE,w:4.5,h:4.5,life:1.6,grow:0.3,blink:true});schedule(1.6,()=>{simS.cast=false;if(SIM)castSpell(0,null);});}
   if(abil[0].cd<=0&&engT>6&&Math.random()<0.5)useAbility(0);aiRelic(0);
-  const ratio=strength(active[0])/strength(active[1]);seekDuel[0]=ratio>DIFF.seekR&&active[0].hp>active[0].d.hp*0.4;}
+  const D=duelWant(0);if(D.want&&!seekDuel[0])repWhy(0,'duel: hunts the enemy general | strength ratio '+D.ratio.toFixed(2)+' > threshold '+D.thr.toFixed(2));seekDuel[0]=D.want;}
 function simTick(dt){if(!SIM||state!=='battle')return;simS.t+=dt;simS.form-=dt;
   if(phase==='select'){simS.pickT+=dt;simS.selT=(simS.selT||0)+dt;if(simS.pickT>1.4){simS.pickT=0;
     /* first try to win over every prisoner it holds, one at a time, then send a general */
@@ -3233,7 +3223,7 @@ function simTick(dt){if(!SIM||state!=='battle')return;simS.t+=dt;simS.form-=dt;
   if(phase==='fight'&&active[0]&&active[1]){
     if(chal){const ratio=strength(active[0])/strength(active[1]);answerChallenge(ratio>0.8&&active[0].hp>active[0].d.hp*0.35);}
     simS.think+=dt;if(simS.think>3){simS.think=0;simThink();}}
-  else if(phase==='duel'&&duel.stage==='choose'&&!duel.pick&&duel.t>0.5+Math.random()*0.6)duelPick(simDuelPick());
+  else if(phase==='duel'&&duel.stage==='choose'&&!duel.pick&&duel.t>0.5+Math.random()*0.6)duelPick(aiDuelMove(0));
   else if(phase==='pursuit'&&pursuit){const g=fg[0];
     if(pursuit.L===0&&g.burst<=0&&g.sta>0.3&&nearestFoe(g)<7)sprint(g,true);
     if(pursuit.L===1&&mp[0]>=spellCost(0)&&spellCD[0]<=0&&!storm.on)castSpell(0,null);}}
@@ -3275,12 +3265,14 @@ function simBoardTick(){const show=SIM&&(state==='battle'||state==='end'||state=
    in localStorage; "AI report" on the title screen (or Report while watching) shows them so they can be copied and sent back for tuning. */
 const REP={b:null,r:null,last:{},smpT:0,KEY:'de4-reports'};
 const repT=()=>(engT||0).toFixed(1);
-function repGen(r){if(!r)return'-';const sk=TAC.on?' ':'';return r.d.short+' ('+TROOP[r.d.troop]+', '+SPELL[r.d.spell]+', Lv '+(r.lvl||1)+', '+r.troops+' troops, HP '+Math.ceil(r.hp)+'/'+r.d.hp+(r.relic?', '+RELICS[r.relic].n:'')+(TAC.on?', '+persOf(r):'')+(isRuler(r)?', ruler':'')+')';}
+function repGen(r){if(!r)return'-';const sk=TAC.on?' ':'';return r.d.short+' ('+TROOP[r.d.troop]+', '+SPELL[r.d.spell]+', Lv '+(r.lvl||1)+', '+r.troops+' troops, HP '+Math.ceil(r.hp)+'/'+r.d.hp+(r.relic?', '+RELICS[r.relic].n:'')+', '+gpLabel(r)+(isRuler(r)?', ruler':'')+')';}
 function repBegin(){const ctx=pendingBattle&&pendingBattle.ctx;REP.b={at:new Date().toISOString().slice(0,16).replace('T',' '),mode:SIM?'WATCH (AI vs AI)':ctx&&ctx.kind==='skirmish'?'Skirmish':'Campaign',
   diff:diffKey,skill:[TAC.on&&SIM?(tacSkill(0).name||diffKey):'player',TAC.on?(tacSkill(1).name||diffKey):diffKey],map:BIO.name,siege:SIEGE&&SIEGE.hp>0?(SIEGE.def===0?'left defends the castle':'right defends the castle'):'none',
   armies:[roster[0].map(repGen),roster[1].map(repGen)],rounds:[],res:null};}
-function repRoundStart(){if(!REP.b||REP.b.res)repBegin();const T=TAC.tel;REP.r={n:REP.b.rounds.length+1,gens:[repGen(active[0]),repGen(active[1])],start:[(active[0]||{}).troops||0,(active[1]||{}).troops||0],k0:BST.kills.slice(),
-  tel0:T?JSON.parse(JSON.stringify(T)):null,ev:[],dec:[],smp:[],end:null};REP.last={};REP.smpT=0;REP.b.rounds.push(REP.r);}
+function repRoundStart(){if(!REP.b||REP.b.res)repBegin();const T=TAC.tel;REP.r={n:REP.b.rounds.length+1,pers:'L '+(active[0]?active[0].d.short+' — '+gpLabel(active[0]):'-')+' · R '+(active[1]?active[1].d.short+' — '+gpLabel(active[1]):'-'),gens:[repGen(active[0]),repGen(active[1])],start:[(active[0]||{}).troops||0,(active[1]||{}).troops||0],k0:BST.kills.slice(),
+  tel0:T?JSON.parse(JSON.stringify(T)):null,ev:[],dec:[],why:[],smp:[],end:null};REP.last={};REP.smpT=0;REP.b.rounds.push(REP.r);}
+/* personality diagnostics: the actual inputs and score contributions behind an AI decision (shown when 'Personality detail' is on) */
+function repWhy(s,t){const R=REP.r;if(!R||R.end||R.why.length>=110||!active[s])return;R.why.push(repT()+' '+(s?'R ':'L ')+active[s].d.short+': '+t);}
 function repEv(t){const R=REP.r;if(REP.mute||!R||R.end||R.ev.length>=90)return;R.ev.push(repT()+' '+t);}
 function repDec(t){const R=REP.r;if(!R||R.end||R.dec.length>=120)return;R.dec.push(repT()+' '+t);}
 function repTick(dt){const R=REP.r;if(!R||R.end||state!=='battle')return;
@@ -3296,16 +3288,18 @@ function repFinish(why){if(!REP.b||REP.b.res)return;repRoundEnd();REP.b.res=why;
 function repText(b){if(!b)return'(no battle recorded yet)';const L=[];L.push('=== Dragon Emperor IV battle report · '+BUILD+' · '+b.at+' ===');
   L.push('Mode '+b.mode+' · difficulty '+b.diff+' · AI skill L '+b.skill[0]+' / R '+b.skill[1]+' · Tactical '+(TAC.on?'on':'off')+' · map '+b.map+' · siege '+b.siege);
   L.push('Left army: '+b.armies[0].join('; '));L.push('Right army: '+b.armies[1].join('; '));L.push('Result: '+(b.res||'in progress'));
-  for(const r of b.rounds){L.push('');L.push('-- Round '+r.n+': '+r.gens[0]+'  vs  '+r.gens[1]);L.push('start troops '+r.start.join(' vs '));
+  for(const r of b.rounds){L.push('');L.push('-- Round '+r.n+': '+r.gens[0]+'  vs  '+r.gens[1]);if(r.pers)L.push('personalities: '+r.pers);L.push('start troops '+r.start.join(' vs '));
     if(r.end){L.push('ended at '+r.end.t+'s · troops left '+r.end.alive.join(' vs ')+' · kills L '+r.end.kills[0]+' / R '+r.end.kills[1]+' · L general '+r.end.fate[0]+' · R general '+r.end.fate[1]);if(r.end.tel)L.push('tactics: '+r.end.tel);}
     if(r.smp.length)L.push('timeline (troops L/R, morale, magic, general HP'+(TAC.on?', cohesion':'')+'): '+r.smp.join(' | '));
-    if(r.dec.length)L.push('decisions: '+r.dec.join(' | '));if(r.ev.length)L.push('events: '+r.ev.join(' | '));}
+    if(r.dec.length)L.push('decisions: '+r.dec.join(' | '));if(r.why&&r.why.length)for(const w of r.why)L.push('  why '+w);if(r.ev.length)L.push('events: '+r.ev.join(' | '));}
   return L.join('\n');}
 function repLoad(){try{const a=JSON.parse(localStorage.getItem(REP.KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}}
 function repSave(live){const t=repText(REP.b);if(!REP.b)return t;const a=repLoad();const id=REP.b.at+REP.b.mode;REP.b.id=REP.b.id||id+Math.random().toString(36).slice(2,6);
-  const i=a.findIndex(x=>x.id===REP.b.id);const e={id:REP.b.id,t:t.slice(0,16000)};if(i>=0)a[i]=e;else a.push(e);while(a.length>8)a.shift();try{localStorage.setItem(REP.KEY,JSON.stringify(a));}catch(_){}return t;}
+  const i=a.findIndex(x=>x.id===REP.b.id);const e={id:REP.b.id,t:t.slice(0,40000)};if(i>=0)a[i]=e;else a.push(e);while(a.length>8)a.shift();try{localStorage.setItem(REP.KEY,JSON.stringify(a));}catch(_){}return t;}
 function repClear(){try{localStorage.removeItem(REP.KEY);}catch(_){}}
 function openReport(live,cur){DBGMODE='rep';const a=repLoad();let t=a.length?a.slice().reverse().map(x=>x.t).join('\n\n'):'No battle reports yet. Watch or play a battle first.';if(live&&cur&&!a.some(x=>x.t===cur))t=cur+'\n\n'+t;
+  REP.detail=(()=>{try{return localStorage.getItem('de4-repdetail')==='1';}catch(e){return false;}})();if(!REP.detail)t=t.split('\n').filter(l=>!l.startsWith('  why ')).join('\n');
+  $('dbgDetail').hidden=false;$('dbgDetail').textContent='Personality detail: '+(REP.detail?'on':'off');
   t='Paste this into the chat to help tune the AI. Newest battle first. ('+a.length+' saved)\n\n'+t;$('dbgT').value=t;$('dbgH').textContent='AI battle report';$('dbgN').textContent=a.length+' battles · '+BUILD;$('dbgClear').textContent='Clear reports';$('dbg').hidden=false;}
 
 /* ================= UI ================= */
@@ -3434,8 +3428,8 @@ $('skBtn').addEventListener('click',openSkirm);
 $('mpBtn').addEventListener('click',mpOpen);$('mpBack').addEventListener('click',()=>{$('mpp').hidden=true;});$('mpHost').addEventListener('click',mpHost);$('mpJoin').addEventListener('click',mpJoin);$('mpGo').addEventListener('click',mpStartWar);
 $('mpCode').addEventListener('keydown',e=>{if(e.key==='Enter')mpJoin();});
 $('vMic').addEventListener('click',voiceMute);$('vTo').addEventListener('click',voiceCycle);
-function openDbg(){DBGMODE='log';$('dbgH').textContent='Debug log';$('dbgClear').textContent='Clear';DE4LOG.flush();const t=DE4LOG.text();$('dbgT').value=t;$('dbgN').textContent=DE4LOG.count()+' errors · '+BUILD;$('dbg').hidden=false;}
-$('dbgBtn').addEventListener('click',openDbg);$('repBtn').addEventListener('click',()=>openReport(false));document.querySelectorAll('[data-wb]').forEach(b=>b.addEventListener('click',()=>simAct(b.dataset.wb)));$('dbgBtn2').addEventListener('click',openDbg);$('dbgClose').addEventListener('click',()=>{$('dbg').hidden=true;});
+function openDbg(){DBGMODE='log';$('dbgDetail').hidden=true;$('dbgH').textContent='Debug log';$('dbgClear').textContent='Clear';DE4LOG.flush();const t=DE4LOG.text();$('dbgT').value=t;$('dbgN').textContent=DE4LOG.count()+' errors · '+BUILD;$('dbg').hidden=false;}
+$('dbgBtn').addEventListener('click',openDbg);$('repBtn').addEventListener('click',()=>openReport(false));$('dbgDetail').addEventListener('click',()=>{try{localStorage.setItem('de4-repdetail',localStorage.getItem('de4-repdetail')==='1'?'0':'1');}catch(e){}openReport(false);});document.querySelectorAll('[data-wb]').forEach(b=>b.addEventListener('click',()=>simAct(b.dataset.wb)));$('dbgBtn2').addEventListener('click',openDbg);$('dbgClose').addEventListener('click',()=>{$('dbg').hidden=true;});
 $('dbgClear').addEventListener('click',()=>{if(DBGMODE==='rep'){repClear();openReport(false);return;}DE4LOG.clear();openDbg();});
 $('dbgCopy').addEventListener('click',()=>{const t=$('dbgT');t.focus();t.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(()=>{$('dbgCopy').textContent='Copied!';},()=>{});else if(ok)$('dbgCopy').textContent='Copied!';setTimeout(()=>{$('dbgCopy').textContent='Copy';},1500);});
 $('dbgDl').addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('dbgT').value],{type:'text/plain'}));a.download=DBGMODE==='rep'?'dragon-emperor-ai-report.txt':'dragon-emperor-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
@@ -3717,9 +3711,11 @@ function ransomWeek(){const O=CAMP.offers||(CAMP.offers=[]);
   GENS.forEach((r,g)=>{if(r.alive||!r.prisonerOf||r.prisonerOf===r.nat||r.d.key===NATIONS[r.nat].ruler)return;const own=r.nat,cap=r.prisonerOf;if(!natLives(cap)||O.some(o=>o.g===g))return;const price=ransomPrice(r);
     if(isHum(cap)){O.push({id:offerSeq++,k:'fate',g,pay:own,get:cap,gold:price,dec:cap,until:9999});if(cap===NET.me){showBanner('A prisoner awaits your judgement');sfx('lock');offerPrompt();}return;}
     if(r.capWk===undefined){r.capWk=CAMP.week;return;}if(!natLives(own)||Math.random()>0.4)return;
-    if(!isHum(own)){if(goldOf(own)>=price)payRansom({pay:own,get:cap,gold:price},r);else if(Math.random()<0.3)executeGeneral(r,cap);return;}
-    if(Math.random()<0.15){executeGeneral(r,cap);return;}
-    O.push({id:offerSeq++,k:'pay',g,pay:own,get:cap,gold:Math.round(price*1.25),dec:own,until:CAMP.week+3});clog(offerText(O[O.length-1],true));if(own===NET.me){showBanner('A ransom demand has arrived');sfx('fanfare');offerPrompt();}});
+    /* rulers' temperaments: aggressive captors execute more readily, opportunistic ones ask more, cautious payers pay more readily */
+    const RW=PWT.ransom,pc=gpKey(NATIONS[cap].ruler),po=gpKey(NATIONS[own].ruler);
+    if(!isHum(own)){if(goldOf(own)>=price&&Math.random()<clamp(RW.pay-0.25+RW.payCaut*(-po.A),0.3,1))payRansom({pay:own,get:cap,gold:price},r);else if(Math.random()<RW.execBroke*(1+RW.execAgg*pc.A))executeGeneral(r,cap);return;}
+    if(Math.random()<RW.exec*(1+RW.execAgg*pc.A)){executeGeneral(r,cap);return;}
+    O.push({id:offerSeq++,k:'pay',g,pay:own,get:cap,gold:Math.round(price*RW.price*(1+RW.priceOpp*pc.O)),dec:own,until:CAMP.week+3});clog(offerText(O[O.length-1],true));if(own===NET.me){showBanner('A ransom demand has arrived');sfx('fanfare');offerPrompt();}});
   offerRecheck();updateModeUI();}
 function aiSpend(n){const M=CAMP.merch;
   for(const a of CAMP.armies){if(a.nat===n)continue;const c=CASTLES[a.path[a.path.length-1]];if(c&&c.o===n&&(c.oil||0)<1&&goldOf(n)>=PRICE.oil+20&&garrison(c).length)buy(n,'oil',{c:c.id});}
@@ -4238,16 +4234,128 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 152; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 153; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
 
 const TSKILL={squire:{int:3,flank:0.3,res:0,adapt:false,mist:0.4},knight:{int:1.6,flank:0.65,res:1,adapt:true,mist:0.2},warlord:{int:0.8,flank:1,res:2,adapt:true,mist:0.05}};
-const PERS_FIX={vorgrath:'aggressive',ysolde:'opportunistic',kaelen:'balanced',hask:'aggressive',skarn:'aggressive',morvane:'defensive',corvin:'defensive',brisa:'cautious',mordrae:'cautious',zareth:'opportunistic',kessa:'aggressive',nyx:'opportunistic',evander:'defensive',thessaly:'cautious',vell:'balanced',shrike:'opportunistic',veyra:'cautious',odric:'defensive',aveline:'cautious',rook:'aggressive'};
-const PERS_ALL=['aggressive','cautious','defensive','opportunistic','balanced'];
-function persOf(r){if(!r)return'balanced';const k=r.d.key;if(PERS_FIX[k])return PERS_FIX[k];let h=0;for(const c of k)h=(h*31+c.charCodeAt(0))|0;return PERS_ALL[Math.abs(h)%5];}
-const PNAME={aggressive:'Aggressive',cautious:'Cautious',defensive:'Defensive',opportunistic:'Opportunistic',balanced:'Balanced'};
+/* ================= GENERAL PERSONALITIES =================
+   Two independent axes, each 0..100, authoritative for every general (edit them here):
+     Aggression  0 extremely cautious .. 50 balanced .. 100 extremely aggressive
+     Opportunism 0 extremely disciplined .. 50 balanced .. 100 extremely opportunistic
+   gpOf(r) returns the values plus the normalised influences A=(agg-50)/50 and O=(opp-50)/50 (-1..+1) and D=-O (discipline).
+   Every AI decision that personality touches reads these through PWT (the weights below), so a general's style comes from his numbers,
+   never from a fixed class. Unknown or newly added generals fall back to 50/50. Personality never changes difficulty: difficulty still sets
+   think speed, misjudgement, reserves and which manoeuvres are allowed (TSKILL), personality only shifts preferences. */
+const GPERS={
+  /* Aldmere */ kaelen:[80,25],seren:[40,80],brannoch:[95,35],ivo:[85,65],maelis:[70,20],oriel:[25,75],wren:[65,90],tamsin:[75,70],aldric:[55,5],elowen:[10,20],
+  /* Ashen Legion */ vorgrath:[95,45],hask:[75,10],mordrae:[30,95],skarn:[100,85],veyra:[65,75],morvane:[70,5],vell:[60,25],shrike:[80,100],zareth:[90,90],kessa:[65,30],
+  /* Duskmarch */ ysolde:[25,85],corvin:[70,20],brisa:[35,90],evander:[60,10],aveline:[10,35],rook:[65,85],nyx:[75,75],thessaly:[15,95],odric:[35,0],
+  /* Wanderers */ garrick:[55,95],lyra:[45,80],tor:[85,40]};
+/* All personality weights in one place. Scores they feed sit on the same scale as the existing ones (roughly -2..+3), so at the extremes
+   personality can swing a close decision but not an overwhelming one. */
+const PWT={
+  order:{keep:0.45,keepDisc:0.3,minDur:6,minDurOpp:-2,minDurDisc:2,margin:0.35,noise:0.35,noiseMist:1.5,
+    chargeAgg:1.1,chargeDiscSupport:0.9,chargeOppExposed:1.2,
+    holdCaut:0.9,holdDiscCoh:0.6,holdOppBait:0.8,
+    flankOpp:1.0,flankAgg:0.3,flankCautCommitted:0.8,flankDiscLine:0.5,
+    retreatMorale:0.3,retreatCaut:0.12,retreatSize:0.2,retreatSizeCaut:0.1},
+  form:{counter:1.4,charge:0.8,hold:0.4,inbound:1.2,keep:0.5,discLine:0.6,discSquare:0.3,aggWedge:0.6,oppWedge:0.2,cautSquare:0.3,cautSpread:0.4,oppSpread:0.4,cd:9},
+  squad:{flankOpp:0.6,flankAgg:0.25,flankEarlyOpp:0.35,flankMemAgg:0.4,flankCautNa:0.6,
+    pileCoh:35,pileCohOpp:15,pileMaxOpp:0.4,supportDisc:20,supportOpp:15,retarget:4,retargetOpp:-1.5,retargetDisc:2,
+    res:{agg:-0.8,disc:0.8},resLock:3,resLockAgg:-1.2,resLockDisc:1.2,resLockOpp:-0.6,resOpening:0.3,resMinEng:5,
+    crystal:0.6,crystalOpp:0.3,crystalDist:40,crystalDistOpp:15,crystalLineMin:3,squareAgg:0.5},
+  spell:{earliest:5,earliestAgg:-3,densityOpp:25,threat:14,score:0.5,agg:0.5,caut:0.6,opp:0.6,disc:0.4,maxWait:15},
+  relic:{engT:8,engTAgg:-4,chance:0.3,chanceAgg:0.5,nearOpp:-2},
+  duel:{seekAgg:0.25,seekOppWeak:0.3,seekDiscWinning:0.3,hpAgg:0.15,avoid:0.75,avoidCaut:0.2},
+  duelMove:{read:0.15,readOpp:0.35,aggPower:0.2,aggStrike:0.15,cautGuard:0.25,pattern:0.5},
+  pick:{stay:0.35,stayAgg:-0.15,power:0.6,powerAgg:0.4,counter:1.0,counterOpp:0.5,counterCaut:0.4,order:0.4},
+  ransom:{exec:0.15,execAgg:0.6,price:1.25,priceOpp:0.15,pay:1,payCaut:0.3,execBroke:0.3}};
+function gpKey(k){const v=GPERS[k]||[50,50];return{agg:v[0],opp:v[1],A:(v[0]-50)/50,O:(v[1]-50)/50,D:(50-v[1])/50};}
+function gpOf(r){return gpKey(r&&r.d&&r.d.key);}
+/* archetype names only describe where a general sits; no decision ever branches on them */
+function gpArch(p){if(Math.abs(p.A)<0.2&&Math.abs(p.O)<0.2)return'balanced';return p.A>=0?(p.O>=0?'predator':'conqueror'):(p.O>=0?'trickster':'guardian');}
+const PNAME={guardian:'Guardian',conqueror:'Conqueror',trickster:'Trickster',predator:'Predator',balanced:'Balanced'};
+function persOf(r){return gpArch(gpOf(r));}
+function gpLabel(r){const p=gpOf(r);return PNAME[gpArch(p)]+' (Aggression '+p.agg+', Opportunism '+p.opp+')';}
+/* the commander whose temperament decides between-round and strategic choices: the nation's ruler in a campaign, else the side's first general */
+function cmdrOf(s){const nat=s===1?(pendingBattle&&pendingBattle.eNat):(typeof P0N==='function'?P0N():null);const rk=nat&&NATIONS[nat]&&NATIONS[nat].ruler;
+  if(rk&&GPERS[rk])return gpKey(rk);const r=(roster[s]||[]).find(x=>isRuler(x))||(roster[s]||[])[0];return gpOf(r);}
+/* battlefield readings the personality weights act on */
+function gpExposed(s){if(!TAC.on||!TAC.sq[1-s].length)return 0.3;const E=TAC.sq[1-s].filter(q=>!q.dead&&q.na>0);if(!E.length)return 0;let n=0;
+  for(const e of E){const ty=(e.m[0]||{}).type,iso=E.every(o=>o===e||Math.hypot(o.cx-e.cx,o.cz-e.cz)>18),soft=(RANGED[ty]||ty==='monk')&&!E.some(o=>o!==e&&!(RANGED[(o.m[0]||{}).type])&&Math.hypot(o.cx-e.cx,o.cz-e.cz)<10);
+    if(iso||soft||e.st==='waver'||e.coh<35)n++;}return Math.min(1,n/Math.max(2,E.length*0.5));}
+function gpCommitted(s){if(!TAC.on||!TAC.sq[1-s].length)return orders[1-s]==='charge'?0.5:0.2;const t=tnow(),E=TAC.sq[1-s].filter(q=>!q.dead&&q.na>0);if(!E.length)return 0;
+  return Math.min(1,E.filter(q=>t-q.contactT<1.5).length/E.length+(orders[1-s]==='charge'?0.25:0));}
+const f2=v=>(v>=0?'+':'')+v.toFixed(2);
+/* ---- army-level decisions, shared by the enemy AI (side 1) and the Watch-mode autopilot (side 0) ----
+   Each option gets a base score from the battle (sizes, troop-type matchup, morale, troop type, siege) and then personality terms,
+   all recorded so the battle journal can show the real inputs. Hysteresis: the current order gets a bonus, an order is kept for a minimum time
+   (longer for disciplined, shorter for opportunistic generals) and a change needs a clear margin, so opportunism reads as adaptability,
+   not dithering. Difficulty only adds judgement noise (TSKILL.mist). */
+const ARMY=[{ordT:-99,formT:-99,why:''},{ordT:-99,formT:-99,why:''}];
+function armyReadings(s){const me=alive[s].length,them=Math.max(1,alive[1-s].length),myT=active[s].d.troop,thT=active[1-s].d.troop;
+  const coh=TAC.on?tacAvgCoh(s):70;return{me,them,sr:me/them,am:adv(myT,thT),at:adv(thT,myT),mor:morale[s],myT,ranged:!!RANGED[myT]||myT==='monk',heavy:myT==='cav'||myT==='kni'||myT==='drag',
+    exposed:gpExposed(s),committed:gpCommitted(s),coh,advancing:orders[1-s]==='charge'&&gpCommitted(s)<0.4};}
+function armyDecide(s){if(!active[s]||!active[1-s])return orders[s];const P=gpOf(active[s]),B=armyReadings(s),K=tacSkill(s),M=ARMY[s],W=PWT.order;
+  const sc={charge:{b:0,p:{}},hold:{b:0,p:{}},flank:{b:0,p:{}},retreat:{b:-9,p:{}}};
+  /* battle */
+  sc.charge.b+=(clamp(B.sr,0.3,2.5)-1)*1.5+(B.am-1)*1.5;if(B.heavy)sc.charge.b+=0.8;
+  if(B.ranged){sc.hold.b+=1.4;sc.flank.b+=0.3;}
+  if(B.at>1.3){sc.flank.b+=0.8;sc.hold.b+=0.5;sc.charge.b-=0.6;}
+  if(B.mor<0.3){sc.hold.b+=1.2;sc.charge.b-=1;}
+  const rThr=W.retreatMorale+W.retreatCaut*(-P.A),rSize=W.retreatSize+W.retreatSizeCaut*(-P.A);
+  if(B.mor<rThr&&B.me<NPS*rSize)sc.retreat.b=(rThr-B.mor)*10+(B.sr<0.5?(0.5-B.sr)*4:0);
+  /* personality */
+  const add=(o,k,v)=>{sc[o].p[k]=v;};
+  add('charge','agg',P.A*W.chargeAgg);add('charge','disc support',P.D*W.chargeDiscSupport*clamp(B.sr-1,-1,1));add('charge','opp exposed',P.O*W.chargeOppExposed*B.exposed);
+  add('hold','caution',-P.A*W.holdCaut);add('hold','disc cohesion',P.D*W.holdDiscCoh*(B.coh>60?1:0));add('hold','opp bait',Math.max(0,P.O)*W.holdOppBait*(B.advancing&&P.A<0.3?1:0));
+  add('flank','opp',P.O*W.flankOpp*(0.4+B.exposed));add('flank','agg',P.A*W.flankAgg);add('flank','caution vs committed',Math.max(0,-P.A)*W.flankCautCommitted*B.committed);add('flank','disc line',P.D*W.flankDiscLine*(B.committed-0.5));
+  if(sc.retreat.b>-9)add('retreat','agg tolerance',-P.A*0.6);
+  const cur=orders[s];let siege=null;if(SIEGE&&SIEGE.hp>0)siege=SIEGE.def===s&&!SIEGE.open?'hold':'charge';
+  const tot={};for(const o in sc){let v=sc[o].b;for(const k in sc[o].p)v+=sc[o].p[k];if(o===cur)v+=W.keep+W.keepDisc*P.D;v+=(Math.random()-0.5)*2*W.noise*(1+(K.mist||0)*W.noiseMist);tot[o]=v;}
+  let best=siege||Object.keys(tot).reduce((a,b)=>tot[b]>tot[a]?b:a);
+  const minDur=W.minDur+W.minDurOpp*Math.max(0,P.O)+W.minDurDisc*Math.max(0,P.D),held=engT-M.ordT,urgent=best==='retreat'||B.mor<0.2||!!siege;
+  let reason;if(best===cur)reason='keeps '+cur;else if(!urgent&&held<minDur){reason='keeps '+cur+' (held '+held.toFixed(1)+'s < min '+minDur.toFixed(1)+'s)';best=cur;}
+  else if(!urgent&&tot[best]-tot[cur]<W.margin){reason='keeps '+cur+' ('+best+' only '+f2(tot[best]-tot[cur])+' < margin '+W.margin+')';best=cur;}
+  else reason=(siege?'siege: ':'')+cur+' → '+best+' (margin '+f2(tot[best]-(tot[cur]||0))+(M.ordT<0?', first order of the round)':' after '+held.toFixed(1)+'s)');
+  const fmt=o=>o+' '+tot[o].toFixed(2)+(Object.keys(sc[o].p).length?' ['+Object.entries(sc[o].p).filter(e=>Math.abs(e[1])>0.005).map(e=>e[0]+' '+f2(e[1])).join(', ')+']':'');
+  if(best!==cur||(Object.keys(tot).reduce((a,b)=>tot[b]>tot[a]?b:a)!==cur&&Math.random()<0.25))
+    repWhy(s,'order: '+reason+' | in: size '+B.sr.toFixed(2)+', matchup '+B.am.toFixed(2)+'/'+B.at.toFixed(2)+', morale '+Math.round(B.mor*100)+'%, exposed '+B.exposed.toFixed(2)+', committed '+B.committed.toFixed(2)+', cohesion '+Math.round(B.coh)+' | '+['charge','hold','flank'].map(fmt).join(' · ')+(sc.retreat.b>-9?' · '+fmt('retreat'):''));
+  if(best!==cur)M.ordT=engT;return best;}
+function formDecide(s,o){const P=gpOf(active[s]),W=PWT.form,K=tacSkill(s),c={line:0,wedge:0,square:0,spread:0},pp={};const my=active[s].d.troop,heavy=my==='cav'||my==='kni'||my==='drag';
+  if(mp[1-s]>=spellCost(1-s))c.spread+=W.counter;else if(form[1-s]==='wedge')c.square+=W.counter*DIFF.counter;else if(form[1-s]==='square'||form[1-s]==='spread')c.wedge+=W.counter*DIFF.counter;
+  if(o==='charge')c.wedge+=W.charge;if(o==='hold')c.line+=W.hold;
+  if(TAC.on&&!heavy&&!RANGED[my]&&TAC.sq[1-s].some(e=>!e.dead&&e.chg&&e.chg.p>0.35))c.square+=W.inbound;
+  pp.line=P.D*W.discLine;pp.square=P.D*W.discSquare+Math.max(0,-P.A)*W.cautSquare;pp.wedge=P.A*W.aggWedge+P.O*W.oppWedge;pp.spread=Math.max(0,-P.A)*W.cautSpread+P.O*W.oppSpread;
+  for(const f in c){c[f]+=pp[f]+(f===form[s]?W.keep:0)+(Math.random()-0.5)*0.4*(1+(K.mist||0)*1.5);}
+  const best=Object.keys(c).reduce((a,b)=>c[b]>c[a]?b:a);
+  if(best!==form[s])repWhy(s,'formation: '+form[s]+' → '+best+' | '+Object.keys(c).map(f=>f+' '+c[f].toFixed(2)+' [pers '+f2(pp[f])+']').join(' · '));return best;}
+/* when to cast: aggressive generals cast early, cautious ones keep magic for a threat, opportunists wait for a packed target,
+   disciplined ones cast in step with their order; nobody waits longer than maxWait once the spell is ready */
+const CASTW=[{since:-1},{since:-1}];
+function castWant(s){const P=gpOf(active[s]),W=PWT.spell,C=CASTW[s];if(C.since<0)C.since=engT;const waited=engT-C.since;
+  if(engT<W.earliest+W.earliestAgg*P.A&&waited<W.maxWait)return false;
+  const c=densest(alive[1-s]),dens=c?localCount(c.x,c.z,1-s):0,myC=centroid(alive[s],fg[s]);let near=1e9;for(const u of alive[1-s]){const d=Math.abs(u.x-myC.x)+Math.abs(u.z-myC.z);if(d<near)near=d;}
+  const threat=near<W.threat||morale[s]<0.5,planOK=orders[s]==='charge'?near<22:orders[s]==='hold'?(orders[1-s]==='charge'&&near<28):true;
+  const parts={base:W.score,agg:P.A*W.agg,caution:Math.max(0,-P.A)*W.caut*(threat?1:-1),opp:Math.max(0,P.O)*W.opp*clamp(dens/W.densityOpp-1,-1,1),disc:Math.max(0,P.D)*W.disc*(planOK?1:-1),wait:waited/W.maxWait};
+  const v=Object.values(parts).reduce((a,b)=>a+b,0),go=v>=0.5||waited>=W.maxWait;
+  if(go){repWhy(s,'spell: casts after '+waited.toFixed(1)+'s ready | densest group '+dens+', nearest foe '+Math.round(near)+', threat '+threat+', plan ok '+planOK+' | '+Object.entries(parts).map(e=>e[0]+' '+f2(e[1])).join(', ')+' = '+v.toFixed(2));C.since=-1;}
+  return go;}
+/* duels: whether to hunt the enemy general, and whether to dodge his hunt */
+function duelWant(s){const P=gpOf(active[s]),W=PWT.duel,me=active[s],op=active[1-s],ratio=strength(me)/strength(op),sr=alive[s].length/Math.max(1,alive[1-s].length);
+  let thr=DIFF.seekR*(1-W.seekAgg*P.A);if(op.hp<op.d.hp*0.5)thr-=W.seekOppWeak*Math.max(0,P.O);if(sr>1.3)thr+=W.seekDiscWinning*Math.max(0,P.D);
+  const want=ratio>thr&&me.hp>me.d.hp*(0.4-W.hpAgg*P.A);return{want,ratio,thr,avoid:ratio<W.avoid+W.avoidCaut*Math.max(0,-P.A)};}
+/* duel moves: the old weighted pick, plus reading the foe (opportunists), offence (aggressive), guarding (cautious) and keeping a steady
+   pattern (disciplined) */
+function aiDuelMove(s){const P=gpOf(active[s]),W=PWT.duelMove,oppLast=s===1?duel.lastP:duel.lastE,n=duel.round||1;
+  if(P.D>0&&Math.random()<P.D*W.pattern){const seq=P.A>=0?['strike','strike','power']:['guard','guard','strike'];return seq[(n-1)%3];}
+  const w={strike:0.4,guard:0.3,power:0.3},rd=W.read+W.readOpp*Math.max(0,P.O);
+  if(oppLast==='strike')w.guard+=rd;else if(oppLast==='guard')w.power+=rd;else if(oppLast==='power')w.strike+=rd;
+  w.power+=W.aggPower*Math.max(0,P.A);w.strike+=W.aggStrike*Math.max(0,P.A);w.guard+=W.cautGuard*Math.max(0,-P.A);
+  if(active[s].hp<active[s].d.hp*0.3)w.guard+=0.15;
+  const tot=w.strike+w.guard+w.power;let r=Math.random()*tot;for(const k of['strike','guard','power']){r-=w[k];if(r<=0)return k;}return'strike';}
 const tsq=u=>u&&u.sqd!=null&&TAC.sq[u.side]?TAC.sq[u.side][u.sqd]:null;
 const tnow=()=>performance.now()/1000;
 const ORDSPD={charge:1.12,hold:0.8};
@@ -4447,56 +4555,64 @@ const tacGuardThin=s=>tacGuard(s)<10;
 function tacDuelOk(){for(let s=0;s<2;s++)if(!seekDuel[s]&&!tacGuardThin(s)){const t=tnow();if(t-(TAC.gw||0)>6){TAC.gw=t;showBanner(active[s].d.short+"'s bodyguard keeps the generals apart",s===0);}return false;}return true;}
 
 /* ---------- tactical AI ---------- */
-function tacAI(s){const S=TAC.sq[s].filter(q=>!q.dead&&q.na>0&&q.st!=='rout'),K=tacSkill(s),pers=persOf(active[s]),A=TAC.ai[s];if(!S.length)return;
+let TACWHY='';
+function tacAI(s){const S=TAC.sq[s].filter(q=>!q.dead&&q.na>0&&q.st!=='rout'),K=tacSkill(s),P=gpOf(active[s]),SW=PWT.squad,A=TAC.ai[s];if(!S.length)return;
+  const why=w=>{TACWHY=w;};
   const sight=ecl[1-s]>0?35:70,E=TAC.sq[1-s].filter(q=>!q.dead&&q.na>0&&q.st!=='rout'&&!q.hid&&S.some(m=>Math.hypot(m.cx-q.cx,m.cz-q.cz)<sight));
   const melee=q=>{const ty=(q.m[0]||{}).type;return ty&&!RANGED[ty]&&ty!=='monk';},free=q=>melee(q)&&!q.pend&&q.lock<=0&&tnow()-q.contactT>1.5&&q.rec<=0;const t=tnow();
-  if(!A.res){const R0=clamp(K.res+(pers==='defensive'||pers==='cautious'?1:pers==='aggressive'?-1:0),0,1);A.res=new Set();if(S.length>=5&&R0>0&&melee(S[0])){const mid=(TAC.sq[s].length-1)/2;S.slice().sort((a,b)=>Math.abs(a.k-mid)-Math.abs(b.k-mid)).slice(0,R0).forEach(q=>{A.res.add(q);q.role='reserve';q.ai=true;tacQueue(q,'move',{goal:{x:anchor[s]+(s?6:-6),z:q.cz}});});}A.lockT=0;}
+  if(!A.res){/* reserves: cautious and disciplined generals keep more back, aggressive ones fewer */const R0=clamp(Math.round(K.res+SW.res.agg*P.A+SW.res.disc*P.D),0,2);if(R0)repWhy(s,'reserves: keeps '+R0+' squad'+(R0>1?'s':'')+' back | skill '+K.res+', agg '+f2(SW.res.agg*P.A)+', disc '+f2(SW.res.disc*P.D));A.res=new Set();if(S.length>=5&&R0>0&&melee(S[0])){const mid=(TAC.sq[s].length-1)/2;S.slice().sort((a,b)=>Math.abs(a.k-mid)-Math.abs(b.k-mid)).slice(0,R0).forEach(q=>{A.res.add(q);q.role='reserve';q.ai=true;tacQueue(q,'move',{goal:{x:anchor[s]+(s?6:-6),z:q.cz}});});}A.lockT=0;}
   A.lockT=S.some(q=>q.role!=='reserve'&&t-q.contactT<1)?(A.lockT||0)+K.int:0;
   /* army stance (Knight and Warlord): heavy troops never receive a charge standing still, ranged troops hold and shoot, foot charges when it is not outnumbered, and forms square against incoming horse */
   if(K.int<=1.6){const my=(active[s]||{d:{}}).d.troop,heavy=my==='cav'||my==='kni'||my==='drag',mine=alive[s].length,theirs=alive[1-s].length;
-    let want=RANGED[my]||my==='monk'?'hold':heavy?'charge':mine>=theirs*0.9?'charge':'hold';if(morale[s]<0.3)want='hold';if(SIEGE&&SIEGE.hp>0)want=SIEGE.def===s&&!SIEGE.open?'hold':'charge';
-    if(want!==orders[s]&&engT-(A.ordT||-99)>6){A.ordT=engT;if(want==='hold')holdStamp[s]++;else battleCry(s,14,0.8);orders[s]=want;}
     const inbound=E.some(e=>e.chg.p>0.35&&Math.hypot(e.cx-S[0].cx,e.cz-S[0].cz)<30);
-    if(!heavy&&!RANGED[my]&&my!=='monk'&&inbound&&form[s]!=='square'&&reform[s]<=0&&A.formCD<=0&&pers!=='aggressive'){A.formCD=12;setForm(s,'square');}
+    if(!heavy&&!RANGED[my]&&my!=='monk'&&inbound&&form[s]!=='square'&&reform[s]<=0&&A.formCD<=0&&P.A<SW.squareAgg){A.formCD=12;setForm(s,'square');repWhy(s,'formation: square against incoming horse (aggression '+P.agg+' allows it)');}
     else if(form[s]==='square'&&!inbound&&A.formCD<=0&&reform[s]<=0&&!E.some(e=>e.chg.p>0.2)){A.formCD=12;setForm(s,'line');}}
   /* commit reserves where the line is breaking */
+  /* the moment to commit: a breaking friend, the lines locked long enough (sooner for aggressive and opportunistic generals, later for disciplined ones),
+     the enemy at the reserve's door, or for an opportunist a wavering enemy squad once the fight is under way */
+  const lockNeed=Math.max(1,SW.resLock+SW.resLockAgg*P.A+SW.resLockDisc*P.D+SW.resLockOpp*Math.max(0,P.O));
   for(const q of S){if(q.role!=='reserve')continue;const weak=TAC.sq[s].find(o=>!o.dead&&o!==q&&(o.st==='waver'||o.st==='rout'));
-    if(weak||A.lockT>3||E.some(e=>Math.hypot(e.cx-q.cx,e.cz-q.cz)<12)){q.role='line';const eng=E.filter(e=>t-e.contactT<1.5),tg=weak?nearestSqTo(E,weak.cx,weak.cz):nearestSqTo(eng.length?eng:E,q.cx,q.cz);if(tg){if(weak)tacQueue(q,'charge',{tgt:tg});else tacQueue(q,'flank',{ftgt:tg});}}}
+    const opening=P.O>SW.resOpening&&engT>SW.resMinEng?E.find(e=>e.st==='waver'||e.coh<35):null;
+    if(weak||opening||A.lockT>lockNeed||E.some(e=>Math.hypot(e.cx-q.cx,e.cz-q.cz)<12)){q.role='line';const eng=E.filter(e=>t-e.contactT<1.5),tg=opening||(weak?nearestSqTo(E,weak.cx,weak.cz):nearestSqTo(eng.length?eng:E,q.cx,q.cz));
+      if(tg){why('reserve committed: '+(weak?'line breaking':opening?'opening: wavering enemy squad (opp '+P.opp+')':A.lockT>lockNeed?'lines locked '+A.lockT.toFixed(1)+'s > '+lockNeed.toFixed(1)+'s':'enemy at the reserve'));q.tgtT=t;if(weak||opening)tacQueue(q,'charge',{tgt:tg});else tacQueue(q,'flank',{ftgt:tg});}}}
   /* exposed flanks: an enemy squad locked in front, with no friend covering its side */
-  if(Math.random()<K.flank*(pers==='opportunistic'?1.2:pers==='cautious'?0.8:1)){for(const e of E){if(t-e.contactT>1)continue;const px=-e.fz,pz=e.fx;
+  /* flanks: opportunists look harder and may go for an exposed squad before it is engaged; disciplined generals wait until their own line is locked;
+     cautious ones only send a squad that will not be outmatched; aggressive ones sometimes retry a flank that failed */
+  const flankP=K.flank*Math.max(0.2,1+SW.flankOpp*P.O+SW.flankAgg*P.A),softE=e=>{const ty=(e.m[0]||{}).type;return(RANGED[ty]||ty==='monk'||e.coh<40)&&!E.some(o=>o!==e&&Math.hypot(o.cx-e.cx,o.cz-e.cz)<10&&!RANGED[(o.m[0]||{}).type]);};
+  if(Math.random()<flankP&&!(P.D>0.3&&!(A.lockT>0))){for(const e of E){const early=P.O>SW.flankEarlyOpp&&softE(e);if(t-e.contactT>1&&!early)continue;const px=-e.fz,pz=e.fx;
       for(const sg of[1,-1]){const fx=e.cx+px*sg*9,fz=e.cz+pz*sg*9;if(TAC.sq[1-s].some(o=>o!==e&&!o.dead&&o.na>0&&Math.hypot(o.cx-fx,o.cz-fz)<9))continue;
-        if(S.some(q=>q.ftgt===e))break;const cand=S.filter(q=>free(q)&&q.role!=='reserve'&&!(TAC.mem.get(e)>engT&&!(pers==='aggressive'&&Math.random()<0.3))).sort((a,b)=>Math.hypot(a.cx-fx,a.cz-fz)-Math.hypot(b.cx-fx,b.cz-fz))[0];
-        if(cand){cand.ai=true;tacQueue(cand,'flank',{ftgt:e});DE4LOG.info('tac AI side '+s+' flanks squad '+(e.k+1));}break;}}}
+        if(S.some(q=>q.ftgt===e))break;const cand=S.filter(q=>free(q)&&q.role!=='reserve'&&!(TAC.mem.get(e)>engT&&!(Math.random()<SW.flankMemAgg*Math.max(0,P.A)))&&!(P.A<0&&q.na<e.na*SW.flankCautNa*(1-P.A))).sort((a,b)=>Math.hypot(a.cx-fx,a.cz-fz)-Math.hypot(b.cx-fx,b.cz-fz))[0];
+        if(cand){cand.ai=true;cand.tgtT=t;why('flank: '+(t-e.contactT<=1?'enemy squad locked in front, side uncovered':'exposed '+((RANGED[(e.m[0]||{}).type]||(e.m[0]||{}).type==='monk')?'support/ranged':'weak')+' squad, not yet engaged')+' | flank chance '+flankP.toFixed(2)+' (skill '+K.flank+', opp '+f2(SW.flankOpp*P.O)+', agg '+f2(SW.flankAgg*P.A)+')');tacQueue(cand,'flank',{ftgt:e});DE4LOG.info('tac AI side '+s+' flanks squad '+(e.k+1));}break;}}}
   /* weak or isolated squads: pile in for local superiority */
-  if(!K.nopile)for(const e of E){const iso=TAC.sq[1-s].every(o=>o===e||o.dead||o.na<=0||Math.hypot(o.cx-e.cx,o.cz-e.cz)>18);if(!(e.st==='waver'||e.coh<35||iso))continue;if(S.filter(q=>q.tgt===e).length>=2)continue;
-    const c=S.filter(q=>free(q)&&q.role!=='reserve'&&q.tgt!==e&&!(TAC.mem.get(e)>engT)).sort((a,b)=>Math.hypot(a.cx-e.cx,a.cz-e.cz)-Math.hypot(b.cx-e.cx,b.cz-e.cz)).slice(0,2-S.filter(q=>q.tgt===e).length);
-    for(const q of c){q.ai=true;tacQueue(q,'charge',{tgt:e});}}
+  /* weak, isolated or (for opportunists) exposed support squads: pile in. Opportunists see more such chances and send a third squad;
+     disciplined generals only strike targets near their own line and switch targets less readily */
+  const pileCoh=SW.pileCoh+SW.pileCohOpp*P.O,pileMax=2+(P.O>SW.pileMaxOpp?1:0),maxSep=25+SW.supportOpp*P.O,reT=Math.max(1,SW.retarget+SW.retargetOpp*Math.max(0,P.O)+SW.retargetDisc*Math.max(0,P.D));
+  if(!K.nopile)for(const e of E){const iso=TAC.sq[1-s].every(o=>o===e||o.dead||o.na<=0||Math.hypot(o.cx-e.cx,o.cz-e.cz)>18),soft=P.O>0.3&&softE(e);if(!(e.st==='waver'||e.coh<pileCoh||iso||soft))continue;
+    const have=S.filter(q=>q.tgt===e).length;if(have>=pileMax)continue;let sup=1e9;for(const q of S){const d=Math.hypot(q.cx-e.cx,q.cz-e.cz);if(d<sup)sup=d;}if(sup>maxSep)continue;
+    const c=S.filter(q=>free(q)&&q.role!=='reserve'&&q.tgt!==e&&!(q.tgtT&&t-q.tgtT<reT)&&!(TAC.mem.get(e)>engT)).sort((a,b)=>Math.hypot(a.cx-e.cx,a.cz-e.cz)-Math.hypot(b.cx-e.cx,b.cz-e.cz)).slice(0,pileMax-have);
+    for(const q of c){q.ai=true;q.tgtT=t;why('pile in on '+(e.st==='waver'?'a wavering':iso?'an isolated':e.coh<pileCoh?'a weak (cohesion '+Math.round(e.coh)+' < '+Math.round(pileCoh)+')':'an exposed support')+' squad | up to '+pileMax+' squads, retarget after '+reT.toFixed(1)+'s');tacQueue(q,'charge',{tgt:e});}}
   /* terrain check: horsemen do not charge through woods or bog */
   for(const q of S){const ty=(q.m[0]||{}).type;if(!(ty==='cav'||ty==='kni')||q.ord!=='charge')continue;const tg=q.tgt||nearestSqTo(E,q.cx,q.cz);if(!tg)continue;let bad=0;
     for(let i=1;i<=6;i++){const x=q.cx+(tg.cx-q.cx)*i/7,z=q.cz+(tg.cz-q.cz)*i/7;if(navAt(x,z)===2||inWoods(x,z))bad++;}if(bad>=3&&free(q)){q.ai=true;tacQueue(q,'flank',{ftgt:tg});}}
   /* adapt to being flanked or charged again and again */
   if(K.adapt){if(A.flankRecv>40&&!A.guard){A.guard=true;const ends=S.slice().sort((a,b)=>a.cz-b.cz);[ends[0],ends[ends.length-1]].forEach(q=>{if(q&&q.role!=='reserve'){q.ai=true;tacQueue(q,'hold');}});DE4LOG.info('tac AI side '+s+' guards its flanks');}
-    if(A.chargeRecv>25&&A.formCD<=0&&form[s]!=='square'&&pers!=='aggressive'){A.formCD=20;setForm(s,'square');}}
+    if(A.chargeRecv>25&&A.formCD<=0&&form[s]!=='square'&&P.A<SW.squareAgg){A.formCD=20;setForm(s,'square');}}
   /* crystals: send the nearest free squad (any troop type) to a crystal that is ready or nearly ready, unless we already have troops on it
      or the enemy holds it in strength */
   for(const q of S)if(q.cg&&!pups.includes(q.cg)){q.cg=null;if(q.ai&&!q.tgt&&!q.ftgt&&q.lock<=0){q.ai=false;tacQueue(q,orders[s]);}}
-  for(const p of pups){if(p.pend>4)continue;if(S.some(q=>q.cg===p||Math.hypot(q.cx-p.x,q.cz-p.z)<4))continue;
+  const lineN=S.filter(q=>q.role!=='reserve'&&!q.cg).length;
+  for(const p of pups){if(p.pend>4)continue;if(S.some(q=>q.cg===p||Math.hypot(q.cx-p.x,q.cz-p.z)<4))continue;if(P.D>0.3&&lineN<=SW.crystalLineMin)continue;
     const theirs=TAC.sq[1-s].filter(q=>!q.dead&&q.na>0&&Math.hypot(q.cx-p.x,q.cz-p.z)<6).reduce((n,q)=>n+q.na,0);
     const cand=S.filter(q=>!q.cg&&q.role!=='reserve'&&!q.pend&&q.lock<=0&&t-q.contactT>1.5&&q.rec<=0).sort((a,b)=>Math.hypot(a.cx-p.x,a.cz-p.z)-Math.hypot(b.cx-p.x,b.cz-p.z))[0];
-    if(!cand||Math.hypot(cand.cx-p.x,cand.cz-p.z)>50||cand.na<theirs*0.8||Math.random()>0.75)continue;
-    cand.ai=true;cand.cg=p;tacQueue(cand,'move',{goal:{x:clamp(p.x,-FW/2+3,FW/2-3),z:clamp(p.z,-FD/2+3,FD/2-3)}});DE4LOG.info('tac AI side '+s+' sends squad '+(cand.k+1)+' for the '+PU[p.k].n+' crystal');}
+    const cDist=SW.crystalDist+SW.crystalDistOpp*P.O,cP=clamp(SW.crystal+SW.crystalOpp*P.O,0.1,0.95);if(!cand||Math.hypot(cand.cx-p.x,cand.cz-p.z)>cDist||cand.na<theirs*0.8||Math.random()>cP)continue;
+    why('crystal: '+PU[p.k].n+' | within '+Math.round(cDist)+', chance '+cP.toFixed(2)+' (opp '+f2(SW.crystalOpp*P.O)+')');cand.ai=true;cand.cg=p;tacQueue(cand,'move',{goal:{x:clamp(p.x,-FW/2+3,FW/2-3),z:clamp(p.z,-FD/2+3,FD/2-3)}});DE4LOG.info('tac AI side '+s+' sends squad '+(cand.k+1)+' for the '+PU[p.k].n+' crystal');}
   /* squads whose special job is done rejoin the army order */
   for(const q of S){if(!q.ai||q.role==='reserve'||q.pend||q.cg)continue;const done=(q.ord==='flank'&&(!q.ftgt||q.ftgt.dead||q.ftgt.st==='rout'))||(q.tgt&&(q.tgt.dead||q.tgt.st==='rout'))||(q.ord==='charge'&&!q.tgt&&!q.ftgt);
     if(done&&q.lock<=0){q.ai=false;q.tgt=null;q.ftgt=null;tacQueue(q,orders[s]);}}}
 function nearestSqTo(L,x,z){let b=null,bd=1e9;for(const e of L){const d=Math.hypot(e.cx-x,e.cz-z);if(d<bd){bd=d;b=e;}}return b;}
 
 /* ---------- duels ---------- */
-function tacEnemyPick(orig){const p=persOf(active[1]),r=Math.random();if(r<0.25||p==='balanced')return orig();const n=duel.round||1;
-  if(p==='aggressive')return['strike','strike','power'][(n-1)%3];
-  if(p==='defensive')return['guard','guard','strike'][(n-1)%3];
-  if(p==='cautious')return duel.lastE==='guard'?'strike':'guard';
-  if(p==='opportunistic')return duel.lastP==='strike'?'guard':duel.lastP==='guard'?'power':'strike';
-  return orig();}
+function tacEnemyPick(orig){return aiDuelMove(1);}
 
 /* ---------- hidden simultaneous general pick ---------- */
 function tacGuess(){const L=avail(0);if(!L.length)return active[0];const last=TAC.lastPick;return L.slice().sort((a,b)=>(b===last?-1:0)-(a===last?-1:0)||b.troops-a.troops)[0];}
@@ -4601,14 +4717,14 @@ applyClash=(f=>()=>{const h0=active[0]?active[0].hp:0,h1=active[1]?active[1].hp:
   if(TAC.on&&active[0]&&active[1]){const d0=h0-active[0].hp,d1=h1-active[1].hp;if(d0!==d1){const w=d1>d0?0:1;for(const q of TAC.sq[w])q.mor=Math.min(100,q.mor+3);for(const q of TAC.sq[1-w])q.mor=Math.max(0,q.mor-3);}}return r;})(applyClash);
 finishDuel=(f=>w=>{const L=1-w;const r=f(w);if(TAC.on){for(const q of TAC.sq[w])q.mor=Math.min(100,q.mor+20);berserk[L]=0;
   if(TAC.duelInit===L){let n=0;for(const x of roster[L])if(x!==active[L]&&!x.out&&x.troops>0){x.troops=Math.round(x.troops*0.85);n++;}if(n)schedule(2.2,()=>showBanner((L===0?'Your':'The enemy')+' challenge failed: deserters leave the other companies (-15% troops)',L===0));}}return r;})(finishDuel);
-enemyPick=(f=>()=>TAC.on?tacEnemyPick(f):f())(enemyPick);
+enemyPick=(f=>()=>aiDuelMove(1))(enemyPick);/* personality-driven duel moves in every mode */
 endBattle=(f=>(win,why)=>{const r=f(win,why);if(TAC.on&&TAC.tel){const t=tacTelText();DE4LOG.info(t);if(RES&&RES.spoils)RES.spoils.push(['good',t]);}tacHideMarkers();return r;})(endBattle);
 /* battle report hooks */
 updateUnits=(f=>dt=>{f(dt);if(state==='battle'&&LAVA_ON())lavaTick(dt);if(LPATCH.length)lavaPatchTick(dt);if(LCOOL.length)lavaCoolTick(dt);})(updateUnits);
-deploy=(f=>()=>{const r=f();volT=R(8,16);volT2=R(10,22);try{repRoundStart();}catch(e){DE4LOG.err(e,'report');}return r;})(deploy);
+deploy=(f=>()=>{const r=f();for(let i=0;i<2;i++){ARMY[i].ordT=-99;CASTW[i].since=-1;}volT=R(8,16);volT2=R(10,22);try{repRoundStart();}catch(e){DE4LOG.err(e,'report');}return r;})(deploy);
 endBattle=(f=>(win,why)=>{try{repFinish((win?'LEFT army wins':'RIGHT army wins')+(why?' ('+why+')':''));}catch(e){DE4LOG.err(e,'report');}return f(win,why);})(endBattle);
 showBanner=(f=>(txt,red)=>{try{if(state==='battle')repEv(txt);}catch(e){}return f(txt,red);})(showBanner);
-tacQueue=(f=>(sq,o,extra)=>{try{if(state==='battle'&&sq){const side=TAC.sq[1].includes(sq)?'R':'L',tg=extra&&(extra.tgt||extra.ftgt);repDec(side+(sq.ai?' AI':' player')+' sq'+((sq.k|0)+1)+' '+o+(tg&&tg.k!=null?' → enemy sq'+(tg.k+1):''));}}catch(e){}return f(sq,o,extra);})(tacQueue);
+tacQueue=(f=>(sq,o,extra)=>{try{if(state==='battle'&&sq){const si=TAC.sq[1].includes(sq)?1:0,side=si?'R':'L',tg=extra&&(extra.tgt||extra.ftgt),d=' sq'+((sq.k|0)+1)+' '+o+(tg&&tg.k!=null?' → enemy sq'+(tg.k+1):'');repDec(side+(sq.ai?' AI':' player')+d);if(TACWHY)repWhy(si,'squad'+d+': '+TACWHY);}}catch(e){}TACWHY='';return f(sq,o,extra);})(tacQueue);
 pickType=(f=>()=>{if(TAC.on&&mapChoice==='random'){const t=tacFieldType();if(t)return t;}return f();})(pickType);
 collapse=(f=>n=>{if(TAC.on&&tacSuccession(n))return;return f(n);})(collapse);
 arrive=(f=>(a,c)=>{if(TAC.on&&a.blk&&!a.retreat&&c.o!==a.nat&&hostile(a.nat,c.o)&&garrison(c).some(r=>r.troops>0||r.hp>0)){a.bsg=c.id;a.halt=true;a.seg=Math.max(0,a.path.length-2);a.t=0.82;
