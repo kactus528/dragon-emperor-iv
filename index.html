@@ -543,7 +543,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 138';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 139';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1966,12 +1966,21 @@ function addBlood(x,z){if(goreX){addSplat(x+R(-0.4,0.4),z+R(-0.4,0.4),R(1.6,3.2)
   if(blood>0.3)for(let k=0,n=Math.round(blood*4);k<n;k++)spawn({x,y:Hb(x,z)+0.7,z,vx:R(-2.5,2.5),vy:R(2,5),vz:R(-2.5,2.5),g:-22,life:R(0.4,0.8),tex:T_DROP,w:0.18,h:0.18,ground:true});}
 /* splashed lava leaves its own stains on the ground, the same splat shapes as blood but glowing in the lava's colours; they stay for the battle like blood does */
 const LDEC_N=160,ldecals=BLOODT.map(t=>{const src=t&&t.image,c=cv(128,128),x=c.getContext('2d');try{x.drawImage(src,0,0,128,128);}catch(e){x.fillStyle='#fff';x.beginPath();x.arc(64,64,50,0,7);x.fill();}x.globalCompositeOperation='source-in';
-    const g=x.createRadialGradient(c.width/2,c.height/2,2,c.width/2,c.height/2,c.width*0.5);g.addColorStop(0,'#fff0a0');g.addColorStop(0.35,'#ffb12a');g.addColorStop(0.7,'#ff5a12');g.addColorStop(1,'#c02a08');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
+    const g=x.createRadialGradient(c.width/2,c.height/2,2,c.width/2,c.height/2,c.width*0.5);g.addColorStop(0,'#ffffff');g.addColorStop(0.45,'#e2e2e2');g.addColorStop(1,'#9a9a9a');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
     const m=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:tex(c,true),transparent:true,depthWrite:false,opacity:0.95,fog:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}),LDEC_N);
-    m.count=0;m.frustumCulled=false;m.renderOrder=2;battle.add(m);return{m,i:0,n:0};});
+    const c0=new THREE.Color(0.22,0.16,0.11);for(let i=0;i<LDEC_N;i++)m.setColorAt(i,c0);m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    m.count=0;m.frustumCulled=false;m.renderOrder=2;battle.add(m);return{m,i:0,n:0,gen:new Uint32Array(LDEC_N)};});
+/* stains cool over 30 s: white-hot yellow, then orange, then red, then a dark scorched brown that stays */
+const LCOOL=[],LCOOL_T=30,_lc=new THREE.Color();let lcGen=1,lcAcc=0;
+function lavaHeatCol(h,c){if(h>0.5){const k=(h-0.5)/0.5;c.setRGB(0.78+0.22*k,0.26+0.5*k,0.06+0.3*k);}else{const k=h/0.5;c.setRGB(0.22+0.56*k,0.16+0.1*k,0.11-0.05*k);}return c;}
+function lavaCoolTick(dt){lcAcc+=dt;if(lcAcc<0.1)return;const st=lcAcc;lcAcc=0;const dirty=new Set();
+  for(let k=LCOOL.length-1;k>=0;k--){const e=LCOOL[k];e.t+=st;if(e.D.gen[e.i]!==e.g){LCOOL.splice(k,1);continue;}const h=Math.max(0,1-e.t/LCOOL_T);
+    lavaHeatCol(h,_lc);if(h>0.15)_lc.multiplyScalar(0.92+0.08*Math.sin(e.t*7+e.i));e.D.m.setColorAt(e.i,_lc);dirty.add(e.D);if(h<=0)LCOOL.splice(k,1);}
+  for(const D of dirty)D.m.instanceColor.needsUpdate=true;}
 function addLavaSplat(x,z,sc){if(lavaDist(x,z)<0.1)return;const D=ldecals[(Math.random()*ldecals.length)|0];_de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x,Hb(x,z)+0.075,z);_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
-  D.m.setMatrixAt(D.i,_dm);D.i=(D.i+1)%LDEC_N;D.n=Math.min(LDEC_N,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;}
-function clearBlood(){for(const D of decals){D.i=0;D.n=0;D.m.count=0;}for(const D of ldecals){D.i=0;D.n=0;D.m.count=0;}}
+  D.m.setMatrixAt(D.i,_dm);D.gen[D.i]=++lcGen;D.m.setColorAt(D.i,lavaHeatCol(1,_lc));D.m.instanceColor.needsUpdate=true;LCOOL.push({D,i:D.i,g:lcGen,t:0});
+  D.i=(D.i+1)%LDEC_N;D.n=Math.min(LDEC_N,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;}
+function clearBlood(){LCOOL.length=0;if(typeof LPATCH!=='undefined'){for(const h of LPATCH)h.m.visible=false;LPATCH.length=0;}for(const D of decals){D.i=0;D.n=0;D.m.count=0;}for(const D of ldecals){D.i=0;D.n=0;D.m.count=0;}}
 function setBlood(v){blood=clamp(v,0,1);try{localStorage.setItem('de4-blood',String(Math.round(blood*100)));}catch(e){}const r=document.getElementById('bloodR'),b=document.getElementById('bloodV');if(r)r.value=Math.round(blood*100);if(b)b.textContent=blood?Math.round(blood*100)+'%':'Off';}
 const tcloud=[{t:0,n:0},{t:0,n:0}];
 const cloudTex=(()=>{const c=cv(256,128),x=c.getContext('2d');for(const[cx,cy,r,col]of[[70,78,40,'#3b3550'],[128,60,52,'#4a4363'],[188,76,42,'#3b3550'],[105,90,36,'#2c2740'],[160,92,38,'#2c2740'],[128,48,34,'#5a5278']]){const g=x.createRadialGradient(cx,cy-r*0.3,r*0.2,cx,cy,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(30,26,44,0.0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();}return tex(c,true);})();
@@ -2340,11 +2349,11 @@ function lavaSplash(x,z){const y=Hb(x,z)+0.2;sfx('splash');
   for(let i=0;i<2;i++)spawn({x:x+R(-0.4,0.4),y:y+1.2,z:z+R(-0.4,0.4),frames:SMOKE,w:R(1.3,1.9),h:R(1.3,1.9),life:R(1.0,1.4),grow:1.2,vy:R(1.2,2),op:0.4});}
 /* burning patches of splashed lava: they glow on the ground for a few seconds, hurt anyone standing in them, and the burnt troops scramble out */
 const LPATCH=[],LPM=[];
-function lavaPatch(x,z){if(state!=='battle'||LPATCH.length>=14)return;let m=LPM.find(o=>!o.visible);if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:glowTex,color:0xff7a1a,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));m.rotation.x=-Math.PI/2;m.renderOrder=3;battle.add(m);LPM.push(m);}
-  const r=R(0.9,1.3);addLavaSplat(x,z,r*2.2);addLavaSplat(x+R(-r,r),z+R(-r,r),R(0.6,1.2));m.visible=true;m.scale.set(r*2.6,r*2.6,1);m.position.set(x,Hb(x,z)+0.08,z);LPATCH.push({x,z,r,t:6,T:6,k:0.2,m});
+function lavaPatch(x,z){if(state!=='battle'||LPATCH.length>=24)return;let m=LPM.find(o=>!o.visible);if(!m){m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:glowTex,color:0xff7a1a,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));m.rotation.x=-Math.PI/2;m.renderOrder=3;battle.add(m);LPM.push(m);}
+  const r=R(0.9,1.3);addLavaSplat(x,z,r*2.2);addLavaSplat(x+R(-r,r),z+R(-r,r),R(0.6,1.2));m.visible=true;m.scale.set(r*2.6,r*2.6,1);m.position.set(x,Hb(x,z)+0.08,z);LPATCH.push({x,z,r,t:LCOOL_T,T:LCOOL_T,k:0.2,m});
   for(let i=0;i<5;i++)spawn({x:x+R(-r,r)*0.6,y:Hb(x,z)+0.3,z:z+R(-r,r)*0.6,frames:FLAME,w:R(0.8,1.2),h:R(0.8,1.2),life:R(0.4,0.7),vy:0.8});}
 function lavaPatchTick(dt){for(let i=LPATCH.length-1;i>=0;i--){const h=LPATCH[i];h.t-=dt;if(h.t<=0||state!=='battle'){h.m.visible=false;LPATCH.splice(i,1);continue;}
-    h.m.material.opacity=Math.min(1,h.t/1.5)*(0.75+0.25*Math.sin(h.t*9+h.x));if(Math.random()<dt*5)spawn({x:h.x+R(-h.r,h.r)*0.6,y:Hb(h.x,h.z)+0.25,z:h.z+R(-h.r,h.r)*0.6,frames:FLAME,w:R(0.5,0.9),h:R(0.5,0.9),life:R(0.35,0.6),vy:0.7});
+    const heat=h.t/h.T;h.m.material.opacity=Math.min(1,heat*1.3)*(0.75+0.25*Math.sin(h.t*9+h.x));h.m.scale.setScalar(h.r*2.6*(0.75+0.25*heat));h.m.scale.z=1;if(Math.random()<dt*5*heat)spawn({x:h.x+R(-h.r,h.r)*0.6,y:Hb(h.x,h.z)+0.25,z:h.z+R(-h.r,h.r)*0.6,frames:FLAME,w:R(0.5,0.9),h:R(0.5,0.9),life:R(0.35,0.6),vy:0.7});
     if(phase!=='fight')continue;h.k-=dt;if(h.k>0)continue;h.k=0.5;
     for(let s=0;s<2;s++)for(const u of alive[s]){if(u.state!=='alive'||FLY[u.type]||Math.abs(u.x-h.x)>h.r||Math.abs(u.z-h.z)>h.r)continue;const dx=u.x-h.x,dz=u.z-h.z,d=Math.hypot(dx,dz);if(d>h.r)continue;
       u.hp-=0.9;if(u.hp<=0){kill(u,h.x,h.z,2.5,2);continue;}const l=d||1;u.dodx=d?dx/l:R(-1,1);u.dodz=d?dz/l:R(-1,1);u.dodgeT=0.7;}}}
@@ -4170,7 +4179,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 138; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 139; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
@@ -4494,7 +4503,7 @@ slotPos=(f=>u=>TAC.on&&u.sqd!=null&&tsq(u)?tacSlot(u):f(u))(slotPos);
 ord2spd=(f=>u=>f(u)*(TAC.on&&u.sqd!=null&&phase!=='duel'?tacSpd(u):1))(ord2spd);
 ord2spd=(f=>u=>f(u)*(phase!=='duel'&&relOn(u.side,'swift')?1.45:1))(ord2spd);
 deploy=(f=>()=>{for(const u of units){u.sqd=null;u.hid=false;}const r=f();if(TAC.on&&state==='battle'){tacDeploy();if(active[1]){const msg=active[0].d.short+' faces '+active[1].d.short+' ('+PNAME[persOf(active[1])]+')';schedule(0.05,()=>showBanner(msg));}}else TAC.sq=[[],[]];return r;})(deploy);
-updateUnits=(f=>dt=>{f(dt);if(LAVA.mat&&(LAVA.rivers.length||LAVA.pools.length)){const t=performance.now()/1000;LAVA.mat.color.setRGB(1,0.42+0.1*Math.sin(t*1.7),0.06+0.04*Math.sin(t*2.9));{const k=0.86+0.14*Math.sin(t*2.3);for(const D of ldecals)if(D.n)D.m.material.color.setRGB(1,k,k*0.9);}}if(TAC.on&&state==='battle'){if(phase==='fight'||phase==='intro'||phase==='plan'||phase==='taunt')tacTick(dt);else tacHideMarkers();}})(updateUnits);
+updateUnits=(f=>dt=>{f(dt);if(LAVA.mat&&(LAVA.rivers.length||LAVA.pools.length)){const t=performance.now()/1000;LAVA.mat.color.setRGB(1,0.42+0.1*Math.sin(t*1.7),0.06+0.04*Math.sin(t*2.9));}if(TAC.on&&state==='battle'){if(phase==='fight'||phase==='intro'||phase==='plan'||phase==='taunt')tacTick(dt);else tacHideMarkers();}})(updateUnits);
 setOrder=(f=>o=>{if(!TAC.on||GUEST()||state!=='battle'||!TAC.sq[0].length)return f(o);
   if(phase==='fight'&&TAC.sel[0]>=0){if(tacSetOrder(0,o)){showBanner('Squad '+(TAC.sel[0]+1)+': '+o.toUpperCase());sfx('lock');}return;}
   const r=f(o);TAC.ao[0]=orders[0];if(phase==='fight')tacSetOrder(0,o);else for(const q of TAC.sq[0])tacApply(q,o);return r;})(setOrder);
@@ -4522,8 +4531,8 @@ finishDuel=(f=>w=>{const L=1-w;const r=f(w);if(TAC.on){for(const q of TAC.sq[w])
 enemyPick=(f=>()=>TAC.on?tacEnemyPick(f):f())(enemyPick);
 endBattle=(f=>(win,why)=>{const r=f(win,why);if(TAC.on&&TAC.tel){const t=tacTelText();DE4LOG.info(t);if(RES&&RES.spoils)RES.spoils.push(['good',t]);}tacHideMarkers();return r;})(endBattle);
 /* battle report hooks */
-updateUnits=(f=>dt=>{f(dt);if(state==='battle'&&LAVA_ON())lavaTick(dt);if(LPATCH.length)lavaPatchTick(dt);})(updateUnits);
-deploy=(f=>()=>{for(const h of LPATCH)h.m.visible=false;LPATCH.length=0;const r=f();try{repRoundStart();}catch(e){DE4LOG.err(e,'report');}return r;})(deploy);
+updateUnits=(f=>dt=>{f(dt);if(state==='battle'&&LAVA_ON())lavaTick(dt);if(LPATCH.length)lavaPatchTick(dt);if(LCOOL.length)lavaCoolTick(dt);})(updateUnits);
+deploy=(f=>()=>{const r=f();try{repRoundStart();}catch(e){DE4LOG.err(e,'report');}return r;})(deploy);
 endBattle=(f=>(win,why)=>{try{repFinish((win?'LEFT army wins':'RIGHT army wins')+(why?' ('+why+')':''));}catch(e){DE4LOG.err(e,'report');}return f(win,why);})(endBattle);
 showBanner=(f=>(txt,red)=>{try{if(state==='battle')repEv(txt);}catch(e){}return f(txt,red);})(showBanner);
 tacQueue=(f=>(sq,o,extra)=>{try{if(state==='battle'&&sq){const side=TAC.sq[1].includes(sq)?'R':'L',tg=extra&&(extra.tgt||extra.ftgt);repDec(side+(sq.ai?' AI':' player')+' sq'+((sq.k|0)+1)+' '+o+(tg&&tg.k!=null?' → enemy sq'+(tg.k+1):''));}}catch(e){}return f(sq,o,extra);})(tacQueue);
