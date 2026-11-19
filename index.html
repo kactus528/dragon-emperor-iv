@@ -543,7 +543,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 148';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 149';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2015,7 +2015,7 @@ function makeOrb(k){const col=new THREE.Color(PU[k].col),G=new THREE.Group();
   G.add(ring,halo,icon);G.userData={ring,halo,pad,icon};return{G,pad};}
 let PUID=0;
 function spawnPU(){if(pups.length>=3)return;const c0=centroid(alive[0],fg[0]),c1=centroid(alive[1],fg[1]),mx=(c0.x+c1.x)/2,mz=(c0.z+c1.z)/2;
-  for(let t=0;t<60;t++){const x=clamp(mx+R(-18,18),-FW/2+4,FW/2-4),z=clamp(mz+R(-26,26),-FD/2+4,FD/2-4);if(navAt(x,z)!==0||pups.some(p=>Math.hypot(p.x-x,p.z-z)<8))continue;
+  for(let t=0;t<60;t++){const x=clamp(mx+R(-18,18),-FW/2+4,FW/2-4),z=clamp(mz+R(-26,26),-FD/2+4,FD/2-4);if(navAt(x,z)!==0||solid(x,z)||pups.some(p=>Math.hypot(p.x-x,p.z-z)<8))continue;{let bad=0;for(let k=0;k<8;k++){const a=k/8*6.283;if(solid(x+Math.cos(a)*1.8,z+Math.sin(a)*1.8))bad++;}if(bad>2)continue;}
     const k=pickPU(),{G,pad}=makeOrb(k);battle.add(G);battle.add(pad);pad.position.set(x,Hb(x,z)+0.12,z);
     if(PU[k].legend){G.scale.setScalar(1.6);pad.scale.multiplyScalar(1.7);showBanner('A legendary crystal appears!');sfx('fanfare');for(let i=0;i<24;i++)spawn({x:x+R(-0.5,0.5),y:Hb(x,z)+R(0,14),z:z+R(-0.5,0.5),vy:R(4,9),tex:glowTex,w:R(0.6,1.4),h:R(0.6,1.4),life:R(0.8,1.6),blink:true});}
     const L=puLights.find(l=>!pups.some(p=>p.L===l));if(L){L.color.set(PU[k].col);}
@@ -4224,7 +4224,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 148; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 149; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
@@ -4271,7 +4271,7 @@ function tacStop(u,dt){const k=Math.min(1,dt*6);u.vx-=u.vx*k;u.vz-=u.vz*k;}
 function flankPoint(sq){const E=sq.ftgt;if(!E||E.dead||E.na<=0)return null;const px=-E.fz,pz=E.fx,sg=((sq.cx-E.cx)*px+(sq.cz-E.cz)*pz)>=0?1:-1;
   return{x:clamp(E.cx+px*sg*9-E.fx*4,-FW/2+3,FW/2-3),z:clamp(E.cz+pz*sg*9-E.fz*4,-FD/2+3,FD/2-3)};}
 function tacMove(u,dt,st,rg){const sq=tsq(u);if(!sq||u.wall)return false;
-  if(pups.length)for(const p of pups){if(!p.pend&&Math.abs(u.x-p.x)<1.8&&Math.abs(u.z-p.z)<1.8){tacStop(u,dt);return true;}}
+  if(pups.length)for(const p of pups){if((!p.pend||p.pend<2)&&Math.abs(u.x-p.x)<1.8&&Math.abs(u.z-p.z)<1.8){tacStop(u,dt);return true;}}
   if(sq.rec>0){const[sx,sz]=tacSlot(u);tacSteer(u,sx,sz,0.6,null,dt);return true;}
   if(sq.cyc>0){const E=nearestSq(sq);if(E){const dx=sq.cx-E.cx,dz=sq.cz-E.cz,d=Math.hypot(dx,dz)||1;tacSteer(u,u.x+dx/d*8,u.z+dz/d*8,1,null,dt);return true;}}
   const o=sq.ord;
@@ -4463,8 +4463,16 @@ function tacAI(s){const S=TAC.sq[s].filter(q=>!q.dead&&q.na>0&&q.st!=='rout'),K=
   /* adapt to being flanked or charged again and again */
   if(K.adapt){if(A.flankRecv>40&&!A.guard){A.guard=true;const ends=S.slice().sort((a,b)=>a.cz-b.cz);[ends[0],ends[ends.length-1]].forEach(q=>{if(q&&q.role!=='reserve'){q.ai=true;tacQueue(q,'hold');}});DE4LOG.info('tac AI side '+s+' guards its flanks');}
     if(A.chargeRecv>25&&A.formCD<=0&&form[s]!=='square'&&pers!=='aggressive'){A.formCD=20;setForm(s,'square');}}
+  /* crystals: send the nearest free squad (any troop type) to a crystal that is ready or nearly ready, unless we already have troops on it
+     or the enemy holds it in strength */
+  for(const q of S)if(q.cg&&!pups.includes(q.cg)){q.cg=null;if(q.ai&&!q.tgt&&!q.ftgt&&q.lock<=0){q.ai=false;tacQueue(q,orders[s]);}}
+  for(const p of pups){if(p.pend>4)continue;if(S.some(q=>q.cg===p||Math.hypot(q.cx-p.x,q.cz-p.z)<4))continue;
+    const theirs=TAC.sq[1-s].filter(q=>!q.dead&&q.na>0&&Math.hypot(q.cx-p.x,q.cz-p.z)<6).reduce((n,q)=>n+q.na,0);
+    const cand=S.filter(q=>!q.cg&&q.role!=='reserve'&&!q.pend&&q.lock<=0&&t-q.contactT>1.5&&q.rec<=0).sort((a,b)=>Math.hypot(a.cx-p.x,a.cz-p.z)-Math.hypot(b.cx-p.x,b.cz-p.z))[0];
+    if(!cand||Math.hypot(cand.cx-p.x,cand.cz-p.z)>50||cand.na<theirs*0.8||Math.random()>0.75)continue;
+    cand.ai=true;cand.cg=p;tacQueue(cand,'move',{goal:{x:clamp(p.x,-FW/2+3,FW/2-3),z:clamp(p.z,-FD/2+3,FD/2-3)}});DE4LOG.info('tac AI side '+s+' sends squad '+(cand.k+1)+' for the '+PU[p.k].n+' crystal');}
   /* squads whose special job is done rejoin the army order */
-  for(const q of S){if(!q.ai||q.role==='reserve'||q.pend)continue;const done=(q.ord==='flank'&&(!q.ftgt||q.ftgt.dead||q.ftgt.st==='rout'))||(q.tgt&&(q.tgt.dead||q.tgt.st==='rout'))||(q.ord==='charge'&&!q.tgt&&!q.ftgt);
+  for(const q of S){if(!q.ai||q.role==='reserve'||q.pend||q.cg)continue;const done=(q.ord==='flank'&&(!q.ftgt||q.ftgt.dead||q.ftgt.st==='rout'))||(q.tgt&&(q.tgt.dead||q.tgt.st==='rout'))||(q.ord==='charge'&&!q.tgt&&!q.ftgt);
     if(done&&q.lock<=0){q.ai=false;q.tgt=null;q.ftgt=null;tacQueue(q,orders[s]);}}}
 function nearestSqTo(L,x,z){let b=null,bd=1e9;for(const e of L){const d=Math.hypot(e.cx-x,e.cz-z);if(d<bd){bd=d;b=e;}}return b;}
 
@@ -4540,9 +4548,14 @@ function puPieDraw(p){if(!p.pie)return;const f=clamp(1-p.pend/(p.pend0||10),0,1)
   g.fillStyle=col;g.beginPath();g.moveTo(32,32);g.arc(32,32,24,-Math.PI/2,-Math.PI/2+f*Math.PI*2);g.closePath();g.fill();
   g.strokeStyle='#f1e8d4';g.lineWidth=3;g.beginPath();g.arc(32,32,26,0,Math.PI*2);g.stroke();p.pie.material.map.needsUpdate=true;
   p.pie.position.set(p.x,Hb(p.x,p.z)+(PU[p.k].legend?5.2:3.6),p.z);}
-function tacPupTick(p,dt){if(p.pend>0){p.pend-=dt;puPieDraw(p);if(p.pad&&p.pad.material)p.pad.material.opacity=0.35+0.25*Math.sin(p.pend*6);if(p.pend<=0){p.pend=0;puGhost(p,false);if(p.pie){battle.remove(p.pie);p.pie.material.map.dispose();p.pie.material.dispose();p.pie=null;}for(let i=0;i<14;i++)spawn({x:p.x+R(-0.8,0.8),y:Hb(p.x,p.z)+R(0.4,2.4),z:p.z+R(-0.8,0.8),vy:R(2,4),tex:T_SPARK,w:0.5,h:0.5,life:0.6,blink:true});if(p.pad&&p.pad.material)p.pad.material.opacity=0.8;showBanner('A '+PU[p.k].n+' crystal is ready. Hold the ground beside it to claim it!');sfx('lock');}return true;}
-  const c=[0,0];for(let q=0;q<2;q++)for(const u of alive[q])if(u.state==='alive'&&Math.abs(u.x-p.x)<2&&Math.abs(u.z-p.z)<2)c[q]++;p.ch=p.ch||[0,0];
-  for(let q=0;q<2;q++){if(c[q]>=4&&c[q]>c[1-q]*1.5)p.ch[q]+=dt;else p.ch[q]=Math.max(0,p.ch[q]-dt*2);if(p.ch[q]>=2.5){TAC.inClaim=true;try{claimPU(p,q);}finally{TAC.inClaim=false;}return true;}}return true;}
+/* claiming a crystal: troops (or a general) within 3 units who outnumber the other side there hold it; 1.5 s of holding claims it.
+   Holding starts during the forming countdown, so troops already waiting take it the instant the timer ends. */
+const PU_CR=3,PU_NEED=1.5;
+function tacPupPresence(p,dt){const c=[0,0];for(let q=0;q<2;q++){for(const u of alive[q])if(u.state==='alive'&&Math.abs(u.x-p.x)<PU_CR&&Math.abs(u.z-p.z)<PU_CR&&Math.hypot(u.x-p.x,u.z-p.z)<PU_CR)c[q]++;if(okGen(fg[q])&&Math.hypot(fg[q].x-p.x,fg[q].z-p.z)<PU_CR)c[q]+=2;}
+  p.ch=p.ch||[0,0];for(let q=0;q<2;q++){if(c[q]>0&&c[q]>c[1-q])p.ch[q]=Math.min(PU_NEED,p.ch[q]+dt);else p.ch[q]=Math.max(0,p.ch[q]-dt*2);}}
+function tacPupClaim(p){for(let q=0;q<2;q++)if(p.ch&&p.ch[q]>=PU_NEED&&p.ch[q]>=p.ch[1-q]){TAC.inClaim=true;try{claimPU(p,q);}finally{TAC.inClaim=false;}return true;}return false;}
+function tacPupTick(p,dt){tacPupPresence(p,dt);if(p.pend>0){p.pend-=dt;puPieDraw(p);if(p.pad&&p.pad.material)p.pad.material.opacity=0.35+0.25*Math.sin(p.pend*6);if(p.pend<=0){p.pend=0;puGhost(p,false);if(p.pie){battle.remove(p.pie);p.pie.material.map.dispose();p.pie.material.dispose();p.pie=null;}for(let i=0;i<14;i++)spawn({x:p.x+R(-0.8,0.8),y:Hb(p.x,p.z)+R(0.4,2.4),z:p.z+R(-0.8,0.8),vy:R(2,4),tex:T_SPARK,w:0.5,h:0.5,life:0.6,blink:true});if(p.pad&&p.pad.material)p.pad.material.opacity=0.8;sfx('lock');if(!tacPupClaim(p))showBanner('A '+PU[p.k].n+' crystal is ready. Stand beside it to claim it!');}return true;}
+  tacPupClaim(p);return true;}
 const tacAvgCoh=s=>{let w=0,n=0;for(const q of TAC.sq[s])if(!q.dead){w+=q.coh*q.na;n+=q.na;}return n?w/n:100;};
 slotPos=(f=>u=>TAC.on&&u.sqd!=null&&tsq(u)?tacSlot(u):f(u))(slotPos);
 ord2spd=(f=>u=>f(u)*(TAC.on&&u.sqd!=null&&phase!=='duel'?tacSpd(u):1))(ord2spd);
