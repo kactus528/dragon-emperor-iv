@@ -286,7 +286,7 @@ html.phone #viewbar .hint{display:none}
 html.phone #phView.off{display:none!important}
 #phView{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:6px;z-index:12;padding:6px 9px;font-size:14px;line-height:1;min-height:30px;align-items:center}
 html.phone .layer{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
-html.phone #top{padding-top:calc(env(safe-area-inset-top,0px) + 4px);padding-right:44px}
+html.phone #top{padding-top:calc(env(safe-area-inset-top,0px) + 4px);padding-right:84px}
 html.phone #bars{gap:4px}
 html.phone .side{padding:4px 6px;gap:5px}
 html.phone .side img{width:24px;height:32px}
@@ -335,12 +335,20 @@ html.phone #title,html.phone #skirm,html.phone .skp,html.phone #selp,html.phone 
   -webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
 html.phone #selp,html.phone #endp{overflow-y:auto}
 html.phone #title button{min-height:42px}
-html.phone #watchBar{top:calc(env(safe-area-inset-top,0px) + 40px);font-size:11px}
+html.phone #watchBar{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);font-size:11px;flex-wrap:nowrap;overflow-x:auto;max-width:calc(100vw - 12px);gap:4px;padding:4px 6px}
+html.phone #watchBar #wbTxt{white-space:nowrap}
 html.phone #watchBar button{min-height:36px;padding:4px 10px}
 html.phone #duelp button{min-height:48px}
 html.phone #chal button{min-height:44px}
 html.phone .dbgp textarea{min-height:55dvh}
 html.phone #formCyc{justify-content:center;align-items:center}
+/* clear view: everything on top of the battle is put away, leaving one small button to bring it back */
+#clearBtn{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:8px;z-index:13;padding:6px 9px;font-size:15px;line-height:1;min-height:30px;display:flex;align-items:center}
+html.phone #clearBtn{right:46px}
+#clearBtn.off{display:none!important}
+html.clear #top,html.clear #bottom,html.clear #banner,html.clear #talk,html.clear #combo,html.clear #watchBar,html.clear #phView,html.clear #bossbar{display:none!important}
+html.clear.simw #duelp .sfbottom,html.clear.simw #duelp .sftimer{display:none!important}
+html.clear #clearBtn,html.phone.clear #clearBtn{right:8px;opacity:.45;background:rgba(16,12,26,.45)}
 /* phone held sideways: the dock becomes one swipeable row so the field stays visible */
 @media (orientation:landscape){
   html.phone #dockBattle{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:5px;padding:5px;scrollbar-width:none}
@@ -495,6 +503,7 @@ html.phone #formCyc{justify-content:center;align-items:center}
   </div>
 </div>
 
+<button id="clearBtn" class="off" title="Full screen with a clear view (C)">⛶</button>
 <button id="phView" class="phoneonly" title="View settings">⚙</button>
 <div id="vbar" hidden><button id="vMic">Mic on</button><button id="vTo" hidden>To: everyone</button><span id="vWho"></span></div>
 <div id="mpp" hidden>
@@ -624,7 +633,7 @@ html.phone #formCyc{justify-content:center;align-items:center}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 155';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 156';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -3324,7 +3333,7 @@ function simAct0(a){
 /* leaving a watched battle: out of VR and back to the Skirmish menu, never on into the campaign */
 function simLeave(){simOff();backToTitle();openSkirm();try{const ses=renderer.xr.getSession&&renderer.xr.getSession();if(ses)ses.end();}catch(e){DE4LOG.err(e,'simLeave');}}
 function simBtn(i){const B=simBtns();if(B[i])simAct(B[i]);}
-function simKey(k,e){if(k===' '||k==='p'){e.preventDefault();simAct('pause');}else if(k==='1'||k==='2'||k==='4')simAct(k);else if(k==='3')simAct('4');else if(k==='r'||k==='l')simAct('report');else if(k==='escape')simAct('exit');else if(k==='enter'&&state==='end')simAct('rematch');}
+function simKey(k,e){if(k==='c'){setClear(!CLEAR);return;}if(k===' '||k==='p'){e.preventDefault();simAct('pause');}else if(k==='1'||k==='2'||k==='4')simAct(k);else if(k==='3')simAct('4');else if(k==='r'||k==='l')simAct('report');else if(k==='escape')simAct('exit');else if(k==='enter'&&state==='end')simAct('rematch');}
 const simC=cv(1024,128),simX=simC.getContext('2d'),simTx=tex(simC,true);
 function drawSimBoard(){if(!simBoard)return;const B=simBtns(),h=B.join()+'|'+simHover+'|'+SIMC.pause+SIMC.spd;if(h===simHash)return;simHash=h;const x=simX,W=1024,H=128,bw=W/B.length;
   x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.94)';x.fillRect(0,0,W,H);x.strokeStyle='#f0c055';x.lineWidth=4;x.strokeRect(2,2,W-4,H-4);x.font='700 34px Silkscreen, monospace';x.textAlign='center';x.textBaseline='middle';
@@ -3389,6 +3398,11 @@ const _fv=new THREE.Vector3();let flashV=0;function flash(v){if(reduceMotion||xr
    Auto: phones (a small screen with touch) get the phone layout; the Quest browser and desktops do not. The Layout button on the
    title screen cycles Auto / Phone / Desktop (remembered), and ?ui=phone or ?ui=desktop in the address forces one. */
 let PHONE=false;
+/* clear view (button ⛶ or C): hides the HUD, docks, banners and speech so only the battle shows, and asks the browser for full screen where it
+   allows it (iPhones only allow it for video, so there it is just the clear view). The same button, faded in the corner, brings everything back. */
+let CLEAR=false;
+function setClear(on){CLEAR=!!on;const h=document.documentElement;h.classList.toggle('clear',CLEAR);const b=$('clearBtn');if(b){b.textContent=CLEAR?'◱':'⛶';b.title=CLEAR?'Show the controls (C)':'Full screen with a clear view (C)';}
+  try{if(CLEAR&&!document.fullscreenElement&&h.requestFullscreen)h.requestFullscreen({navigationUI:'hide'}).catch(()=>{});else if(!CLEAR&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});}catch(e){}}
 const TOUCH_TUT=[['Tap','Buttons, generals, castles; tap the field to aim a spell or move a squad'],['Drag','Turn the view'],['Pinch','Zoom'],['Two fingers','Move the view'],['⚙','View settings (reset view, log)']];
 function phoneAuto(){const ua=navigator.userAgent||'';if(/OculusBrowser|Quest|Pacific/i.test(ua))return false;const small=Math.min(screen.width,screen.height)<=600;
   return small&&((window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Mobi|iPhone|Android/i.test(ua));}
@@ -3400,6 +3414,7 @@ function cycleUI(){const o=['auto','phone','desktop'],p=uiPref();try{localStorag
 function phoneStrip(){if(!PHONE)return;for(const b of document.querySelectorAll('#dockBattle button,#dockKingdom button,[data-duel]')){const t=b.textContent;let n=t.replace(/^[A-Z] · /,'').replace(/^(?:[0-9A-Z]|Space) (?=[^·\s])/,'').replace(/^Click/,'Tap');if(n!==t)b.textContent=n;}
   const fc=$('formCyc');if(fc){const t='Form: '+FNAME[form[0]];if(fc.textContent!==t)fc.textContent=t;}}
 function updateModeUI(){
+  {const cb=$('clearBtn');if(cb)cb.classList.toggle('off',state==='title'||xrActive);if(state==='title'&&CLEAR)setClear(false);document.documentElement.classList.toggle('simw',!!SIM);}
   {const pv=$('phView');if(pv)pv.classList.toggle('off',!(state==='battle'||state==='kingdom')||phase==='select'||phase==='duel');}
   const inBattle=state==='battle'||state==='end';
   $('bars').hidden=!inBattle||phase==='select'||phase==='duel'||!active[0];$('viewbar').hidden=state==='battle'&&phase==='duel';
@@ -3525,7 +3540,7 @@ $('mpCode').addEventListener('keydown',e=>{if(e.key==='Enter')mpJoin();});
 $('vMic').addEventListener('click',voiceMute);$('vTo').addEventListener('click',voiceCycle);
 function openDbg(){DBGMODE='log';$('dbgDetail').hidden=true;$('dbgH').textContent='Debug log';$('dbgClear').textContent='Clear';DE4LOG.flush();const t=DE4LOG.text();$('dbgT').value=t;$('dbgN').textContent=DE4LOG.count()+' errors · '+BUILD;$('dbg').hidden=false;}
 $('dbgBtn').addEventListener('click',openDbg);$('repBtn').addEventListener('click',()=>openReport(false));
-$('uiBtn').addEventListener('click',cycleUI);$('phView').addEventListener('click',()=>{document.documentElement.classList.toggle('showview');});$('formCyc').addEventListener('click',()=>cycleForm());
+$('uiBtn').addEventListener('click',cycleUI);$('clearBtn').addEventListener('click',()=>{setClear(!CLEAR);sfx('blip',380);});$('phView').addEventListener('click',()=>{document.documentElement.classList.toggle('showview');});$('formCyc').addEventListener('click',()=>cycleForm());
 document.querySelectorAll('[data-skt]').forEach(b=>b.addEventListener('click',()=>{document.querySelector('.skcols').dataset.t=b.dataset.skt;document.querySelectorAll('[data-skt]').forEach(x=>x.classList.toggle('on',x===b));sfx('blip',300);}));
 applyUI();addEventListener('orientationchange',()=>setTimeout(applyUI,300));$('dbgDetail').addEventListener('click',()=>{try{localStorage.setItem('de4-repdetail',localStorage.getItem('de4-repdetail')==='1'?'0':'1');}catch(e){}openReport(false);});document.querySelectorAll('[data-wb]').forEach(b=>b.addEventListener('click',()=>simAct(b.dataset.wb)));$('dbgBtn2').addEventListener('click',openDbg);$('dbgClose').addEventListener('click',()=>{$('dbg').hidden=true;});
 $('dbgClear').addEventListener('click',()=>{if(DBGMODE==='rep'){repClear();openReport(false);return;}DE4LOG.clear();openDbg();});
@@ -3546,6 +3561,7 @@ $('storyGo').addEventListener('click',()=>{$('story').hidden=true;});
 addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(TUT.open){if(k==='enter'||k==='arrowright'){e.preventDefault();tutGo(1);}else if(k==='arrowleft'){e.preventDefault();tutGo(-1);}else if(k==='escape')closeTut();return;}
   if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;
+  if(k==='c'&&state!=='title'&&!e.ctrlKey&&!e.metaKey){setClear(!CLEAR);return;}
   if(SIM&&(state==='battle'||state==='end'||state==='transition')){simKey(k,e);return;}
   if(state==='battle'){
     if(phase==='taunt'){if(k===' '||k==='enter'||k==='escape'){e.preventDefault();endTaunt();}return;}
@@ -4332,7 +4348,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 155; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 156; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
