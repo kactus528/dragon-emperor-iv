@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Silkscreen:wght@400;700&family=VT323&display=swap">
 <style>
 /* Layout: full-bleed 3D canvas; DOM overlays for box-art title, Dragon Force style army bars, bottom command dock. */
+/* the hidden attribute always wins: several layers set their own display (the title used display:grid), which made [hidden] do nothing */
+[hidden]{display:none!important}
 :root{
   --void:#07060c; --panel:rgba(16,12,26,.88); --line:#4a3d63; --ink:#f1e8d4; --dim:#a99fb8;
   --gold:#f0c055; --goldd:#9c6519; --azure:#5b8cff; --ember:#ff5a3a; --term:#8fe39a;
@@ -114,7 +116,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 .gcard .gn{font-weight:700;font-size:13px;color:var(--ink)}
 .gcard .gt,.gcard .gh{font-size:10px;color:var(--dim)}
 .gcard.on{border-color:var(--gold)}
-.gcard.cap{border-style:dashed}.gcard.cap .gt{color:var(--ember)}.gcard.sur{grid-column:1/-1;opacity:.85}.gcard.sur .gn{color:#ffb09a}
+.gcard.cap{border-style:dashed}.gcard.cap .gt{color:var(--ember)}.gcard.sur{grid-column:1/-1;opacity:.85;grid-template-columns:minmax(0,1fr)}.gcard.sur .gn{color:#ffb09a}
 .gm{font-size:10px;font-weight:700}.gm.strong{color:#7fe39a}.gm.weak{color:var(--ember)}.gm.even{color:var(--dim)}
 /* duel */
 #duelp{position:fixed;inset:0;z-index:7;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;
@@ -274,6 +276,75 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 #watchBar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:6px;align-items:center;background:rgba(16,12,26,0.92);border:1px solid #f0c055;padding:6px 8px;border-radius:6px;font:12px Silkscreen,monospace;color:#f1e8d4;max-width:calc(100vw - 32px);flex-wrap:wrap;justify-content:center}
 #watchBar[hidden]{display:none}#watchBar button{font:inherit;padding:4px 8px}#watchBar button.on{background:#f0c055;color:#16121f}
 .skrand{margin-left:12px;padding:6px 12px;font:inherit;font-size:13px;background:#f0c055;color:#16121f;border:0;border-radius:4px;cursor:pointer}.skrnd{padding:1px 6px;font-size:13px;line-height:1.3;cursor:pointer;vertical-align:middle}
+
+/* ===== phone layout (html.phone): chosen automatically on small touch screens, or by the Layout button on the title screen ===== */
+.phoneonly{display:none!important}
+html.phone .phoneonly{display:flex!important}
+html.phone #viewbar{display:none}
+html.phone.showview #viewbar{display:flex;flex-wrap:wrap;gap:6px;max-width:100%}
+html.phone #viewbar .hint{display:none}
+html.phone #phView.off{display:none!important}
+#phView{position:fixed;top:calc(env(safe-area-inset-top,0px) + 4px);right:6px;z-index:12;padding:6px 9px;font-size:14px;line-height:1;min-height:30px;align-items:center}
+html.phone .layer{padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+html.phone #top{padding-top:calc(env(safe-area-inset-top,0px) + 4px);padding-right:44px}
+html.phone #bars{gap:4px}
+html.phone .side{padding:4px 6px;gap:5px}
+html.phone .side img{width:24px;height:32px}
+html.phone .side .name{font-size:10px;letter-spacing:.04em}
+html.phone .side .sub{display:none}
+html.phone .side .count{font-size:13px}
+html.phone .side .minis span{font-size:7px}
+html.phone #bars .mid{padding:3px 5px;min-width:0}
+html.phone #bars .mid .vs{font-size:13px}
+html.phone #bars .mid .ord{font-size:8px;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html.phone #bottom{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 6px);gap:6px}
+html.phone #dockBattle{width:100%;box-sizing:border-box;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:6px}
+html.phone #dockBattle .orders{grid-column:1/-1;flex-wrap:nowrap;overflow-x:auto;gap:5px;scrollbar-width:none;order:1}
+html.phone #dockBattle .orders::-webkit-scrollbar{display:none}
+html.phone #dockBattle .orders.forms{display:none}
+html.phone #dockBattle button{font-size:11px;padding:8px 4px;min-height:42px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em;order:3}
+html.phone #dockBattle .orders button{flex:0 0 auto;padding:8px 12px}
+html.phone #dockBattle #spell{grid-column:1/-1;order:2;min-height:46px;font-size:13px}
+html.phone #dockKingdom{width:100%;box-sizing:border-box;justify-content:center}
+html.phone #dockKingdom button{min-height:42px;padding:8px 14px}
+html.phone #kbar{padding:6px 8px;max-height:44vh;overflow:auto}
+html.phone #kbar .kfeed{font-size:13px}
+html.phone #selp,html.phone #endp{padding:6px;place-items:start center}
+html.phone #selp .panel{padding:12px;gap:8px}
+html.phone #endp .panel{padding:14px}
+html.phone #endp .panel.res{max-height:calc(100dvh - 12px)}
+html.phone #skirm,html.phone #mpp,html.phone #dbg,html.phone #tut,html.phone #story{padding:0;place-items:stretch}
+html.phone .skp,html.phone .dbgp{width:100%;max-height:100dvh;padding:12px;border:0;box-sizing:border-box}
+html.phone .skp .selhead{flex-wrap:wrap;gap:6px}
+html.phone .skp .sknote{display:none}
+html.phone .skcols{grid-template-columns:1fr}
+html.phone .skcols[data-t="0"]>section:nth-child(2),html.phone .skcols[data-t="1"]>section:nth-child(1){display:none}
+html.phone .sklist{grid-template-columns:1fr 1fr}
+html.phone .sklist button{min-height:46px}
+.sktabs{gap:6px}.sktabs button{flex:1;min-height:40px}.sktabs button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
+html.phone .skopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+html.phone .skopts label{display:grid;gap:3px;font-size:10px}
+html.phone .skopts select{min-height:38px;width:100%}
+html.phone .skp .skbtns{position:sticky;bottom:-12px;margin:0 -12px -12px;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 8px);background:#120e1d;border-top:1px solid #4a3d63;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+html.phone .skp .skbtns button{min-height:44px}
+html.phone #title{padding-left:8px;padding-right:8px}
+html.phone #title button{min-height:42px}
+html.phone #watchBar{top:calc(env(safe-area-inset-top,0px) + 40px);font-size:11px}
+html.phone #watchBar button{min-height:36px;padding:4px 10px}
+html.phone #duelp button{min-height:48px}
+html.phone #chal button{min-height:44px}
+html.phone .dbgp textarea{min-height:55dvh}
+html.phone #formCyc{justify-content:center;align-items:center}
+/* phone held sideways: the dock becomes one swipeable row so the field stays visible */
+@media (orientation:landscape){
+  html.phone #dockBattle{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:5px;padding:5px;scrollbar-width:none}
+  html.phone #dockBattle::-webkit-scrollbar{display:none}
+  html.phone #dockBattle .orders{flex:none;overflow:visible}
+  html.phone #dockBattle button,html.phone #dockBattle #spell{flex:none;min-height:38px;padding:6px 12px;max-width:none}
+  html.phone #dockBattle #spell{order:0}
+  html.phone .skp .skbtns{grid-template-columns:repeat(4,1fr)}
+  html.phone .skp .skbtns button{min-height:38px}
+  html.phone #kbar{max-height:38vh}}
 </style>
 </head>
 <body>
@@ -345,6 +416,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
     <button id="relicBtn" title="Your general's relic power: once per round">T Relic</button>
     <button id="squadBtn" title="Send a few soldiers to a spot, such as a crystal">G Send squad</button>
     <button id="spell" disabled>Starfall</button>
+    <button id="formCyc" class="phoneonly" title="Change formation">Form: Line</button>
   </div>
   <div class="panel" id="chal" hidden role="alertdialog" aria-labelledby="chalHead">
     <div class="ch1" id="chalHead">Duel challenge</div>
@@ -417,6 +489,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
   </div>
 </div>
 
+<button id="phView" class="phoneonly" title="View settings">⚙</button>
 <div id="vbar" hidden><button id="vMic">Mic on</button><button id="vTo" hidden>To: everyone</button><span id="vWho"></span></div>
 <div id="mpp" hidden>
   <div class="panel skp mpp" role="dialog" aria-labelledby="mpH">
@@ -433,7 +506,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 <div id="skirm" hidden>
   <div class="panel skp" role="dialog" aria-labelledby="skH">
     <div class="selhead"><h2 id="skH">Skirmish</h2><button id="skRand2" class="skrand" title="Pick random armies, battlefield, conditions and battle type">🎲 Randomize</button><span class="sknote">Any generals, any field. Nothing carries over.</span></div>
-    <div class="skcols"><section><h3>Your army <button class="skrnd" data-skr="0" title="Three random generals for your army">🎲</button> <em id="skNA">0/3</em></h3><div class="sklist" id="skA"></div></section><section><h3>Enemy army <button class="skrnd" data-skr="1" title="Three random generals for the enemy army">🎲</button> <em id="skNB">0/3</em></h3><div class="sklist" id="skB"></div></section></div>
+    <div class="sktabs phoneonly"><button data-skt="0" class="on">Your army <em id="skTA">0/3</em></button><button data-skt="1">Enemy army <em id="skTB">0/3</em></button></div>
+    <div class="skcols" data-t="0"><section><h3>Your army <button class="skrnd" data-skr="0" title="Three random generals for your army">🎲</button> <em id="skNA">0/3</em></h3><div class="sklist" id="skA"></div></section><section><h3>Enemy army <button class="skrnd" data-skr="1" title="Three random generals for the enemy army">🎲</button> <em id="skNB">0/3</em></h3><div class="sklist" id="skB"></div></section></div>
     <div class="skopts">
       <label>Battlefield <select id="skMap"></select></label>
       <label>Conditions <select id="skCond"><option value="random">Random</option><option value="none">Clear</option><option value="fog">Fog</option><option value="night">Night</option><option value="storm">Storm</option></select></label>
@@ -500,7 +574,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
           <label class="bloodset"><input type="checkbox" id="closeX" checked> <span>VR close-ups (taunts &amp; duels)</span></label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="start" id="startBtn">Press Start</button><button class="start" id="ageBtn" hidden>Continue</button>
           <button id="vrBtn2" disabled>Enter VR</button>
-          <button id="howBtn">How to play</button><button id="skBtn">Skirmish</button><button id="mpBtn">Multiplayer</button><button id="dbgBtn">Debug log</button><button id="repBtn" title="Reports from recent battles, to paste back for AI tuning">AI report</button></div>
+          <button id="howBtn">How to play</button><button id="skBtn">Skirmish</button><button id="mpBtn">Multiplayer</button><button id="dbgBtn">Debug log</button><button id="repBtn" title="Reports from recent battles, to paste back for AI tuning">AI report</button><button id="uiBtn" title="Switch between the phone and desktop layouts">Layout: Auto</button></div>
         </div>
         <div class="fine"><span>©1997 TAIYO CO., LTD. · PLAYABLE DEMO · <span id="buildTag"></span></span><span>Dragon Emperor I not required.</span></div>
       </div>
@@ -544,7 +618,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 153';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 154';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2891,7 +2965,7 @@ function closeTut(){if(!TUT.open)return;TUT.open=false;$('tut').hidden=true;if(t
 function tutGo(d){if(!TUT.open)return;const n=TUT.i+d;if(n<0)return;if(n>=TUT_PAGES.length){closeTut();return;}TUT.i=n;sfx('blip',300+n*40);tutRender();}
 function tutRender(){const P=TUT_PAGES[TUT.i],N=TUT_PAGES.length;
   $('tutStep').textContent=(TUT.i+1)+' / '+N;$('tutH').textContent=P.h;$('tutBody').innerHTML=P.b;$('tutArt').innerHTML=P.art?P.art():'';
-  $('tutKeys').innerHTML=P.d.map(([k,l])=>`<li><kbd>${k}</kbd><span>${l}</span></li>`).join('');
+  $('tutKeys').innerHTML=(PHONE?TOUCH_TUT:P.d).map(([k,l])=>`<li><kbd>${k}</kbd><span>${l}</span></li>`).join('');{const h=document.querySelector('.tutkb h3');if(h)h.textContent=PHONE?'Touch':'Keyboard & mouse';}
   $('tutKeysV').innerHTML=P.v.map(([k,l])=>`<li><kbd>${k}</kbd><span>${l}</span></li>`).join('');$('tutPad').innerHTML=padSVG(P.q);$('tutCtl').classList.toggle('vrfirst',isQuest);
   $('tutBack').disabled=TUT.i===0;$('tutNext').textContent=TUT.i===N-1?(TUT.after?'Start the war':'Done'):'Next';
   $('tutDots').innerHTML=TUT_PAGES.map((_,i)=>`<i class="${i===TUT.i?'on':''}"></i>`).join('');
@@ -2917,7 +2991,7 @@ function openSkirm(){if(state!=='title')return;audioInit();if(!skSel[0].length){
   renderSkirm();$('skirm').hidden=false;}
 function renderSkirm(){for(let s=0;s<2;s++){const box=$(s?'skB':'skA');box.innerHTML=GENDEFS.map(d=>{const on=skSel[s].includes(d.key),taken=skSel[1-s].includes(d.key);
     return `<button data-sk="${s}:${d.key}" class="${on?'on':''}"${taken?' disabled':''}><img src="${portrait(d.key)}" alt=""><span>${d.short} <small>${TROOP[d.troop]} · ${SPELL[d.spell]} · Lv ${d.lvl}</small></span></button>`;}).join('');
-    $(s?'skNB':'skNA').textContent=skSel[s].length+'/3';}
+    $(s?'skNB':'skNA').textContent=skSel[s].length+'/3';$(s?'skTB':'skTA').textContent=skSel[s].length+'/3';}
   document.querySelectorAll('[data-sk]').forEach(b=>b.addEventListener('click',()=>{const[sd,k]=b.dataset.sk.split(':'),L=skSel[+sd],i=L.indexOf(k);if(i>=0)L.splice(i,1);else if(L.length<3)L.push(k);else{L.shift();L.push(k);}sfx('blip',300);renderSkirm();}));
   $('skGo').disabled=$('skWatch').disabled=!skSel[0].length||!skSel[1].length;}
 /* Randomize: three different random generals a side, and a random battlefield, conditions and battle type (open field most of the time) */
@@ -3305,7 +3379,22 @@ function openReport(live,cur){DBGMODE='rep';const a=repLoad();let t=a.length?a.s
 /* ================= UI ================= */
 function showBanner(txt,red){recentEv(txt);const b=$('bannerTxt');b.textContent=txt;b.className='';void b.offsetWidth;b.className='show'+(red?' red':'');vrMsg=String(txt);{const n=vrMsg.length;vrMsgLong=n>36;vrMsgT=vrMsgD=vrMsgLong?(768*0.3+n*17)/TICK_V+0.4:1.8;}}
 const _fv=new THREE.Vector3();let flashV=0;function flash(v){if(reduceMotion||xrActive)return;flashV=Math.max(flashV,v);}
+/* ================= PHONE LAYOUT =================
+   Auto: phones (a small screen with touch) get the phone layout; the Quest browser and desktops do not. The Layout button on the
+   title screen cycles Auto / Phone / Desktop (remembered), and ?ui=phone or ?ui=desktop in the address forces one. */
+let PHONE=false;
+const TOUCH_TUT=[['Tap','Buttons, generals, castles; tap the field to aim a spell or move a squad'],['Drag','Turn the view'],['Pinch','Zoom'],['Two fingers','Move the view'],['⚙','View settings (reset view, log)']];
+function phoneAuto(){const ua=navigator.userAgent||'';if(/OculusBrowser|Quest|Pacific/i.test(ua))return false;const small=Math.min(screen.width,screen.height)<=600;
+  return small&&((window.matchMedia&&matchMedia('(pointer:coarse)').matches)||/Mobi|iPhone|Android/i.test(ua));}
+function uiPref(){try{const q=new URLSearchParams(location.search).get('ui');if(q==='phone'||q==='desktop')return q;}catch(e){}try{return localStorage.getItem('de4-ui')||'auto';}catch(e){return'auto';}}
+function applyUI(){const p=uiPref();PHONE=p==='phone'||(p==='auto'&&phoneAuto());document.documentElement.classList.toggle('phone',PHONE);
+  const b=$('uiBtn');if(b)b.textContent='Layout: '+(p==='auto'?'Auto · '+(PHONE?'phone':'desktop'):p==='phone'?'Phone':'Desktop');try{onResize();}catch(e){}}
+function cycleUI(){const o=['auto','phone','desktop'],p=uiPref();try{localStorage.setItem('de4-ui',o[(o.indexOf(p)+1)%3]);}catch(e){}applyUI();sfx('blip',400);}
+/* on a phone the key hints ("1 Charge", "R Ability") mean nothing, and clicks are taps */
+function phoneStrip(){if(!PHONE)return;for(const b of document.querySelectorAll('#dockBattle button,#dockKingdom button,[data-duel]')){const t=b.textContent;let n=t.replace(/^[A-Z] · /,'').replace(/^(?:[0-9A-Z]|Space) (?=[^·\s])/,'').replace(/^Click/,'Tap');if(n!==t)b.textContent=n;}
+  const fc=$('formCyc');if(fc){const t='Form: '+FNAME[form[0]];if(fc.textContent!==t)fc.textContent=t;}}
 function updateModeUI(){
+  {const pv=$('phView');if(pv)pv.classList.toggle('off',!(state==='battle'||state==='kingdom')||phase==='select'||phase==='duel');}
   const inBattle=state==='battle'||state==='end';
   $('bars').hidden=!inBattle||phase==='select'||phase==='duel'||!active[0];$('viewbar').hidden=state==='battle'&&phase==='duel';
   $('dockBattle').hidden=SIM||!(state==='battle'&&(phase==='fight'||phase==='intro'||(phase==='pursuit'&&pursuit&&pursuit.L===1)))||(NET.on&&(GUEST()?NET.bs<0:NET.ctl[0]!=='local'));
@@ -3348,7 +3437,7 @@ function updateHud(dt){
       $('dLog').textContent=duel.stage==='approach'?'The generals take their places…':duel.stage==='ready'?'FIGHT!':duel.log;if(xrActive)drawDuelBoard();
       document.querySelectorAll('[data-duel]').forEach(b=>{b.classList.toggle('on',duel.pick===b.dataset.duel);b.disabled=duel.stage!=='choose'||!!duel.pick;});}
   }
-  if(xrActive)drawVrHud();
+  phoneStrip();if(xrActive)drawVrHud();
 }
 let vrMsg='',vrMsgT=0,vrMsgD=0,vrMsgLong=false;const TICK_V=210;
 let hudLast=0;
@@ -3429,7 +3518,10 @@ $('mpBtn').addEventListener('click',mpOpen);$('mpBack').addEventListener('click'
 $('mpCode').addEventListener('keydown',e=>{if(e.key==='Enter')mpJoin();});
 $('vMic').addEventListener('click',voiceMute);$('vTo').addEventListener('click',voiceCycle);
 function openDbg(){DBGMODE='log';$('dbgDetail').hidden=true;$('dbgH').textContent='Debug log';$('dbgClear').textContent='Clear';DE4LOG.flush();const t=DE4LOG.text();$('dbgT').value=t;$('dbgN').textContent=DE4LOG.count()+' errors · '+BUILD;$('dbg').hidden=false;}
-$('dbgBtn').addEventListener('click',openDbg);$('repBtn').addEventListener('click',()=>openReport(false));$('dbgDetail').addEventListener('click',()=>{try{localStorage.setItem('de4-repdetail',localStorage.getItem('de4-repdetail')==='1'?'0':'1');}catch(e){}openReport(false);});document.querySelectorAll('[data-wb]').forEach(b=>b.addEventListener('click',()=>simAct(b.dataset.wb)));$('dbgBtn2').addEventListener('click',openDbg);$('dbgClose').addEventListener('click',()=>{$('dbg').hidden=true;});
+$('dbgBtn').addEventListener('click',openDbg);$('repBtn').addEventListener('click',()=>openReport(false));
+$('uiBtn').addEventListener('click',cycleUI);$('phView').addEventListener('click',()=>{document.documentElement.classList.toggle('showview');});$('formCyc').addEventListener('click',()=>cycleForm());
+document.querySelectorAll('[data-skt]').forEach(b=>b.addEventListener('click',()=>{document.querySelector('.skcols').dataset.t=b.dataset.skt;document.querySelectorAll('[data-skt]').forEach(x=>x.classList.toggle('on',x===b));sfx('blip',300);}));
+applyUI();addEventListener('orientationchange',()=>setTimeout(applyUI,300));$('dbgDetail').addEventListener('click',()=>{try{localStorage.setItem('de4-repdetail',localStorage.getItem('de4-repdetail')==='1'?'0':'1');}catch(e){}openReport(false);});document.querySelectorAll('[data-wb]').forEach(b=>b.addEventListener('click',()=>simAct(b.dataset.wb)));$('dbgBtn2').addEventListener('click',openDbg);$('dbgClose').addEventListener('click',()=>{$('dbg').hidden=true;});
 $('dbgClear').addEventListener('click',()=>{if(DBGMODE==='rep'){repClear();openReport(false);return;}DE4LOG.clear();openDbg();});
 $('dbgCopy').addEventListener('click',()=>{const t=$('dbgT');t.focus();t.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(()=>{$('dbgCopy').textContent='Copied!';},()=>{});else if(ok)$('dbgCopy').textContent='Copied!';setTimeout(()=>{$('dbgCopy').textContent='Copy';},1500);});
 $('dbgDl').addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('dbgT').value],{type:'text/plain'}));a.download=DBGMODE==='rep'?'dragon-emperor-ai-report.txt':'dragon-emperor-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
@@ -3505,7 +3597,7 @@ const anaMat=new THREE.ShaderMaterial({uniforms:{mL:{value:rtL.texture},mR:{valu
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
   fragmentShader:'uniform sampler2D mL,mR;uniform mat3 cL,cR;varying vec2 vUv;void main(){vec3 a=texture2D(mL,vUv).rgb,b=texture2D(mR,vUv).rgb;gl_FragColor=vec4(clamp(cL*a+cR*b,0.,1.),1.);}'});
 anaScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),anaMat));
-function onResize(){if(renderer.xr&&renderer.xr.isPresenting)return;const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();const v=new THREE.Vector2();renderer.getDrawingBufferSize(v);rtL.setSize(v.x,v.y);rtR.setSize(v.x,v.y);}
+function onResize(){if(renderer.xr&&renderer.xr.isPresenting)return;const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;{const a=w/h,base=45;camera.fov=a<1.25?Math.min(95,2*Math.atan(Math.tan(base*Math.PI/360)*1.25/a)*180/Math.PI):base;}camera.updateProjectionMatrix();const v=new THREE.Vector2();renderer.getDrawingBufferSize(v);rtL.setSize(v.x,v.y);rtR.setSize(v.x,v.y);}
 addEventListener('resize',onResize);onResize();
 
 const orbit={theta:0.3,phi:0.8,r:88,ty:0,tx:0,tz:0,g:null,gs:1};
@@ -4234,7 +4326,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 153; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 154; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
