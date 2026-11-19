@@ -314,7 +314,7 @@ html.phone #selp .panel{padding:12px;gap:8px}
 html.phone #endp .panel{padding:14px}
 html.phone #endp .panel.res{max-height:calc(100dvh - 12px)}
 html.phone #skirm,html.phone #mpp,html.phone #dbg,html.phone #tut,html.phone #story{padding:0;place-items:stretch}
-html.phone .skp,html.phone .dbgp{width:100%;max-height:100dvh;padding:12px;border:0;box-sizing:border-box}
+html.phone .skp,html.phone .dbgp,html.phone .tutp,html.phone .mpp{width:100%;max-height:100dvh;padding:12px;border:0;box-sizing:border-box}
 html.phone .skp .selhead{flex-wrap:wrap;gap:6px}
 html.phone .skp .sknote{display:none}
 html.phone .skcols{grid-template-columns:1fr}
@@ -327,7 +327,13 @@ html.phone .skopts label{display:grid;gap:3px;font-size:10px}
 html.phone .skopts select{min-height:38px;width:100%}
 html.phone .skp .skbtns{position:sticky;bottom:-12px;margin:0 -12px -12px;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 8px);background:#120e1d;border-top:1px solid #4a3d63;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 html.phone .skp .skbtns button{min-height:44px}
-html.phone #title{padding-left:8px;padding-right:8px}
+/* full-screen panels scroll with a finger: a plain block (centring a too-tall grid item can push its top out of reach), momentum scrolling,
+   vertical panning allowed and the scroll kept inside the panel (iOS Safari is fussy about all three) */
+html.phone #title{padding-left:8px;padding-right:8px;display:block}
+html.phone #title>div{margin:0 auto;max-width:620px}
+html.phone #title,html.phone #skirm,html.phone .skp,html.phone #selp,html.phone #endp,html.phone #endp .panel.res,html.phone #tut,html.phone .tutp,html.phone #mpp,html.phone #dbg,html.phone #story,html.phone #kbar{
+  -webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+html.phone #selp,html.phone #endp{overflow-y:auto}
 html.phone #title button{min-height:42px}
 html.phone #watchBar{top:calc(env(safe-area-inset-top,0px) + 40px);font-size:11px}
 html.phone #watchBar button{min-height:36px;padding:4px 10px}
@@ -618,7 +624,7 @@ html.phone #formCyc{justify-content:center;align-items:center}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 154';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 155';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4326,7 +4332,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 154; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 155; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
