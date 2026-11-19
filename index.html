@@ -273,6 +273,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 @media (prefers-reduced-motion:reduce){#spell.ready{animation:none}.termline::after{animation:none}#banner span.show{animation-duration:2.2s}}
 #watchBar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:40;display:flex;gap:6px;align-items:center;background:rgba(16,12,26,0.92);border:1px solid #f0c055;padding:6px 8px;border-radius:6px;font:12px Silkscreen,monospace;color:#f1e8d4;max-width:calc(100vw - 32px);flex-wrap:wrap;justify-content:center}
 #watchBar[hidden]{display:none}#watchBar button{font:inherit;padding:4px 8px}#watchBar button.on{background:#f0c055;color:#16121f}
+.skrand{margin-left:12px;padding:6px 12px;font:inherit;font-size:13px;background:#f0c055;color:#16121f;border:0;border-radius:4px;cursor:pointer}.skrnd{padding:1px 6px;font-size:13px;line-height:1.3;cursor:pointer;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -431,8 +432,8 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 </div>
 <div id="skirm" hidden>
   <div class="panel skp" role="dialog" aria-labelledby="skH">
-    <div class="selhead"><h2 id="skH">Skirmish</h2><span class="sknote">Any generals, any field. Nothing carries over.</span></div>
-    <div class="skcols"><section><h3>Your army <em id="skNA">0/3</em></h3><div class="sklist" id="skA"></div></section><section><h3>Enemy army <em id="skNB">0/3</em></h3><div class="sklist" id="skB"></div></section></div>
+    <div class="selhead"><h2 id="skH">Skirmish</h2><button id="skRand2" class="skrand" title="Pick random armies, battlefield, conditions and battle type">🎲 Randomize</button><span class="sknote">Any generals, any field. Nothing carries over.</span></div>
+    <div class="skcols"><section><h3>Your army <button class="skrnd" data-skr="0" title="Three random generals for your army">🎲</button> <em id="skNA">0/3</em></h3><div class="sklist" id="skA"></div></section><section><h3>Enemy army <button class="skrnd" data-skr="1" title="Three random generals for the enemy army">🎲</button> <em id="skNB">0/3</em></h3><div class="sklist" id="skB"></div></section></div>
     <div class="skopts">
       <label>Battlefield <select id="skMap"></select></label>
       <label>Conditions <select id="skCond"><option value="random">Random</option><option value="none">Clear</option><option value="fog">Fog</option><option value="night">Night</option><option value="storm">Storm</option></select></label>
@@ -543,7 +544,7 @@ button.on{border-color:var(--gold);color:var(--gold);background:#2a2140}
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 150';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 151';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -2916,6 +2917,8 @@ function renderSkirm(){for(let s=0;s<2;s++){const box=$(s?'skB':'skA');box.inner
 function randSkirm(){const K=GENDEFS.map(d=>d.key);for(let i=K.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[K[i],K[j]]=[K[j],K[i]];}skSel[0]=K.slice(0,3);skSel[1]=K.slice(3,6);
   const pick=(id,opts)=>{const el=$(id),o=opts||[...el.options].map(x=>x.value).filter(v=>v!=='random');el.value=o[(Math.random()*o.length)|0];};
   pick('skMap');pick('skCond');$('skSiege').value=Math.random()<0.65?'':Math.random()<0.5?'att':'def';sfx('blip',520);renderSkirm();}
+/* one army only: three random generals not already on the other side */
+function randArmy(s){const K=GENDEFS.map(d=>d.key).filter(k=>!skSel[1-s].includes(k));for(let i=K.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[K[i],K[j]]=[K[j],K[i]];}skSel[s]=K.slice(0,3);sfx('blip',520);renderSkirm();}
 function startSkirm(watch){if(!skSel[0].length||!skSel[1].length)return;if(watch!==true)simOff();const lv=+$('skLvl').value,rel=$('skRel').checked;
   SK={cond:$('skCond').value,map:$('skMap').value,lvl:lv,rel,siege:$('skSiege').value,ratio:+$('skRatio').value||1};launchSkirm();}
 function launchSkirm(){const P=skSel[0].map(k=>skRec(GENDEFS.find(d=>d.key===k),0,SK.lvl)),E=skSel[1].map(k=>skRec(GENDEFS.find(d=>d.key===k),1,SK.lvl));
@@ -3429,7 +3432,7 @@ $('dbgBtn').addEventListener('click',openDbg);$('repBtn').addEventListener('clic
 $('dbgClear').addEventListener('click',()=>{if(DBGMODE==='rep'){repClear();openReport(false);return;}DE4LOG.clear();openDbg();});
 $('dbgCopy').addEventListener('click',()=>{const t=$('dbgT');t.focus();t.select();let ok=false;try{ok=document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(t.value).then(()=>{$('dbgCopy').textContent='Copied!';},()=>{});else if(ok)$('dbgCopy').textContent='Copied!';setTimeout(()=>{$('dbgCopy').textContent='Copy';},1500);});
 $('dbgDl').addEventListener('click',()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([$('dbgT').value],{type:'text/plain'}));a.download=DBGMODE==='rep'?'dragon-emperor-ai-report.txt':'dragon-emperor-log.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
-let toastT=null;DE4LOG.onError=()=>{if(xrActive)return;const t=$('errToast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);};$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',()=>startSkirm());$('skWatch').addEventListener('click',startWatch);$('skRand').addEventListener('click',randSkirm);
+let toastT=null;DE4LOG.onError=()=>{if(xrActive)return;const t=$('errToast');t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);};$('skBack').addEventListener('click',()=>{$('skirm').hidden=true;});$('skGo').addEventListener('click',()=>startSkirm());$('skWatch').addEventListener('click',startWatch);$('skRand').addEventListener('click',randSkirm);$('skRand2').addEventListener('click',randSkirm);document.querySelectorAll('[data-skr]').forEach(b=>b.addEventListener('click',()=>randArmy(+b.dataset.skr)));
 $('howBtn').addEventListener('click',()=>{audioInit();openTut(null);});
 $('tutNext').addEventListener('click',()=>tutGo(1));$('tutBack').addEventListener('click',()=>tutGo(-1));$('tutSkip').addEventListener('click',closeTut);
 $('tut').addEventListener('click',e=>{if(e.target.id==='tut')closeTut();});
@@ -4228,7 +4231,7 @@ function netCampEndScreen(){const w=CAMP.winner,win=w===NET.me;CAMP.endShown=tru
   $('endTitle').textContent=win?'The Realm Is Yours':w?NATIONS[w].name+' Wins':'No Victor';$('endText').textContent=body;$('endStats').hidden=true;$('endp').firstElementChild.classList.remove('res');RES=null;if(resBoard)resBoard.visible=false;
   $('againBtn').textContent='Back to the title';$('againBtn').hidden=false;$('againBtn').onclick=()=>location.reload();$('mapBtn').hidden=true;if(!xrActive)$('endp').hidden=false;sfx(win?'fanfare':'defeat');if(win){cheer(0,1.6);warDrums(0,3,120);}}
 /* =====================================================================
-   TACTICAL RULES (always on since Build 150; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
+   TACTICAL RULES (always on since Build 151; tacToggle(false) remains only for test harnesses). Each army is split into squads with their own cohesion and morale.
    Routs spread, generals steady nearby squads, formations and facing matter, charges build momentum, and orders take
    time to reach the squads.
    ===================================================================== */
