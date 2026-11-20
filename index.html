@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 162';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 163';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4048,6 +4048,7 @@ function dunGateMesh(g){const G={g,objs:[],x:dwx(g.x),z:dwz(g.y),fade:-1};if(DUN
   else if(k==='curse'){G.pl=add(box(W,1.3,DT,0x3fd06a,0.28),0,0.65,0);}
   else if(k==='lock'){add(box(W,1.6,0.35,0x2e2a34),0,0.8,0);add(box(0.4,0.4,0.42,0xc9962e),0,0.8,0);}
   else if(k==='plates'){add(box(W,1.6,0.35,0x4a4252),0,0.8,0);G.lt=add(box(W*0.8,0.12,0.4,0x332c3c),0,1.3,0);}
+  {const t=k==='lock'?'LOCKED: NEEDS A KEY':k==='plates'?'HOLD BOTH PLATES':'NEEDS '+GATES[k].any.map(t=>DTAGN[t].toUpperCase()).join(' OR '),lb=makeLabel(t,k==='lock'?'#c9962e':k==='plates'?'#9a90aa':'#b6a4e6');lb.scale.multiplyScalar(0.55);add(lb,0,k==='crystal'?3.3:2.3,0);G.lab=lb;}
   /* chasm gates have no mesh: the open chasm is in the floor */
   for(const [x,y] of g.tiles)if(k!=='chasm')DUN.gb[y*DGW+x]=g.id+1;
   return G;}
@@ -4134,6 +4135,7 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
   if(DUN.riv.length&&DUN.riv.every(g=>g.down)&&DUN.rbench&&DUN.rbench.length)dunRivNext();
   DUN.seenT=(DUN.seenT||0)-dt;if(DUN.seenT<=0){DUN.seenT=0.3;for(const g of P){if(g.down)continue;const n=dRoomOf(g.x,g.z);if(n&&!DUN.st.seen[n.id]){DUN.st.seen[n.id]=1;DUN.mapHash='';}}if(!$('dunMap').hidden||(DUN.mapB&&DUN.mapB.visible))dunMapDraw();}
   for(const g of DUN.allG){const fr=GMF[g.r.d.key][g.face][g.down?3:Math.floor(g.walk*4)%2];g.sp.material=fr.m;g.sp.scale.set(fr.w*0.8,fr.h*0.8,1);g.sp.position.set(g.x,0,g.z);g.sp.visible=!g.gone;}
+  if(!xrActive){const m=DUN.mouse;DUN.aimR.visible=!!m&&!PHONE;if(m){const dx=m.x-ag.x,dz=m.z-ag.z,L=Math.hypot(dx,dz),k=L>14?14/L:1;DUN.aimR.position.set(ag.x+dx*k,0.05,ag.z+dz*k);DUN.aimR.material.color.setHex(ag.scd>0?0x7a6f98:0xf0c055);}}
   DUN.ring.position.set(ag.x,0.04,ag.z);DUN.ring.material.opacity=0.6+Math.sin(now*5)*0.25;
   for(const G of DUN.gates){if(G.cr){G.cr.rotation.y=now*1.5;G.cr.position.y=2.6+Math.sin(now*2)*0.12;}if(G.pl)G.pl.material.opacity=(G.g.k==='seal'?0.4:0.25)+Math.sin(now*3+G.x)*0.08;
     if(G.fade>=0){G.fade+=dt;const k=Math.max(0,1-G.fade/0.7);for(const o of G.objs){o.scale.setScalar(Math.max(0.01,k));}if(G.fade>0.7){for(const o of G.objs)dunG.remove(o);G.objs=[];G.fade=-1;}}
@@ -4154,7 +4156,8 @@ function dunUnits(dt){const U=DUN.us,P=DUN.party;
     const g=u.g,pers=g?gpOf(g.r):null;
     if(u.side===1&&!u.enc.awake){u.walk=0;dunDrawU(u);continue;}
     /* targeting, four times a second */
-    if(u.tT<=0){u.tT=0.25+Math.random()*0.1;u.tgt=null;if(!u.task){let best=null,bd=1e9;const agg=u.side===1?30:(g.order==='hold'?5:6+3*pers.A),opp=u.side===1?0:pers.O;
+    if(u.march>0){u.march-=dt;if(Math.hypot(g.hx-u.x,g.hz-u.z)<1.8||g.order!=='hold')u.march=0;}
+    if(u.tT<=0&&!(u.march>0)){u.tT=0.25+Math.random()*0.1;u.tgt=null;if(!u.task){let best=null,bd=1e9;const agg=u.side===1?30:(g.order==='hold'?5:6+3*pers.A),opp=u.side===1?0:pers.O;
         for(const v of U){if(v.side===u.side||v.st!=='alive')continue;if(v.side===1&&!v.enc.awake)continue;let d=Math.hypot(v.x-u.x,v.z-u.z);if(d>agg||!(u.fly&&RANGED[u.t]===undefined&&d<4)&&!dSame(u,v))continue;if(opp>0)d*=1-0.4*opp*(1-dmen(v)/v.men0);if(d<bd){bd=d;best=v;}}
         for(const pg of AG){if(pg.down||pg.side===u.side||!dSame(pg,u))continue;const d=Math.hypot(pg.x-u.x,pg.z-u.z)*(u.side===1?1.3:2);if(d<bd&&(u.side===1||d<agg*1.3)){bd=d;best=pg;}}
         if(best&&u.side!==1){const leash=7+4*pers.A,hx=g.order==='hold'?g.hx:g.x,hz=g.order==='hold'?g.hz:g.z;if(Math.hypot(best.x-hx,best.z-hz)>leash)best=null;}u.tgt=best;}}
@@ -4192,10 +4195,19 @@ function dunDown(g){g.down=true;g.out=dunSurvivors(g);g.r.hp=1;g.gone=true;for(c
   if(g.side===0)DUN.lastWhy=cap?'defeat':'defeat';}
 function dunNextGen(){if(DUN&&DUN.bench&&DUN.bench.length)showBanner('One general at a time. The next goes in if '+dAct().r.d.short+' falls or withdraws');return;const P=DUN.party;for(let i=1;i<=P.length;i++){const j=(DUN.ai+i)%P.length;if(!P[j].down){if(j!==DUN.ai){DUN.ai=j;DUN.goal=null;showBanner('Now leading: '+P[j].r.d.short);sfx('blip',500);}return;}}}
 /* ---------- projectiles and effects ---------- */
-function dunShot(u,tg,onHit){const fx=DUN.fx.find(f=>f.life<=0);DUN.proj.push({x:u.x,z:u.z,y:0.9,tg,t:0,dur:0.35,onHit,fx});if(fx){fx.life=1;fx.s.visible=true;fx.s.material.color.setHex(u.t==='mage'?0xb070ff:0xfff2b0);fx.s.scale.setScalar(0.3);}if(Math.random()<0.4)sfx('arrow');}
-function dunProj(dt){for(let i=DUN.proj.length-1;i>=0;i--){const p=DUN.proj[i];p.t+=dt;const k=Math.min(1,p.t/p.dur),tx=p.tg.x,tz=p.tg.z,ty=p.tg.y??0.8;
-  if(p.fx){p.fx.s.position.set(p.x+(tx-p.x)*k,p.y+(ty-p.y)*k+Math.sin(k*Math.PI)*0.8,p.z+(tz-p.z)*k);p.fx.life=1;}
-  if(k>=1){if(p.fx){p.fx.life=0;p.fx.s.visible=false;}DUN.proj.splice(i,1);p.onHit();}}}
+/* arrows are real little shafts that fly in an arc and point where they're going; mage bolts are glowing orbs. Every hit flashes */
+function dunProjMesh(mage){const P=DUN.pm||(DUN.pm=[]);let m=P.find(o=>!o.visible&&o.userData.mage===mage);if(m)return m;
+  if(mage){m=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xc08aff,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));m.scale.setScalar(0.7);}
+  else{m=new THREE.Group();const sh=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,1.0),new THREE.MeshBasicMaterial({color:0x8a5a2b}));const hd=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.25,4),new THREE.MeshBasicMaterial({color:0xe8e8f0}));hd.rotation.x=Math.PI/2;hd.position.z=0.6;
+    const fl=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.02,0.18),new THREE.MeshBasicMaterial({color:0xf1e8d4}));fl.position.z=-0.45;m.add(sh,hd,fl);}
+  m.userData.mage=mage;dunG.add(m);P.push(m);return m;}
+function dunShot(u,tg,onHit){const mage=u.t==='mage',m=dunProjMesh(mage),d=Math.hypot(tg.x-u.x,tg.z-u.z);m.visible=true;m.position.set(u.x,0.9,u.z);
+  DUN.proj.push({x:u.x,z:u.z,y:0.9,tg,tx:tg.x,tz:tg.z,t:0,dur:Math.max(0.15,d/(mage?11:17)),arc:mage?0.3:0.25+d*0.06,onHit,m,mage,side:u.side});if(Math.random()<0.5)sfx('arrow');}
+function dunProj(dt){const _w=new THREE.Vector3();for(let i=DUN.proj.length-1;i>=0;i--){const p=DUN.proj[i];p.t+=dt;if(p.tg.st==='alive'||p.tg.r){p.tx=p.tg.x;p.tz=p.tg.z;}const k=Math.min(1,p.t/p.dur),ty=p.tg.y??0.8;
+  const at=k=>[p.x+(p.tx-p.x)*k,p.y+(ty-p.y)*k+Math.sin(k*Math.PI)*p.arc,p.z+(p.tz-p.z)*k],c=at(k);p.m.position.set(c[0],c[1],c[2]);
+  if(!p.mage){const n=at(Math.min(1,k+0.04));_w.set(n[0],n[1],n[2]);dunG.localToWorld(_w);p.m.lookAt(_w);}else if(Math.random()<0.5)dunFx(c[0],c[1],c[2],{col:0xb070ff,s:0.35,life:0.25});
+  if(k>=1){p.m.visible=false;DUN.proj.splice(i,1);const col=p.mage?0xc08aff:0xfff2b0;for(let j=0;j<(p.mage?7:4);j++)dunFx(p.tx+R(-0.2,0.2),ty+R(-0.1,0.3),p.tz+R(-0.2,0.2),{col,s:p.mage?0.6:0.35,life:0.3,vx:R(-2,2),vy:R(0.5,2.5),vz:R(-2,2)});
+    dunFx(p.tx,ty,p.tz,{col:p.mage?0xb070ff:0xff7a5a,s:p.mage?1.2:0.8,life:0.18,grow:1});p.onHit();}}}
 function dunFx(x,y,z,o){const f=DUN.fx.find(f=>f.life<=0&&!DUN.proj.some(p=>p.fx===f));if(!f)return;f.x=x;f.y=y;f.z=z;f.vx=o.vx||0;f.vy=o.vy||0;f.vz=o.vz||0;f.life=f.l0=o.life||0.5;f.sz=o.s||0.5;f.grow=o.grow||0;f.s.material.color.setHex(o.col||0xffffff);f.s.visible=true;f.s.position.set(x,y,z);f.s.scale.setScalar(f.sz);}
 function dunFxTick(dt){for(const f of DUN.fx){if(f.life<=0||f.l0===undefined)continue;if(DUN.proj.some(p=>p.fx===f))continue;f.life-=dt;if(f.life<=0){f.s.visible=false;f.l0=undefined;continue;}f.x+=f.vx*dt;f.y+=f.vy*dt;f.z+=f.vz*dt;f.s.position.set(f.x,f.y,f.z);f.s.material.opacity=Math.min(1,f.life/f.l0*1.5);f.s.scale.setScalar(f.sz*(1+f.grow*(1-f.life/f.l0)));}}
 /* ---------- puzzles: one rule for every obstacle ---------- */
@@ -4237,7 +4249,12 @@ function dunKeys(){const near=(x,z,r)=>{let side=-1;for(const g of DUN.allG)if(!
 function dunNearest(){const ag=dAct();let best=null,bd=2.3;
   for(const o of DUN.ents){const e=o.e;if(e.deco||e.k==='plate'||(e.k==='key'&&DUN.st.open[e.id])||(e.k==='chest'&&DUN.st.open[e.id]))continue;const d=Math.hypot(o.x-ag.x,o.z-ag.z);if(d<bd){bd=d;best={o};}}
   for(const G of DUN.gates){const g=G.g;if(DUN.st.solved[g.id])continue;const d=Math.hypot(G.x-ag.x,G.z-ag.z)-0.9;if(d<bd+0.6){bd=d;best={G};}}return best;}
-function dunAct(){if(!DUN)return;const ag=dAct();if(ag.down)return;const n=dunNearest();
+/* A: use the thing you're standing at (or pointing at, if it's within reach); otherwise point at the floor to send your squad there */
+function dunAct(){if(!DUN)return;const ag=dAct();if(ag.down)return;let n=dunNearest();
+  if(xrActive&&DUN.aim.valid){const A=DUN.aim,pos=n&&(n.o||n.G),onIt=pos&&Math.hypot(A.x-pos.x,A.z-pos.z)<2;
+    if(!onIt){let best=null,bd=2;for(const o of DUN.ents){const e=o.e;if(e.deco||e.k==='plate'||((e.k==='key'||e.k==='chest')&&DUN.st.open[e.id]))continue;const d=Math.hypot(o.x-A.x,o.z-A.z);if(d<bd&&Math.hypot(o.x-ag.x,o.z-ag.z)<8){bd=d;best={o};}}
+      for(const G of DUN.gates){if(DUN.st.solved[G.g.id])continue;const d=Math.hypot(G.x-A.x,G.z-A.z);if(d<bd&&Math.hypot(G.x-ag.x,G.z-ag.z)<9){bd=d;best={G};}}
+      if(best&&(best.G||best.o.e.k==='sign'))n=best;else if(Math.hypot(A.x-ag.x,A.z-ag.z)>2.5){dunSendSquad(A.x,A.z);return;}}}
   if(n&&n.o){const e=n.o.e;
     if(e.k==='chest'){dunOpenChest(n.o,0);return;}
     if(e.k==='key'){dunTakeKey(n.o,0);return;}
@@ -4247,16 +4264,20 @@ function dunAct(){if(!DUN)return;const ag=dAct();if(ag.down)return;const n=dunNe
     if(e.k==='altar'){dunClaimAltar(n.o,0,true);return;}}
   if(n&&n.G){const g=n.G.g;
     if(g.k==='lock'){if(DUN.st.keys>0){DUN.st.keys--;dunSolve(g,'unlocked');}else{showBanner(gateClue('lock'));sfx('blip',200);}return;}
-    if(g.k==='plates'){showBanner(gateClue('plates'));return;}
+    if(g.k==='plates'){const pl=g.plates.map(i=>DUN.D.ents[i]).sort((a,b)=>Math.hypot(dwx(b.x)-ag.x,dwz(b.y)-ag.z)-Math.hypot(dwx(a.x)-ag.x,dwz(a.y)-ag.z));dunSendSquad(dwx(pl[0].x),dwz(pl[0].y));showBanner('Your squad holds one plate. Now stand on the other');return;}
     dunDispatch(g);return;}
-  if(xrActive&&DUN.aim.valid){dunSendSquad(DUN.aim.x,DUN.aim.z);return;}
+
   dunOrder();}
 function dunOrder(){const ag=dAct();if(ag.order==='hold'){ag.order='follow';showBanner(ag.r.d.short+"'s squad: follow");}else{ag.order='hold';ag.hx=ag.x;ag.hz=ag.z;showBanner(ag.r.d.short+"'s squad: hold here");}sfx('blip',380);}
-function dunSendSquad(x,z){const ag=dAct();if(!dPass(x,z,false)){showBanner("Squads can't stand there");return;}ag.order='hold';ag.hx=x;ag.hz=z;for(const u of DUN.us)if(u.g===ag)u.task=null;showBanner(ag.r.d.short+"'s squad moves up");sfx('charge');}
+function dunSendSquad(x,z){const ag=dAct();if(!dPass(x,z,false)){[x,z]=dSnap(x,z);}ag.order='hold';ag.hx=x;ag.hz=z;for(const u of DUN.us)if(u.g===ag&&u.st==='alive'){u.task=null;u.tgt=null;u.march=6;}
+  showBanner(ag.r.d.short+"'s squad moves");sfx('charge');for(let i=0;i<6;i++)dunFx(x+R(-0.6,0.6),0.3,z+R(-0.6,0.6),{col:0x7fe8c8,s:0.5,life:0.6,vy:1});}
 function dunRetreat(){if(DUN.sel){dunSelLeave();return;}const g=dAct();if(DUN.leaveArm>0){DUN.leaveArm=0;g.withdrew=true;g.out=dunSurvivors(g);g.down=g.gone=true;for(const u of DUN.us)if(u.g===g&&u.st==='alive'){u.st='gone';dunG.remove(u.sp);}
     DUN.lastWhy='retreat';showBanner(g.r.d.short+' withdraws to the surface');if(!DUN.sk)clog(`${g.r.d.short} withdraws from ${DUN.D.name} with ${g.out} troops.`);return;}
   DUN.leaveArm=2.5;showBanner('Withdraw '+g.r.d.short+'? Press again'+(DUN.bench.length?' (you then choose who goes next)':' (the expedition then leaves)'),true);}
 /* the general's own spell, same names and elements as in battle; damage scales with level */
+function dunCastAim(){const g=dAct();if(!g||g.down)return;if(g.scd>0){showBanner(SPELL[g.r.d.spell]+' recharging');return;}let a=null;if(xrActive&&DUN.aim.valid)a=DUN.aim;else if(!xrActive&&DUN.mouse&&!PHONE)a=DUN.mouse;
+  if(PHONE&&!xrActive&&!a){DUN.castMode=!DUN.castMode;DUN.sendMode=false;showBanner(DUN.castMode?'Tap where the spell should land':'Spell cancelled');dunHud();return;}
+  if(a){const dx=a.x-g.x,dz=a.z-g.z,L=Math.hypot(dx,dz),m=14;a=L>m?{x:g.x+dx/L*m,z:g.z+dz/L*m}:{x:a.x,z:a.z};}dunCast(g,a||undefined);}
 function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,me=g.side===0,foe=v=>v.side!==g.side&&v.st==='alive';if(g.scd>0){if(me)showBanner(SPELL[sp]+' recharging');return;}
   const tags=SPELL_TAGS[sp]||[],pw=24+(g.r.lvl||1)*3;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
   if(!tg){bd=11;for(const G of DUN.gates){if(DUN.st.solved[G.g.id]||!GATES[G.g.k].any||!GATES[G.g.k].any.some(t=>tags.includes(t)))continue;const d=Math.hypot(G.x-g.x,G.z-g.z);if(d<bd){bd=d;tg={x:G.x,z:G.z};}}}
@@ -4275,14 +4296,15 @@ function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,
   else if(sp==='eclipse'){burst(tg.x,tg.z,0x8a5aff,22,3);for(const v of DUN.us)if(foe(v)&&Math.hypot(v.x-tg.x,v.z-tg.z)<4)v.cd+=3;area(tg.x,tg.z,4,pw*0.6);}
   else area(tg.x,tg.z,3,pw);}
 /* ---------- input ---------- */
-function dunKey(k,e){if(DUN.sel){const n=parseInt(k,10);if(n>=1)dunSelPick(n-1);else if(k==='escape'||k==='l')dunSelLeave();return;}if(k==='m'){dunMapToggle();return;}if(k===' '){e.preventDefault();dunCast();}else if(k==='e'||k==='enter')dunAct();else if(k==='q')dunOrder();else if(k==='tab'){e.preventDefault();dunNextGen();}else if(k==='escape'||k==='l')dunRetreat();}
+function dunKey(k,e){if(k===' '&&!DUN.sel){e.preventDefault();dunCastAim();return;}if(DUN.sel){const n=parseInt(k,10);if(n>=1)dunSelPick(n-1);else if(k==='escape'||k==='l')dunSelLeave();return;}if(k==='m'){dunMapToggle();return;}if(k===' '){e.preventDefault();dunCast();}else if(k==='e'||k==='enter')dunAct();else if(k==='q')dunOrder();else if(k==='tab'){e.preventDefault();dunNextGen();}else if(k==='escape'||k==='l')dunRetreat();}
 function dunPtrDown(e){DUN.pd={x:e.clientX,y:e.clientY,t:performance.now(),b:e.button};}
 function dunPtrUp(e){const p=DUN&&DUN.pd;if(!p)return;DUN.pd=null;if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>10||performance.now()-p.t>700)return;
   const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);const o=ray.ray.origin,d=ray.ray.direction;if(Math.abs(d.y)<1e-4)return;const t=-o.y/d.y;if(t<0)return;
-  const x=o.x+d.x*t,z=o.z+d.z*t;if(p.b===2||DUN.sendMode){DUN.sendMode=false;dunSendSquad(x,z);}else{DUN.goal={x,z};}}
+  const x=o.x+d.x*t,z=o.z+d.z*t;if(DUN.castMode){DUN.castMode=false;DUN.mouse={x,z};const ph=PHONE;PHONE=false;try{dunCastAim();}finally{PHONE=ph;}DUN.mouse=null;}else if(p.b===2||DUN.sendMode){DUN.sendMode=false;dunSendSquad(x,z);}else{DUN.goal={x,z};}}
+canvas.addEventListener('pointermove',e=>{if(state!=='dungeon'||!DUN||xrActive)return;const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);const o=ray.ray.origin,d=ray.ray.direction;if(d.y>=-1e-4){DUN.mouse=null;return;}const t=-o.y/d.y;DUN.mouse={x:o.x+d.x*t,z:o.z+d.z*t};});
 canvas.addEventListener('pointerup',e=>{if(state==='dungeon')dunPtrUp(e);});
 function dunStick(f,rt,ax,ay){const v=f.clone().multiplyScalar(-ay).addScaledVector(rt,ax);dunG.getWorldQuaternion(_sq);v.applyQuaternion(_sq.invert());DUN.mv.x=v.x;DUN.mv.z=v.z;}
-xrSelect=(f=>hand=>{if(state==='dungeon'&&DUN){audioInit();if(DUN.sel){if(hand==='left')return;if(DUN.selHover===100)dunSelLeave();else if(DUN.selHover>=0)dunSelPick(DUN.selHover);return;}if(hand==='left')dunNextGen();else dunCast();return;}
+xrSelect=(f=>hand=>{if(state==='dungeon'&&DUN){audioInit();if(DUN.sel){if(hand==='left')return;if(DUN.selHover===100)dunSelLeave();else if(DUN.selHover>=0)dunSelPick(DUN.selHover);return;}if(hand==='left')dunNextGen();else dunCastAim();return;}
   if(state==='kingdom'&&DPREP.open){if(hand==='left'){dunPrepClose();return;}const h=DPREP.hover;if(h===100)dunPrepGo();else if(h===101)dunPrepClose();else if(h>=0&&dunBRows[h])dunPrepToggle(dunBRows[h]);return;}return f(hand);})(xrSelect);
 xrFace=(f=>hand=>{if(state==='dungeon'&&DUN){if(DUN.sel){if(hand!=='left'&&DUN.selHover>=0&&DUN.selHover<100)dunSelPick(DUN.selHover);return;}if(hand==='left')dunOrder();else dunAct();return;}if(state==='kingdom'&&DPREP.open){if(hand==='left')dunPrepClose();else dunPrepGo();return;}return f(hand);})(xrFace);
 vrAim=(f=>now=>{let rc=null;for(const c of ctrls)if((c.userData.hand||'right')==='right')rc=c;
@@ -4302,7 +4324,7 @@ function dunHud(force){if(!DUN)return;const ag=dAct(),n=dunNearest(),P=DUN.party
   $('dhName').textContent=ag.r.d.short.toUpperCase()+' · '+DUN.D.name;
   $('dhStat').innerHTML=P.map((g,i)=>`<span class="${i===DUN.ai?'on':''}${g.down?' down':''}">${g.r.d.short} ${g.down?(g.captured?'(captured)':g.withdrew?'(withdrew)':'(carried out)'):`HP ${Math.ceil(g.r.hp)} · ${dunSurvivors(g)}/${g.bring} · squad ${g.order==='hold'?'holding':'following'}`}</span>`).join('')+(DUN.bench.length?`<span>Waiting at the stairs: ${DUN.bench.map(b=>b.r.d.short).join(', ')}</span>`:'')+(DUN.st.keys?`<span>🗝 ${DUN.st.keys}</span>`:'')+(DUN.gold?`<span>Found: ${DUN.gold} gold</span>`:'')+(DUN.riv.some(g=>!g.down)?`<span class="riv">${NATIONS[DUN.rivNat].name}: ${DUN.riv.filter(g=>!g.down).map(g=>g.r.d.short).join(', ')}</span>`:'');
   $('dhAct').textContent=hint?'E · '+hint:'E · '+(ag.order==='hold'?'Squad: follow':'Squad: hold here');
-  $('dhCast').textContent=(ag.scd>0?'⌛ '+Math.ceil(ag.scd)+' · ':'Space · ')+SPELL[ag.r.d.spell];$('dhCast').disabled=ag.scd>0;$('dhSend').textContent=DUN.sendMode?'Tap a spot…':'Send squad';
+  $('dhCast').textContent=(ag.scd>0?'⌛ '+Math.ceil(ag.scd)+' · ':'Space · ')+SPELL[ag.r.d.spell];$('dhCast').disabled=ag.scd>0;$('dhSend').textContent=DUN.sendMode?'Tap a spot…':'Send squad';if(DUN.castMode)$('dhCast').textContent='Tap a spot…';
   $('dhNext').hidden=true;$('dhMap').textContent=$('dunMap').hidden?'M · Map':'M · Hide map';$('dhLeave').textContent=DUN.leaveArm>0?'Tap again to withdraw':'Withdraw '+ag.r.d.short;}
 function dunVrHud(x,line){if(!DUN){line('...',30);return;}const ag=dAct();x.font='700 26px Silkscreen, monospace';x.fillStyle='#b6a4e6';x.fillText(DUN.D.name.toUpperCase().slice(0,34),24,16);
   line(ag.r.d.short+' · HP '+Math.ceil(ag.r.hp)+' · troops '+dunSurvivors(ag)+'/'+ag.bring+' · '+(ag.order==='hold'?'squad holding':'squad following'),54,'#f1e8d4','17px');
@@ -4458,7 +4480,7 @@ $('dlDl').addEventListener('click',()=>{const b=new Blob([dlExport()],{type:'tex
 $('dlClear').addEventListener('click',()=>{if(confirm('Clear every approval and rejection?')){dlSave({ok:[],no:[]});dlList();}});
 /* dungeon HUD and expedition buttons */
 $('dnGo').addEventListener('click',dunPrepGo);$('dnCancel').addEventListener('click',dunPrepClose);$('dnLab').addEventListener('click',()=>{const R=dunRec();DLAB.seed=R.seed;DLAB.arch=R.arch;dlOpen();});
-$('dhAct').addEventListener('click',()=>dunAct());$('dhCast').addEventListener('click',()=>dunCast());$('dhOrder').addEventListener('click',()=>dunOrder());
+$('dhAct').addEventListener('click',()=>dunAct());$('dhCast').addEventListener('click',()=>dunCastAim());$('dhOrder').addEventListener('click',()=>dunOrder());
 $('dhSend').addEventListener('click',()=>{if(DUN){DUN.sendMode=!DUN.sendMode;dunHud();}});$('dhNext').addEventListener('click',()=>dunNextGen());$('dhLeave').addEventListener('click',()=>{dunRetreat();dunHud();});
 
 /* Lab play mode */
