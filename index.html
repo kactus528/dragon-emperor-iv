@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 166';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 167';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4327,14 +4327,15 @@ function dunCastAim(){const g=dAct();if(!g||g.down)return;if(g.scd>0){showBanner
   if(PHONE&&!xrActive&&!a){DUN.castMode=!DUN.castMode;DUN.sendMode=false;showBanner(DUN.castMode?'Tap where the spell should land':'Spell cancelled');dunHud();return;}
   if(a){const dx=a.x-g.x,dz=a.z-g.z,L=Math.hypot(dx,dz),m=14;a=L>m?{x:g.x+dx/L*m,z:g.z+dz/L*m}:{x:a.x,z:a.z};}dunCast(g,a||undefined);}
 function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,me=g.side===0,foe=v=>v.side!==g.side&&v.st==='alive';if(g.scd>0){if(me)showBanner(SPELL[sp]+' recharging');return;}
-  const tags=SPELL_TAGS[sp]||[],pw=24+(g.r.lvl||1)*3;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
+  const tags=SPELL_TAGS[sp]||[],pw=30+(g.r.lvl||1)*8.5;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
   if(!tg){bd=11;for(const G of DUN.gates){if(DUN.st.solved[G.g.id]||!GATES[G.g.k].any||!GATES[G.g.k].any.some(t=>tags.includes(t)))continue;const d=Math.hypot(G.x-g.x,G.z-g.z);if(d<bd){bd=d;tg={x:G.x,z:G.z};}}}
-  if(!tg)tg={x:g.x+(g.face?-5:5),z:g.z};g.scd=9;g.face=tg.x<g.x?1:0;
-  const area=(x,z,rad,dm)=>{if(!DUN)return;for(const v of DUN.us)if(foe(v)&&Math.hypot(v.x-x,v.z-z)<rad)dunDmg(v,dm,g);if(dm)for(const o of DUN.allG)if(o.side!==g.side&&!o.down&&Math.hypot(o.x-x,o.z-z)<rad){o.r.hp-=dm*0.12;o.hitBy=g.side;}
+  if(!tg)tg={x:g.x+(g.face?-5:5),z:g.z};g.scd=5;g.face=tg.x<g.x?1:0;
+  const area=(x,z,rad,dm)=>{if(!DUN)return;for(const v of DUN.us){if(!foe(v))continue;const d=Math.hypot(v.x-x,v.z-z);if(d>=rad)continue;dunDmg(v,dm*(1-0.35*d/rad),g);if(dm&&d>0.05){const k=(rad-d)*0.45;dMove(v,(v.x-x)/d*k,(v.z-z)/d*k,0.26,v.fly);}}if(dm)for(const o of DUN.allG)if(o.side!==g.side&&!o.down&&Math.hypot(o.x-x,o.z-z)<rad){o.r.hp-=dm*0.12;o.hitBy=g.side;}
       for(const G of DUN.gates){const gg=G.g;if(!DUN.st.solved[gg.id]&&GATES[gg.k].any&&GATES[gg.k].any.some(t=>tags.includes(t))&&Math.hypot(G.x-x,G.z-z)<rad+1.6)dunSolve(gg,me?SPELL[sp]:'rival');}};
   const burst=(x,z,col,n,rad)=>{for(let i=0;i<n;i++)dunFx(x+R(-rad,rad),R(0.2,1.5),z+R(-rad,rad),{col,s:R(0.6,1.3),life:R(0.4,0.9),vy:R(0.5,2.5),grow:1.5});};
   if(me)showBanner(SPELL[sp]+'!');else if(dRoomOf(g.x,g.z)===dRoomOf(dAct().x,dAct().z))showBanner(g.r.d.short+' casts '+SPELL[sp]+'!',true);sfx(sp==='thunder'?'zap':sp==='mend'?'chant':sp==='volley'?'arrow':'boom');
-  if(sp==='starfall'){dunFx(tg.x-3,9,tg.z-2,{col:0xff7a3a,s:1.4,life:0.45,vx:6.6,vy:-19,vz:4.4});setTimeout(()=>{if(!DUN)return;burst(tg.x,tg.z,0xff8a3a,24,2.4);area(tg.x,tg.z,3.2,pw);shake=0.6;},430);}
+  if(sp==='starfall'){/* one great star and two smaller ones around it */const hits=[[0,0,430,1,3.4,1.8],[R(-2,2),R(-2,2),650,0.45,2.2,1],[R(-2,2),R(-2,2),850,0.45,2.2,1]];for(const [ox,oz,ms,k,rad,sz] of hits){const hx=tg.x+ox,hz=tg.z+oz;dunFx(hx-3*ms/430,9,hz-2*ms/430,{col:0xff7a3a,s:1.4*sz,life:ms/1000,vx:6.6*430/ms,vy:-19*430/ms,vz:4.4*430/ms});
+    setTimeout(()=>{if(!DUN)return;burst(hx,hz,0xff8a3a,Math.round(26*sz),rad*0.75);burst(hx,hz,0xfff2b0,Math.round(8*sz),rad*0.35);area(hx,hz,rad,pw*k);shake=Math.max(shake,0.5*sz);sfx('boom');if(xrActive)buzz(0.6*sz,90);},ms);}}
   else if(sp==='ashrain'){for(let k=0;k<4;k++)setTimeout(()=>{if(!DUN)return;burst(tg.x,tg.z,0xff6a2a,10,3);area(tg.x,tg.z,3.5,pw*0.35);},k*450);}
   else if(sp==='breath'){const dx=tg.x-g.x,dz=tg.z-g.z,L=Math.hypot(dx,dz)||1;for(let s=1;s<=7;s++){const x=g.x+dx/L*s,z=g.z+dz/L*s;burst(x,z,0xff9a3a,3,0.3+s*0.12);area(x,z,0.6+s*0.15,pw*0.22);}}
   else if(sp==='volley'){for(let i=0;i<14;i++)dunFx(tg.x+R(-3,3),6,tg.z+R(-3,3),{col:0xfff2b0,s:0.3,life:0.35,vy:-16});setTimeout(()=>{if(DUN)area(tg.x,tg.z,3,pw*0.8);},350);}
