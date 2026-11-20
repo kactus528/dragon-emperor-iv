@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 171';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 172';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4084,19 +4084,39 @@ function dunDoorBuild(){const D=DUN.D,E=D.nodes[0],T=DUN.T,at=(x,y)=>x<0||y<0||x
   B(0.14,0.14,0.1,0xf0c055,-0.12,1.4,0.14);B(0.14,0.14,0.1,0xf0c055,0.12,1.4,0.14);
   const lab=makeLabel('EXIT · WAY IN','#f0c055');lab.scale.multiplyScalar(0.55);lab.position.set(0,4.1,0.3);grp.add(lab);
   grp.position.set(wx,0,wz);grp.rotation.y=rot;dunG.add(grp);DUN.doorG=grp;DUN.doorL=L;DUN.doorR=Rr;}
-function dunGateMesh(g){const G={g,objs:[],x:dwx(g.x),z:dwz(g.y),fade:-1};if(DUN.st.solved[g.id]){dunBridge(g);return G;}
+/* how an obstacle leaves: a boulder is rolled through into the next room and parked in a corner, a barricade is knocked flat and its planks
+   stay where they fall, doors rise into the ceiling, everything else fades (burnt, dispelled, purified) */
+function dunGateGo(G){const g=G.g,keep=new Set([...(G.rock||[]),...(G.planks||[])]);if(G.lift){G.anim={k:'lift',t:0};return;}
+  if(G.rock){const far=DUN.D.nodes[g.far],fx=Math.sign(far.tx-g.x)*(g.h?1:0),fz=Math.sign(far.ty-g.y)*(g.h?0:1),p0={x:G.rock[0].position.x,z:G.rock[0].position.z},p1={x:G.x+fx*DT*2.6,z:G.z+fz*DT*2.6};
+    let best=null,bd=1e9;for(let y=-far.hh;y<=far.hh;y++)for(let x=-far.hw;x<=far.hw;x++){const off=Math.abs(x)>=2&&Math.abs(y)>=2;if(!off&&(Math.abs(x)<=1||Math.abs(y)<=1))continue;const tx=far.tx+x,ty=far.ty+y;if(DUN.T[ty*DGW+tx]!==1||DUN.D.ents.some(e=>!e.deco&&e.x===tx&&e.y===ty))continue;const d=Math.hypot(tx-g.x,ty-g.y)+(off?0:50);if(d<bd){bd=d;best={x:dwx(tx),z:dwz(ty),tx,ty};}}
+    if(!best){/* no room for it: it rolls on and wedges into the far wall of the next room */const tx=far.tx+(g.h?Math.sign(far.tx-g.x)*far.hw:0),ty=far.ty+(g.h?0:Math.sign(far.ty-g.y)*far.hh);best={x:dwx(tx)+(g.h?Math.sign(far.tx-g.x)*DT:0),z:dwz(ty)+(g.h?0:Math.sign(far.ty-g.y)*DT),tx:-1,ty:-1};}
+    G.anim={k:'roll',t:0,path:best?[p0,p1,best]:[p0,p1],end:best};}
+  else if(G.planks){G.anim={k:'topple',t:0,far:DUN.D.nodes[g.far]};G.planks.forEach(b=>{b.userData.v=[R(-1,1),R(2,4),R(-1,1)];b.userData.r=[R(-3,3),R(-3,3),R(-3,3)];});}
+  G.objs=G.objs.filter(o=>!keep.has(o));G.fade=0;}
+function dunGateAnim(G,dt){const A=G.anim;A.t+=dt;
+  if(A.k==='lift'){const k=Math.min(1,A.t/0.9);for(const o of G.objs)if(o!==G.lab)o.position.y+=dt*3.6;if(k>=1){for(const o of G.objs)dunG.remove(o);G.objs=[];G.anim=null;}}
+  else if(A.k==='roll'){const P=A.path;let L=0;const seg=[];for(let i=1;i<P.length;i++){const d=Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z);seg.push(d);L+=d;}
+    const dur=1.0+L*0.12,k=Math.min(1,A.t/dur),e=1-Math.pow(1-k,2);let dist=e*L,i=0;while(i<seg.length-1&&dist>seg[i]){dist-=seg[i];i++;}const f=seg[i]?Math.min(1,dist/seg[i]):1,x=P[i].x+(P[i+1].x-P[i].x)*f,z=P[i].z+(P[i+1].z-P[i].z)*f;
+    for(const o of G.rock){const mx=x-o.position.x,mz=z-o.position.z;o.position.x=x;o.position.z=z;o.rotation.z-=mx/(DT*1.25);o.rotation.x+=mz/(DT*1.25);}
+    if(!G.quiet&&Math.random()<dt*20)dunFx(x+R(-1,1),0.3,z+R(-1,1),{col:0xb0a890,s:0.8,life:0.6,vy:0.6,grow:1});
+    if(k>=1){G.anim=null;if(!G.quiet){sfx('boom');shake=Math.max(shake,0.4);}for(let j=0;j<12;j++)dunFx(x+R(-1.5,1.5),R(0.2,1),z+R(-1.5,1.5),{col:0xb0a890,s:1,life:0.8,vy:R(0.5,1.5),grow:1.2});
+      if(A.end&&A.end.tx>=0){DUN.gb[A.end.ty*DGW+A.end.tx]=9999;DUN.flow.clear();if(DUN.reg)dunRegions();}}}
+  else if(A.k==='topple'){const k=Math.min(1,A.t/0.9);for(const b of G.planks){const v=b.userData.v,r=b.userData.r;if(b.position.y>0.12){v[1]-=14*dt;b.position.x+=v[0]*dt;b.position.y=Math.max(0.12,b.position.y+v[1]*dt);b.position.z+=v[2]*dt;b.rotation.x+=r[0]*dt;b.rotation.y+=r[1]*dt*0.3;}else{b.rotation.x=Math.round(b.rotation.x/Math.PI)*Math.PI;}}
+    if(k>=1)G.anim=null;}}
+function dunGateMesh(g){const G={g,objs:[],x:dwx(g.x),z:dwz(g.y),fade:-1},parked=DUN.st.solved[g.id]&&g.k==='boulder';if(DUN.st.solved[g.id]&&!parked){dunBridge(g);return G;}
   const W=3*DT,h=g.h,add=(m,x,y,z)=>{m.position.set(G.x+x,y,G.z+z);dunG.add(m);G.objs.push(m);return m;},box=(w,hh,d,col,op)=>new THREE.Mesh(new THREE.BoxGeometry(h?d:w,hh,h?w:d),new THREE.MeshBasicMaterial(op?{color:col,transparent:true,opacity:op,depthWrite:false,blending:THREE.AdditiveBlending}:{color:col}));
   const k=g.k;
-  if(k==='boulder'){const m=add(new THREE.Mesh(new THREE.IcosahedronGeometry(DT*1.25,1),new THREE.MeshBasicMaterial({color:0x7d7a72})),0,DT*1.1,0);m.material.color.offsetHSL(0,0,0);const d=add(new THREE.Mesh(new THREE.IcosahedronGeometry(DT*1.27,1),new THREE.MeshBasicMaterial({color:0x4a4640,wireframe:true})),0,DT*1.1,0);}
-  else if(k==='barricade'){for(let i=0;i<4;i++){const b=add(box(W,0.22,0.25,i%2?0x7a5432:0x5a3c22),0,0.3+i*0.35,(i%2-0.5)*0.25);b.rotation[h?'x':'z']=(i%2?0.12:-0.1);}}
+  if(k==='boulder'){const m=add(new THREE.Mesh(new THREE.IcosahedronGeometry(DT*1.25,1),new THREE.MeshBasicMaterial({color:0x7d7a72})),0,DT*1.1,0);const d=add(new THREE.Mesh(new THREE.IcosahedronGeometry(DT*1.27,1),new THREE.MeshBasicMaterial({color:0x4a4640,wireframe:true})),0,DT*1.1,0);G.rock=[m,d];G.rx=G.x;G.rz=G.z;}
+  else if(k==='barricade'){G.planks=[];for(let i=0;i<4;i++){const b=add(box(W,0.22,0.25,i%2?0x7a5432:0x5a3c22),0,0.3+i*0.35,(i%2-0.5)*0.25);b.rotation[h?'x':'z']=(i%2?0.12:-0.1);G.planks.push(b);}}
   else if(k==='thorns'){const M=dunEMat('thorn');for(let i=-1;i<=1;i++){const s=card(M.m,0.5,0,0.4);s.scale.set(M.w*1.4,M.h*1.4,1);add(s,h?0:i*DT,0,h?i*DT:0);}}
   else if(k==='crystal'){for(let i=-2;i<=2;i++)add(box(0.14,1.7,0.14,0x3a3a44),h?0:i*DT*0.6,0.85,h?i*DT*0.6:0);add(box(W,0.18,0.2,0x3a3a44),0,1.65,0);G.cr=add(new THREE.Mesh(new THREE.OctahedronGeometry(0.42),new THREE.MeshBasicMaterial({color:0x8fd8ff})),0,2.6,0);}
   else if(k==='seal'){G.pl=add(box(W,1.7,0.12,0xb070ff,0.45),0,0.85,0);}
   else if(k==='curse'){G.pl=add(box(W,1.3,DT,0x3fd06a,0.28),0,0.65,0);}
-  else if(k==='lock'){add(box(W,2.8,0.35,0x2e2a34),0,1.4,0);add(box(W,0.2,0.4,0x5a4a30),0,2.0,0);add(box(W,0.2,0.4,0x5a4a30),0,0.6,0);add(box(0.45,0.45,0.44,0xc9962e),0,1.3,0);}
-  else if(k==='plates'){add(box(W,2.8,0.35,0x4a4252),0,1.4,0);G.lt=add(box(W*0.8,0.14,0.4,0x332c3c),0,2.4,0);}
+  else if(k==='lock'){G.lift=1;add(box(W,2.8,0.35,0x2e2a34),0,1.4,0);add(box(W,0.2,0.4,0x5a4a30),0,2.0,0);add(box(W,0.2,0.4,0x5a4a30),0,0.6,0);add(box(0.45,0.45,0.44,0xc9962e),0,1.3,0);}
+  else if(k==='plates'){G.lift=1;add(box(W,2.8,0.35,0x4a4252),0,1.4,0);G.lt=add(box(W*0.8,0.14,0.4,0x332c3c),0,2.4,0);}
   {const t=k==='lock'?'LOCKED: NEEDS A KEY':k==='plates'?'HOLD BOTH PLATES':'NEEDS '+GATES[k].any.map(t=>DTAGN[t].toUpperCase()).join(' OR '),lb=makeLabel(t,k==='lock'?'#c9962e':k==='plates'?'#9a90aa':'#b6a4e6');lb.scale.multiplyScalar(0.55);add(lb,0,3.5,0);G.lab=lb;}
   /* chasm gates have no mesh: the open chasm is in the floor */
+  if(parked){/* already rolled aside on an earlier visit: it sits where it was parked */G.quiet=true;dunGateGo(G);G.anim.t=99;dunGateAnim(G,0);for(const o of G.objs)dunG.remove(o);G.objs=[];G.fade=-1;return G;}
   for(const [x,y] of g.tiles)if(k!=='chasm')DUN.gb[y*DGW+x]=g.id+1;
   return G;}
 function dunBridge(g){if(g.k!=='chasm')return;for(const [x,y] of g.tiles){DUN.T[y*DGW+x]=1;const m=new THREE.Mesh(new THREE.BoxGeometry(DT*0.96,0.1,DT*0.96),new THREE.MeshBasicMaterial({color:((x+y)&1)?0x7a5432:0x6a4628}));m.position.set(dwx(x),0.05,dwz(y));dunG.add(m);}}
@@ -4198,6 +4218,8 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
   if(!xrActive){const m=DUN.mouse;DUN.aimR.visible=!!m&&!PHONE;if(m){const dx=m.x-ag.x,dz=m.z-ag.z,L=Math.hypot(dx,dz),k=L>14?14/L:1;DUN.aimR.position.set(ag.x+dx*k,0.05,ag.z+dz*k);DUN.aimR.material.color.setHex(ag.scd>0?0x7a6f98:0xf0c055);}}
   DUN.ring.position.set(ag.x,0.04,ag.z);DUN.ring.material.opacity=0.6+Math.sin(now*5)*0.25;
   for(const G of DUN.gates){if(G.cr){G.cr.rotation.y=now*1.5;G.cr.position.y=2.6+Math.sin(now*2)*0.12;}if(G.pl)G.pl.material.opacity=(G.g.k==='seal'?0.4:0.25)+Math.sin(now*3+G.x)*0.08;
+    if(G.anim)dunGateAnim(G,dt);
+    if(G.rock&&!G.anim&&!DUN.st.solved[G.g.id]){const pr=Math.min(1,(G.g.prog||0)/7),far=DUN.D.nodes[G.g.far],fx=Math.sign(far.tx-G.g.x)*(G.g.h?1:0),fz=Math.sign(far.ty-G.g.y)*(G.g.h?0:1),wob=pr>0&&G.lastProg!==G.g.prog?Math.sin(DUN.t*18)*0.05:0;G.lastProg=G.g.prog;for(const o of G.rock){o.position.x=G.x+fx*pr*0.6+wob;o.position.z=G.z+fz*pr*0.6;o.rotation.z=-fx*pr*0.4;o.rotation.x=fz*pr*0.4;}}
     if(G.fade>=0){G.fade+=dt;const k=Math.max(0,1-G.fade/0.7);for(const o of G.objs){o.scale.setScalar(Math.max(0.01,k));}if(G.fade>0.7){for(const o of G.objs)dunG.remove(o);G.objs=[];G.fade=-1;}}
     if(!DUN.st.solved[G.g.id]&&G.g.k==='curse'&&Math.random()<dt*6)dunFx(G.x+R(-2,2),R(0.2,1.4),G.z+R(-1,1),{col:0x5fe08a,s:0.7,life:1.2,vy:0.5});}
   for(const o of DUN.ents)if(o.e.k==='torch'&&o.sp&&Math.random()<dt*5)dunFx(o.sp.position.x,1.95,o.sp.position.z,{col:0xff9a3a,s:0.5,life:0.5,vy:0.8});
@@ -4286,10 +4308,10 @@ function dunProj(dt){const _w=new THREE.Vector3();for(let i=DUN.proj.length-1;i>
   if(!p.mage){const n=at(Math.min(1,k+0.04));_w.set(n[0],n[1],n[2]);dunG.localToWorld(_w);p.m.lookAt(_w);}else if(Math.random()<0.5)dunFx(c[0],c[1],c[2],{col:0xb070ff,s:0.35,life:0.25});
   if(k>=1){p.m.visible=false;DUN.proj.splice(i,1);const col=p.mage?0xc08aff:0xfff2b0;for(let j=0;j<(p.mage?7:4);j++)dunFx(p.tx+R(-0.2,0.2),ty+R(-0.1,0.3),p.tz+R(-0.2,0.2),{col,s:p.mage?0.6:0.35,life:0.3,vx:R(-2,2),vy:R(0.5,2.5),vz:R(-2,2)});
     dunFx(p.tx,ty,p.tz,{col:p.mage?0xb070ff:0xff7a5a,s:p.mage?1.2:0.8,life:0.18,grow:1});p.onHit();}}}
-function dunFx(x,y,z,o){const f=DUN.fx.find(f=>f.life<=0&&!DUN.proj.some(p=>p.fx===f));if(!f)return;f.x=x;f.y=y;f.z=z;f.vx=o.vx||0;f.vy=o.vy||0;f.vz=o.vz||0;f.life=f.l0=o.life||0.5;f.sz=o.s||0.5;f.grow=o.grow||0;f.s.material.color.setHex(o.col||0xffffff);f.s.visible=true;f.s.position.set(x,y,z);f.s.scale.setScalar(f.sz);}
+function dunFx(x,y,z,o){if(!DUN.fx)return;const f=DUN.fx.find(f=>f.life<=0&&!DUN.proj.some(p=>p.fx===f));if(!f)return;f.x=x;f.y=y;f.z=z;f.vx=o.vx||0;f.vy=o.vy||0;f.vz=o.vz||0;f.life=f.l0=o.life||0.5;f.sz=o.s||0.5;f.grow=o.grow||0;f.s.material.color.setHex(o.col||0xffffff);f.s.visible=true;f.s.position.set(x,y,z);f.s.scale.setScalar(f.sz);}
 function dunFxTick(dt){for(const f of DUN.fx){if(f.life<=0||f.l0===undefined)continue;if(DUN.proj.some(p=>p.fx===f))continue;f.life-=dt;if(f.life<=0){f.s.visible=false;f.l0=undefined;continue;}f.x+=f.vx*dt;f.y+=f.vy*dt;f.z+=f.vz*dt;f.s.position.set(f.x,f.y,f.z);f.s.material.opacity=Math.min(1,f.life/f.l0*1.5);f.s.scale.setScalar(f.sz*(1+f.grow*(1-f.life/f.l0)));}}
 /* ---------- puzzles: one rule for every obstacle ---------- */
-function dunSolve(g,why){if(DUN.st.solved[g.id])return;DUN.st.solved[g.id]=1;for(const [x,y] of g.tiles)DUN.gb[y*DGW+x]=0;const G=DUN.gates[g.id];if(G)G.fade=0;
+function dunSolve(g,why){if(DUN.st.solved[g.id])return;DUN.st.solved[g.id]=1;for(const [x,y] of g.tiles)DUN.gb[y*DGW+x]=0;const G=DUN.gates[g.id];if(G)dunGateGo(G);
   if(g.k==='chasm'){dunBridge(g);const lv=DUN.ents.find(o=>o.e.k==='lever'&&o.e.gate===g.id);if(lv&&lv.sp){const M=dunEMat('leverD');lv.sp.material=M.m;}}
   const c=g.k==='thorns'?0xff8a3a:g.k==='seal'?0xb070ff:g.k==='curse'?0x9fffc0:0xf0c055;for(let i=0;i<16;i++)dunFx(dwx(g.x)+R(-2,2),R(0.2,1.8),dwz(g.y)+R(-2,2),{col:c,s:0.7,life:R(0.5,1.1),vy:R(0.5,2),grow:1});
   sfx(g.k==='thorns'?'flame':g.k==='boulder'||g.k==='barricade'?'boom':'lock');DUN.flow.clear();dunRegions();for(const u of DUN.us)if(u.task&&u.task.gate===g.id)u.task=null;
