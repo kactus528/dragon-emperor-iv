@@ -388,6 +388,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 #dunlab .ok{color:#7fe8a0}#dunlab .no{color:#ff9a7a}#dlList{font-size:12px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px}#dlList p{width:100%;margin:2px 0}
 #dunMap{position:fixed;top:56px;right:10px;z-index:6;background:rgba(10,8,14,.92);border:1px solid var(--line);padding:4px;pointer-events:none}#dmCv{display:block;width:min(46vw,440px);image-rendering:pixelated}html.phone #dunMap{left:8px;right:8px;top:48px}html.phone #dmCv{width:100%}
 #dhStat .riv{color:#ff9a7a}
+#dunSel{position:fixed;inset:0;z-index:9;display:grid;place-items:center;background:rgba(7,6,12,.6);padding:16px;overflow:auto}#dunSel .panel{padding:16px;display:grid;gap:8px;width:min(520px,100%);box-sizing:border-box}#dsWhy{color:#ff9a7a}#dsList{display:grid;gap:6px}#dsList button{display:grid;grid-template-columns:34px 1fr;column-gap:10px;text-align:left;padding:8px}#dsList img{grid-row:1/4;width:30px;image-rendering:pixelated}#dsList span,#dsList small{color:var(--dim);font-size:11px}
 #dlPlay{border:1px solid var(--line);padding:10px;display:grid;gap:8px}#dlPlay>b{color:var(--gold)}#dlPlay p{margin:0;font-size:12px;color:var(--dim)}#dlpRes{color:var(--term)!important}
 #dlpGens{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:260px;overflow:auto}.dlg{display:grid;grid-template-columns:18px 26px 1fr;column-gap:6px;align-items:center;border:1px solid;border-left-width:4px;padding:4px 6px;font-size:11px;cursor:pointer;opacity:.75}.dlg.on{opacity:1;background:rgba(240,192,85,.1)}.dlg input{grid-row:1/3}.dlg img{grid-row:1/3;width:24px;image-rendering:pixelated}.dlg b{color:var(--ink)}.dlg small{color:var(--dim)}
 #dlOut{width:100%;height:90px;box-sizing:border-box;background:#0e0a16;color:var(--term);border:1px solid var(--line);font:11px monospace}
@@ -599,13 +600,14 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 </div>
 <div id="dunp" hidden><div class="panel" role="dialog" aria-labelledby="dnName">
   <h3 id="dnName"></h3><div id="dnSub"></div><div id="dnReq"></div>
-  <div class="cpnote">Choose who goes in. Each general brings troops from their own army, up to the dungeon's limit; the rest stay at the castle. Losses are real.</div>
+  <div class="cpnote">Choose who goes, in order: the first general leads, the others wait at the stairs. If he falls or withdraws, you pick who goes in next. Each brings troops from his own army, up to the dungeon's limit; the rest stay at the castle. Losses are real.</div>
   <div id="dnList"></div>
   <div class="dnbtns"><button id="dnLab" title="Open this dungeon in the Dungeon Lab">Map</button><button id="dnCancel">Cancel</button><button id="dnGo" class="start">Enter</button></div></div></div>
 <div id="dunHud" hidden><div class="panel">
   <div id="dhName"></div><div id="dhStat"></div>
   <div class="dhb"><button id="dhAct">E · Act</button><button id="dhCast">Space · Spell</button><button id="dhOrder">Q · Hold / follow</button><button id="dhSend">Send squad</button><button id="dhMap">M · Map</button><button id="dhNext">Tab · Next general</button><button id="dhLeave">Retreat</button></div>
   <div class="dhkeys">WASD or click/tap to move · right-click a spot to send the squad there · E acts on what is in front of you, or tells the squad to hold</div></div></div>
+<div id="dunSel" hidden><div class="panel"><b id="dsWhy"></b><div id="dsList"></div><button id="dsLeave">Leave the dungeon</button></div></div>
 <div id="dunMap" hidden><canvas id="dmCv"></canvas></div>
 <div id="dunlab" hidden><div class="dlwrap">
   <div class="dlhead"><b>Dungeon Lab</b><span>Every map here is built by the generator from its seed. Approve the ones worth keeping, then copy the export and paste it to Claude to build them in.</span><button id="dlClose">Close</button></div>
@@ -693,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 161';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 162';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4054,7 +4056,8 @@ function dunBridge(g){if(g.k!=='chasm')return;for(const [x,y] of g.tiles){DUN.T[
 function dunEnter(D,gs,c,rec0,o){o=o||{};const rec=rec0||dunRec();rec.st.visits++;
   rec.st.seen=rec.st.seen||{};DUN={D,R:rec,st:rec.st,c,T:D.T.slice(),gb:new Int16Array(DGW*DGH),party:[],riv:[],allG:[],us:[],proj:[],ai:0,t:0,mv:{x:0,z:0},goal:null,aim:{valid:false},leaveArm:0,flow:new Map(),gold:0,lost:0,sendMode:false,sk:!!o.sk,mscale:o.mscale??1};
   dunBuildScene();dunRegions();
-  const E=D.nodes[0];gs.forEach((r,i)=>{const bring=DUN.sk?r.troops:Math.min(r.troops,D.troopCap);r.troops-=bring;DUN.party.push(dunGenMake(r,0,dwx(E.tx)+(i-(gs.length-1)/2)*1.2,dwz(E.ty)+0.6,bring,bring,r.troops));});
+  const E=D.nodes[0];DUN.bench=gs.map(r=>{const bring=DUN.sk?r.troops:Math.min(r.troops,D.troopCap);r.troops-=bring;return{r,bring,home:r.troops};});DUN.rally={x:dwx(E.tx),z:dwz(E.ty)+0.6};
+  dunDeploy(DUN.bench.shift(),true);
   dunRivSpawn();
   if(DUN.mscale<=0)for(const en of D.encs)DUN.st.dead[en.id]=1;
   for(const en of D.encs)if(!DUN.st.dead[en.id]&&DUN.mscale>0){const n=D.nodes[en.room],E2={en,awake:false,us:[]};en.rt=E2;
@@ -4062,7 +4065,26 @@ function dunEnter(D,gs,c,rec0,o){o=o||{};const rec=rec0||dunRec();rec.st.visits+
   state='dungeon';kingdom.visible=false;battle.visible=false;dunG.visible=true;CAMP.sel=null;updateCampPanel();updateModeUI();$('dunHud').hidden=false;
   orbit.g=null;orbit.theta=0;orbit.phi=0.72;orbit.r=PHONE?26:30;orbit.tx=DUN.party[0].x;orbit.tz=DUN.party[0].z;
   if(xrActive){vrTw=null;vrSaved=null;vr.scale=0.024;vr.yaw=0;vr.pos.set(-DUN.party[0].x*0.024,0.82,-0.55-DUN.party[0].z*0.024);}
-  sfx('horn');showBanner(D.name);if(!DUN.sk)clog(`${gs.map(r=>r.d.short).join(', ')} enter ${D.name}.`);if(DUN.riv.some(g=>!g.down))setTimeout(()=>{if(DUN)showBanner(NATIONS[DUN.rivNat].name+' is already down here',true);},2200);DE4LOG.info('dungeon enter seed '+D.seed+' '+D.hash);dunHud(true);}
+  sfx('horn');showBanner(D.name);if(!DUN.sk)clog(`${gs.map(r=>r.d.short).join(', ')} go down into ${D.name}, ${gs[0].d.short} leading.`);if(DUN.riv.some(g=>!g.down))setTimeout(()=>{if(DUN)showBanner(NATIONS[DUN.rivNat].name+' is already down here',true);},2200);DE4LOG.info('dungeon enter seed '+D.seed+' '+D.hash);dunHud(true);}
+/* one general is in the dungeon at a time; the others wait at the stairs. When he falls or withdraws you pick the next (or leave) and he takes
+   over from the last safe spot his predecessor reached */
+function dunDeploy(b,first){const g=dunGenMake(b.r,0,DUN.rally.x,DUN.rally.z,b.bring,b.bring,b.home);DUN.party.push(g);DUN.ai=DUN.party.length-1;DUN.goal=null;DUN.sendMode=false;
+  if(!first){showBanner(b.r.d.short+' takes up the expedition');sfx('horn');}return g;}
+function dunLost(){if(DUN.sel)return;if(!DUN.bench.length){dunLeave(DUN.lastWhy||'defeat');return;}DUN.sel=true;DUN.selHover=-1;DUN.selHash='';dunSelDraw();}
+function dunSelPick(i){const b=DUN.bench[i];if(!b)return;DUN.bench.splice(i,1);DUN.sel=false;$('dunSel').hidden=true;if(DUN.selB)DUN.selB.visible=false;dunDeploy(b);dunHud();}
+function dunSelLeave(){DUN.sel=false;$('dunSel').hidden=true;if(DUN.selB)DUN.selB.visible=false;dunLeave(DUN.lastWhy==='defeat'?'defeat':'retreat');}
+const dunSC=cv(1024,640),dunSX=dunSC.getContext('2d'),dunST=tex(dunSC,true);
+function dunSelDraw(){const B=DUN.bench,last=DUN.party[DUN.ai],why=last?(last.captured?last.r.d.short+' was taken prisoner':last.withdrew?last.r.d.short+' withdrew':last.r.d.short+' has fallen'):'';
+  if(!xrActive){$('dunSel').hidden=false;$('dsWhy').textContent=why+'. Who goes next?';
+    $('dsList').innerHTML=B.map((b,i)=>`<button data-ds="${i}"><img src="${portrait(b.r.d.key)}" alt=""><b>${i+1} · ${b.r.d.short}</b><span>${TROOP[b.r.d.troop]} · ${SPELL[b.r.d.spell]} · ${b.bring} troops · HP ${Math.ceil(b.r.hp)}</span><small>${[...new Set([...(TROOP_TAGS[b.r.d.troop]||[]),...(SPELL_TAGS[b.r.d.spell]||[])])].map(t=>DTAGN[t]).join(' · ')}</small></button>`).join('');
+    $('dsList').querySelectorAll('[data-ds]').forEach(b=>b.addEventListener('click',()=>dunSelPick(+b.dataset.ds)));return;}
+  if(!DUN.selB){DUN.selB=new THREE.Mesh(new THREE.PlaneGeometry(24,15),new THREE.MeshBasicMaterial({map:dunST,transparent:true,depthTest:false}));DUN.selB.renderOrder=16;dunG.add(DUN.selB);}
+  const ag=DUN.party[DUN.ai];DUN.selB.visible=true;DUN.selB.position.set(ag.x,7,ag.z-6);const h=B.length+'|'+DUN.selHover;if(h===DUN.selHash)return;DUN.selHash=h;
+  const x=dunSX,W=1024,H=640;x.clearRect(0,0,W,H);x.fillStyle='rgba(16,12,26,0.95)';x.fillRect(0,0,W,H);x.strokeStyle='#4a3d63';x.lineWidth=4;x.strokeRect(2,2,W-4,H-4);x.textBaseline='top';x.textAlign='left';
+  x.font='900 30px Silkscreen, monospace';x.fillStyle='#ff9a7a';x.fillText(why.toUpperCase().slice(0,44),28,22);x.font='18px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('Who goes next? Point and pull the trigger.',28,64);
+  B.slice(0,6).forEach((b,i)=>{const y=104+i*66;x.fillStyle=i===DUN.selHover?'rgba(240,192,85,0.2)':'rgba(255,255,255,0.03)';x.fillRect(16,y-4,W-32,60);x.imageSmoothingEnabled=false;x.drawImage(GCV[b.r.d.key][0],32,y,36,48);
+    x.font='700 24px Silkscreen, monospace';x.fillStyle='#f1e8d4';x.fillText(b.r.d.short,86,y+2);x.font='16px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText(`${TROOP[b.r.d.troop]} · ${SPELL[b.r.d.spell]} · ${b.bring} troops`,86,y+32);});
+  const by=H-76;x.fillStyle=DUN.selHover===100?'rgba(240,192,85,0.25)':'rgba(255,255,255,0.05)';x.fillRect(24,by,W-48,56);x.font='700 24px Silkscreen, monospace';x.fillStyle='#a99fb8';x.fillText('LEAVE THE DUNGEON',44,by+16);dunST.needsUpdate=true;}
 function dSnap(x,z){if(dFree(x,z,0.3,false))return[x,z];let best=[x,z],bd=1e9;const i0=dtx(x),j0=dtz(z);for(let j=j0-4;j<=j0+4;j++)for(let i=i0-4;i<=i0+4;i++){const cx=dwx(i),cz=dwz(j);if(!dFree(cx,cz,0.3,false))continue;const d=Math.hypot(cx-x,cz-z);if(d<bd){bd=d;best=[cx,cz];}}return best;}
 /* a general in the dungeon: side 0 yours, side 2 a rival kingdom's. His troops come along as files of up to a dozen sprites */
 function dunGenMake(r,side,x,z,bring,men,home){const g={r,side,home,bring,x,z,face:0,order:'follow',hx:0,hz:0,cd:0,scd:0,walk:0,down:false,sp:card(GMF[r.d.key][0][0].m,0.5,0.02,0.45)};[g.x,g.z]=dSnap(g.x,g.z);dunG.add(g.sp);DUN.allG.push(g);
@@ -4072,9 +4094,10 @@ function dunUnit(side,t,men,x,z,o){[x,z]=dSnap(x,z);const u=Object.assign({side,
 function dunSurvivors(g){return DUN.us.filter(u=>u.g===g&&u.st==='alive').reduce((a,u)=>a+dmen(u),0);}
 function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}
   for(const g of DUN.party){const sv=g.out!=null?g.out:dunSurvivors(g);g.r.troops=g.home+sv;lost+=g.bring-sv;if(g.r.hp<=0)g.r.hp=1;L.push(g.r.d.short+' '+sv+'/'+g.bring);}
+  for(const b of DUN.bench){b.r.troops=b.home+b.bring;L.push(b.r.d.short+' waited');}
   dunRivSave();
   clog(`The expedition leaves ${D.name}${why?' ('+why+')':''}: ${lost} troops lost${DUN.gold?', '+DUN.gold+' gold found':''}${DUN.st.cleared?', sanctum claimed':''}.`);DE4LOG.info('dungeon leave '+L.join(', '));
-  DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;
+  DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;$('dunSel').hidden=true;
   state='kingdom';kingdom.visible=true;battle.visible=false;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);updateModeUI();updateCampPanel();setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});if(xrActive)vrReset();sfx('fanfare');showBanner(why==='defeat'?'The expedition is driven out':'Back to the war table',why==='defeat');}
 /* ---------- grid movement, collision and flow fields ---------- */
 function dPass(x,z,fly){const i=dtx(x),j=dtz(z);if(i<0||j<0||i>=DGW||j>=DGH)return false;const k=j*DGW+i,t=DUN.T[k];if(!t)return false;if(DUN.gb[k])return false;return t===1||(t===2&&fly);}
@@ -4095,7 +4118,7 @@ const dReg=o=>{const i=dtx(o.x),j=dtz(o.z);return i<0||j<0||i>=DGW||j>=DGH?-1:DU
 const dRoomOf=(x,z)=>{const i=dtx(x),j=dtz(z);return DUN.D.nodes.find(n=>Math.abs(i-n.tx)<=n.hw&&Math.abs(j-n.ty)<=n.hh);};
 /* ---------- the frame ---------- */
 const dAct=()=>DUN&&DUN.party[DUN.ai];
-function dunTick(dt,now){if(!DUN)return;DUN.t+=dt;const P=DUN.party,ag=dAct();if(!ag)return;
+function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){scene.fog.near=1e4;scene.fog.far=2e4;}return;}DUN.t+=dt;const P=DUN.party,ag=dAct();if(!ag)return;
   /* the active general: stick / keys, or walk to a tapped spot */
   let mx=DUN.mv.x,mz=DUN.mv.z;if(!xrActive){let sx=0,fw=0;if(keys.has('a')||keys.has('arrowleft'))sx-=1;if(keys.has('d')||keys.has('arrowright'))sx+=1;if(keys.has('w')||keys.has('arrowup'))fw+=1;if(keys.has('s')||keys.has('arrowdown'))fw-=1;if(sx||fw){mx=sx;mz=-fw;DUN.goal=null;}}
   if(Math.hypot(mx,mz)>0.1){DUN.goal=null;}else if(DUN.goal){const s=dSteer(ag,DUN.goal.x,DUN.goal.z,false);if(Math.hypot(DUN.goal.x-ag.x,DUN.goal.z-ag.z)<0.4)DUN.goal=null;else{mx=s[0];mz=s[1];}}
@@ -4106,7 +4129,9 @@ function dunTick(dt,now){if(!DUN)return;DUN.t+=dt;const P=DUN.party,ag=dAct();if
   dunUnits(dt);dunPlates();dunKeys();dunProj(dt);dunFxTick(dt);
   for(const g of DUN.allG){g.cd-=dt;g.scd=Math.max(0,g.scd-dt);if(g.down)continue;dunGenFight(g,dt);}
   for(const g of DUN.allG)if(!g.down&&g.r.hp<=0)dunDown(g);
-  if(!P.some(g=>!g.down)){dunLeave('defeat');return;}
+  if(ag.down){dunLost();return;}
+  DUN.ralT=(DUN.ralT||0)-dt;if(DUN.ralT<=0){DUN.ralT=0.5;if(!dLive(0,ag.x,ag.z,9))DUN.rally={x:ag.x,z:ag.z};}
+  if(DUN.riv.length&&DUN.riv.every(g=>g.down)&&DUN.rbench&&DUN.rbench.length)dunRivNext();
   DUN.seenT=(DUN.seenT||0)-dt;if(DUN.seenT<=0){DUN.seenT=0.3;for(const g of P){if(g.down)continue;const n=dRoomOf(g.x,g.z);if(n&&!DUN.st.seen[n.id]){DUN.st.seen[n.id]=1;DUN.mapHash='';}}if(!$('dunMap').hidden||(DUN.mapB&&DUN.mapB.visible))dunMapDraw();}
   for(const g of DUN.allG){const fr=GMF[g.r.d.key][g.face][g.down?3:Math.floor(g.walk*4)%2];g.sp.material=fr.m;g.sp.scale.set(fr.w*0.8,fr.h*0.8,1);g.sp.position.set(g.x,0,g.z);g.sp.visible=!g.gone;}
   DUN.ring.position.set(ag.x,0.04,ag.z);DUN.ring.material.opacity=0.6+Math.sin(now*5)*0.25;
@@ -4164,8 +4189,8 @@ function dunDown(g){g.down=true;g.out=dunSurvivors(g);g.r.hp=1;g.gone=true;for(c
   if(cap){g.r.troops=g.home;g.r.alive=false;g.r.prisonerOf=winner;g.captured=true;showBanner(g.r.d.short+' is taken prisoner!',g.side===0);sfx(g.side===0?'defeat':'fanfare');clog(`${g.r.d.short} of ${NATIONS[who].name} is captured by ${NATIONS[winner].name} in ${DUN.D.name}.`);}
   else if(g.side===0){showBanner(g.r.d.short+' falls and is carried out by his troops',true);clog(`${g.r.d.short} is wounded in ${DUN.D.name}; his troops carry him to the surface.`);}
   else{showBanner(g.r.d.short+' is beaten and flees the dungeon');sfx('fanfare');dunRivHome(g.r,g.home,g.out);g.home=null;}
-  if(g.side===0&&dAct()===g)dunNextGen();}
-function dunNextGen(){const P=DUN.party;for(let i=1;i<=P.length;i++){const j=(DUN.ai+i)%P.length;if(!P[j].down){if(j!==DUN.ai){DUN.ai=j;DUN.goal=null;showBanner('Now leading: '+P[j].r.d.short);sfx('blip',500);}return;}}}
+  if(g.side===0)DUN.lastWhy=cap?'defeat':'defeat';}
+function dunNextGen(){if(DUN&&DUN.bench&&DUN.bench.length)showBanner('One general at a time. The next goes in if '+dAct().r.d.short+' falls or withdraws');return;const P=DUN.party;for(let i=1;i<=P.length;i++){const j=(DUN.ai+i)%P.length;if(!P[j].down){if(j!==DUN.ai){DUN.ai=j;DUN.goal=null;showBanner('Now leading: '+P[j].r.d.short);sfx('blip',500);}return;}}}
 /* ---------- projectiles and effects ---------- */
 function dunShot(u,tg,onHit){const fx=DUN.fx.find(f=>f.life<=0);DUN.proj.push({x:u.x,z:u.z,y:0.9,tg,t:0,dur:0.35,onHit,fx});if(fx){fx.life=1;fx.s.visible=true;fx.s.material.color.setHex(u.t==='mage'?0xb070ff:0xfff2b0);fx.s.scale.setScalar(0.3);}if(Math.random()<0.4)sfx('arrow');}
 function dunProj(dt){for(let i=DUN.proj.length-1;i>=0;i--){const p=DUN.proj[i];p.t+=dt;const k=Math.min(1,p.t/p.dur),tx=p.tg.x,tz=p.tg.z,ty=p.tg.y??0.8;
@@ -4195,8 +4220,18 @@ function dunPlates(){for(const g of DUN.D.gates){if(g.k!=='plates'||DUN.st.solve
    that holds a key, or one of his soldiers, reaches it. A and E still work on both. */
 function dunTakeKey(o,side){const e=o.e;if(DUN.st.open[e.id])return;DUN.st.open[e.id]=1;if(o.sp){dunG.remove(o.sp);o.sp=null;}for(let i=0;i<10;i++)dunFx(o.x,0.6,o.z,{col:0xffe39a,s:0.4,life:0.7,vx:R(-1,1),vy:R(1,3),vz:R(-1,1)});
   if(side===0){DUN.st.keys++;sfx('lvlup');showBanner('You found a key. Bring it to the locked door');}else{DUN.rk=(DUN.rk||0)+1;if(dRoomOf(dAct().x,dAct().z)===dRoomOf(o.x,o.z))showBanner(NATIONS[DUN.rivNat].name+' takes the key!',true);}}
+function dunOpenChest(o,side){const e=o.e;if(DUN.st.open[e.id])return;DUN.st.open[e.id]=1;const v=e.gold||20;if(o.sp)o.sp.material=dunEMat('chestO').m;for(let i=0;i<10;i++)dunFx(o.x,0.6,o.z,{col:0xf0c055,s:0.4,life:0.8,vx:R(-1,1),vy:R(1,3),vz:R(-1,1)});
+  if(side===0){if(!DUN.sk)addGold(NET.me,v);DUN.gold+=v;DUN.found=(DUN.found||[]).concat(v+' gold');sfx('lvlup');showBanner(`Treasure! ${v} gold`);}
+  else{if(!DUN.sk)addGold(DUN.rivNat,v);if(DUN.R.riv)DUN.R.riv.gold=(DUN.R.riv.gold||0)+v;if(dRoomOf(dAct().x,dAct().z)===dRoomOf(o.x,o.z))showBanner(NATIONS[DUN.rivNat].name+' loots the chest!',true);}}
+function dunClaimAltar(o,side,asked){const e=o.e,S=DUN.D.encs.find(c=>c.boss);if(S&&!DUN.st.dead[S.id]){if(asked)showBanner('The guardians still stand',true);return;}
+  if(DUN.st.cleared){if(asked)showBanner(DUN.st.cleared===1?'The altar is bare':'The altar is bare: '+NATIONS[DUN.st.cleared].name+' got here first');return;}const v=e.gold||100;
+  if(side===0){DUN.st.cleared=1;if(!DUN.sk){addGold(NET.me,v);clog(`Your expedition claims the sanctum of ${DUN.D.name}.`);}DUN.gold+=v;DUN.found=(DUN.found||[]).concat(v+' gold (sanctum)');sfx('fanfare');showBanner(`Sanctum claimed: ${v} gold. Return to the stairs to leave.`);}
+  else{DUN.st.cleared=DUN.rivNat;if(!DUN.sk){addGold(DUN.rivNat,v);clog(`${NATIONS[DUN.rivNat].name} plunders the sanctum of ${DUN.D.name}.`);}if(DUN.R.riv)DUN.R.riv.gold=(DUN.R.riv.gold||0)+v;showBanner(NATIONS[DUN.rivNat].name+' has plundered the sanctum!',true);sfx('horn');}}
 function dunKeys(){const near=(x,z,r)=>{let side=-1;for(const g of DUN.allG)if(!g.down&&Math.hypot(g.x-x,g.z-z)<r){side=g.side;if(side===0)return 0;}for(const u of DUN.us)if(u.side!==1&&u.st==='alive'&&Math.hypot(u.x-x,u.z-z)<r){side=u.side;if(side===0)return 0;}return side;};
-  for(const o of DUN.ents){if(o.e.k!=='key'||DUN.st.open[o.e.id])continue;const s=near(o.x,o.z,DT*0.8);if(s>=0)dunTakeKey(o,s);}
+  for(const o of DUN.ents){const k=o.e.k;if(k==='key'&&!DUN.st.open[o.e.id]){const s=near(o.x,o.z,DT*0.8);if(s>=0)dunTakeKey(o,s);}
+    else if(k==='chest'&&!DUN.st.open[o.e.id]){const s=near(o.x,o.z,DT*0.8);if(s>=0)dunOpenChest(o,s);}
+    else if(k==='altar'&&!DUN.st.cleared){const s=near(o.x,o.z,DT*0.9);if(s>=0)dunClaimAltar(o,s,false);}
+    else if(k==='sign'&&!(DUN.signs||(DUN.signs={}))[o.e.id]){const ag=dAct();if(ag&&Math.hypot(ag.x-o.x,ag.z-o.z)<DT*1.2){DUN.signs[o.e.id]=1;showBanner(o.e.txt||'');}}}
   for(const G of DUN.gates){const g=G.g;if(g.k!=='lock'||DUN.st.solved[g.id])continue;const s=near(G.x,G.z,DT*1.9);if(s===0&&DUN.st.keys>0){DUN.st.keys--;dunSolve(g,'unlocked');}else if(s===2&&DUN.rk>0){DUN.rk--;dunSolve(g,'rival');}}}
 /* ---------- commands ---------- */
 function dunNearest(){const ag=dAct();let best=null,bd=2.3;
@@ -4204,13 +4239,12 @@ function dunNearest(){const ag=dAct();let best=null,bd=2.3;
   for(const G of DUN.gates){const g=G.g;if(DUN.st.solved[g.id])continue;const d=Math.hypot(G.x-ag.x,G.z-ag.z)-0.9;if(d<bd+0.6){bd=d;best={G};}}return best;}
 function dunAct(){if(!DUN)return;const ag=dAct();if(ag.down)return;const n=dunNearest();
   if(n&&n.o){const e=n.o.e;
-    if(e.k==='chest'){DUN.st.open[e.id]=1;const g=e.gold||20;if(!DUN.sk)addGold(NET.me,g);DUN.gold+=g;const M=dunEMat('chestO');n.o.sp.material=M.m;sfx('lvlup');showBanner(`Treasure! ${g} gold`);for(let i=0;i<10;i++)dunFx(n.o.x,0.6,n.o.z,{col:0xf0c055,s:0.4,life:0.8,vx:R(-1,1),vy:R(1,3),vz:R(-1,1)});return;}
+    if(e.k==='chest'){dunOpenChest(n.o,0);return;}
     if(e.k==='key'){dunTakeKey(n.o,0);return;}
     if(e.k==='sign'){showBanner(e.txt||'');sfx('blip',300);return;}
     if(e.k==='portal'){dunLeave();return;}
     if(e.k==='lever'){const g=DUN.D.gates[e.gate];if(!DUN.st.solved[g.id])dunSolve(g,'lever pulled');return;}
-    if(e.k==='altar'){const S=DUN.D.encs.find(c=>c.boss);if(S&&!DUN.st.dead[S.id]){showBanner('The guardians still stand',true);return;}if(DUN.st.cleared){showBanner(DUN.st.cleared===1?'The altar is bare':'The altar is bare: '+NATIONS[DUN.st.cleared].name+' got here first');return;}
-      DUN.st.cleared=1;if(!DUN.sk)addGold(NET.me,e.gold||100);DUN.gold+=e.gold||100;sfx('fanfare');showBanner(`Sanctum claimed: ${e.gold} gold. Return to the stairs to leave.`);clog(`Your expedition claims the sanctum of ${DUN.D.name}.`);return;}}
+    if(e.k==='altar'){dunClaimAltar(n.o,0,true);return;}}
   if(n&&n.G){const g=n.G.g;
     if(g.k==='lock'){if(DUN.st.keys>0){DUN.st.keys--;dunSolve(g,'unlocked');}else{showBanner(gateClue('lock'));sfx('blip',200);}return;}
     if(g.k==='plates'){showBanner(gateClue('plates'));return;}
@@ -4219,7 +4253,9 @@ function dunAct(){if(!DUN)return;const ag=dAct();if(ag.down)return;const n=dunNe
   dunOrder();}
 function dunOrder(){const ag=dAct();if(ag.order==='hold'){ag.order='follow';showBanner(ag.r.d.short+"'s squad: follow");}else{ag.order='hold';ag.hx=ag.x;ag.hz=ag.z;showBanner(ag.r.d.short+"'s squad: hold here");}sfx('blip',380);}
 function dunSendSquad(x,z){const ag=dAct();if(!dPass(x,z,false)){showBanner("Squads can't stand there");return;}ag.order='hold';ag.hx=x;ag.hz=z;for(const u of DUN.us)if(u.g===ag)u.task=null;showBanner(ag.r.d.short+"'s squad moves up");sfx('charge');}
-function dunRetreat(){if(DUN.leaveArm>0){dunLeave('retreat');return;}DUN.leaveArm=2.5;showBanner('Retreat? Press again to leave the dungeon',true);}
+function dunRetreat(){if(DUN.sel){dunSelLeave();return;}const g=dAct();if(DUN.leaveArm>0){DUN.leaveArm=0;g.withdrew=true;g.out=dunSurvivors(g);g.down=g.gone=true;for(const u of DUN.us)if(u.g===g&&u.st==='alive'){u.st='gone';dunG.remove(u.sp);}
+    DUN.lastWhy='retreat';showBanner(g.r.d.short+' withdraws to the surface');if(!DUN.sk)clog(`${g.r.d.short} withdraws from ${DUN.D.name} with ${g.out} troops.`);return;}
+  DUN.leaveArm=2.5;showBanner('Withdraw '+g.r.d.short+'? Press again'+(DUN.bench.length?' (you then choose who goes next)':' (the expedition then leaves)'),true);}
 /* the general's own spell, same names and elements as in battle; damage scales with level */
 function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,me=g.side===0,foe=v=>v.side!==g.side&&v.st==='alive';if(g.scd>0){if(me)showBanner(SPELL[sp]+' recharging');return;}
   const tags=SPELL_TAGS[sp]||[],pw=24+(g.r.lvl||1)*3;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
@@ -4239,22 +4275,23 @@ function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,
   else if(sp==='eclipse'){burst(tg.x,tg.z,0x8a5aff,22,3);for(const v of DUN.us)if(foe(v)&&Math.hypot(v.x-tg.x,v.z-tg.z)<4)v.cd+=3;area(tg.x,tg.z,4,pw*0.6);}
   else area(tg.x,tg.z,3,pw);}
 /* ---------- input ---------- */
-function dunKey(k,e){if(k==='m'){dunMapToggle();return;}if(k===' '){e.preventDefault();dunCast();}else if(k==='e'||k==='enter')dunAct();else if(k==='q')dunOrder();else if(k==='tab'){e.preventDefault();dunNextGen();}else if(k==='escape'||k==='l')dunRetreat();}
+function dunKey(k,e){if(DUN.sel){const n=parseInt(k,10);if(n>=1)dunSelPick(n-1);else if(k==='escape'||k==='l')dunSelLeave();return;}if(k==='m'){dunMapToggle();return;}if(k===' '){e.preventDefault();dunCast();}else if(k==='e'||k==='enter')dunAct();else if(k==='q')dunOrder();else if(k==='tab'){e.preventDefault();dunNextGen();}else if(k==='escape'||k==='l')dunRetreat();}
 function dunPtrDown(e){DUN.pd={x:e.clientX,y:e.clientY,t:performance.now(),b:e.button};}
 function dunPtrUp(e){const p=DUN&&DUN.pd;if(!p)return;DUN.pd=null;if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>10||performance.now()-p.t>700)return;
   const r=canvas.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),camera);const o=ray.ray.origin,d=ray.ray.direction;if(Math.abs(d.y)<1e-4)return;const t=-o.y/d.y;if(t<0)return;
   const x=o.x+d.x*t,z=o.z+d.z*t;if(p.b===2||DUN.sendMode){DUN.sendMode=false;dunSendSquad(x,z);}else{DUN.goal={x,z};}}
 canvas.addEventListener('pointerup',e=>{if(state==='dungeon')dunPtrUp(e);});
 function dunStick(f,rt,ax,ay){const v=f.clone().multiplyScalar(-ay).addScaledVector(rt,ax);dunG.getWorldQuaternion(_sq);v.applyQuaternion(_sq.invert());DUN.mv.x=v.x;DUN.mv.z=v.z;}
-xrSelect=(f=>hand=>{if(state==='dungeon'&&DUN){audioInit();if(hand==='left')dunNextGen();else dunCast();return;}
+xrSelect=(f=>hand=>{if(state==='dungeon'&&DUN){audioInit();if(DUN.sel){if(hand==='left')return;if(DUN.selHover===100)dunSelLeave();else if(DUN.selHover>=0)dunSelPick(DUN.selHover);return;}if(hand==='left')dunNextGen();else dunCast();return;}
   if(state==='kingdom'&&DPREP.open){if(hand==='left'){dunPrepClose();return;}const h=DPREP.hover;if(h===100)dunPrepGo();else if(h===101)dunPrepClose();else if(h>=0&&dunBRows[h])dunPrepToggle(dunBRows[h]);return;}return f(hand);})(xrSelect);
-xrFace=(f=>hand=>{if(state==='dungeon'&&DUN){if(hand==='left')dunOrder();else dunAct();return;}if(state==='kingdom'&&DPREP.open){if(hand==='left')dunPrepClose();else dunPrepGo();return;}return f(hand);})(xrFace);
+xrFace=(f=>hand=>{if(state==='dungeon'&&DUN){if(DUN.sel){if(hand!=='left'&&DUN.selHover>=0&&DUN.selHover<100)dunSelPick(DUN.selHover);return;}if(hand==='left')dunOrder();else dunAct();return;}if(state==='kingdom'&&DPREP.open){if(hand==='left')dunPrepClose();else dunPrepGo();return;}return f(hand);})(xrFace);
 vrAim=(f=>now=>{let rc=null;for(const c of ctrls)if((c.userData.hand||'right')==='right')rc=c;
   if(state==='kingdom'&&DPREP.open&&dunBoard&&dunBoard.visible&&rc){for(const c of ctrls)c.userData.laser.visible=false;hoverRing.visible=false;world.updateMatrixWorld(true);rc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);ray.set(o,d);
     const h=ray.intersectObject(dunBoard,false)[0],L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:3;let hv=-1;if(h&&h.uv){const px=h.uv.x*1024,py=(1-h.uv.y)*640;if(py>640-76&&py<640-20)hv=px<512?100:101;else{const i=Math.floor((py-108)/62);if(i>=0&&i<dunBRows.length)hv=i;}}
     if(hv!==DPREP.hover){DPREP.hover=hv;dunBoardDraw();}L.material.color.set(hv>=0?0xf0c055:0xd8d0e8);return;}
   if(state==='dungeon'&&DUN){for(const c of ctrls)c.userData.laser.visible=false;hoverRing.visible=false;reticle.visible=false;aim.valid=false;DUN.aim.valid=false;DUN.aimR.visible=false;if(!rc)return;
     world.updateMatrixWorld(true);rc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld),L=rc.userData.laser;L.visible=true;L.scale.z=3;L.material.color.set(0x7fe8c8);
+    if(DUN.sel&&DUN.selB&&DUN.selB.visible){ray.set(o,d);const h=ray.intersectObject(DUN.selB,false)[0];let hv=-1;if(h&&h.uv){L.scale.z=h.distance;const py=(1-h.uv.y)*640;if(py>640-76&&py<640-20)hv=100;else{const i=Math.floor((py-100)/66);if(i>=0&&i<Math.min(6,DUN.bench.length))hv=i;}}if(hv!==DUN.selHover){DUN.selHover=hv;DUN.selHash='';}L.material.color.set(hv>=0?0xf0c055:0xd8d0e8);return;}
     const lo=dunG.worldToLocal(o.clone()),ld=dunG.worldToLocal(o.clone().add(d)).sub(lo).normalize();if(ld.y<-1e-3){const t=-lo.y/ld.y,x=lo.x+ld.x*t,z=lo.z+ld.z*t;if(dPass(x,z,false)){DUN.aim={valid:true,x,z};DUN.aimR.visible=true;DUN.aimR.position.set(x,0.05,z);L.scale.z=t*dunG.getWorldScale(_fv).x;}}return;}
   return f(now);})(vrAim);
 /* ---------- HUD ---------- */
@@ -4263,16 +4300,16 @@ function dunHud(force){if(!DUN)return;const ag=dAct(),n=dunNearest(),P=DUN.party
   else if(n&&n.G){const g=n.G.g;hint=g.k==='lock'?(DUN.st.keys?'Unlock the door':'Locked: find the key'):g.k==='plates'?'Hold both plates':'Use troops on the '+GATES[g.k].n.toLowerCase();}
   DUN.hint=hint;const h=$('dunHud');if(h.hidden)return;
   $('dhName').textContent=ag.r.d.short.toUpperCase()+' · '+DUN.D.name;
-  $('dhStat').innerHTML=P.map((g,i)=>`<span class="${i===DUN.ai?'on':''}${g.down?' down':''}">${g.r.d.short} ${g.down?'(carried out)':`HP ${Math.ceil(g.r.hp)} · ${dunSurvivors(g)}/${g.bring} · ${g.order==='hold'?'holding':'following'}`}</span>`).join('')+(DUN.st.keys?`<span>🗝 ${DUN.st.keys}</span>`:'')+(DUN.gold?`<span>${DUN.gold} gold</span>`:'')+(DUN.riv.some(g=>!g.down)?`<span class="riv">${NATIONS[DUN.rivNat].name}: ${DUN.riv.filter(g=>!g.down).map(g=>g.r.d.short).join(', ')}</span>`:'');
+  $('dhStat').innerHTML=P.map((g,i)=>`<span class="${i===DUN.ai?'on':''}${g.down?' down':''}">${g.r.d.short} ${g.down?(g.captured?'(captured)':g.withdrew?'(withdrew)':'(carried out)'):`HP ${Math.ceil(g.r.hp)} · ${dunSurvivors(g)}/${g.bring} · squad ${g.order==='hold'?'holding':'following'}`}</span>`).join('')+(DUN.bench.length?`<span>Waiting at the stairs: ${DUN.bench.map(b=>b.r.d.short).join(', ')}</span>`:'')+(DUN.st.keys?`<span>🗝 ${DUN.st.keys}</span>`:'')+(DUN.gold?`<span>Found: ${DUN.gold} gold</span>`:'')+(DUN.riv.some(g=>!g.down)?`<span class="riv">${NATIONS[DUN.rivNat].name}: ${DUN.riv.filter(g=>!g.down).map(g=>g.r.d.short).join(', ')}</span>`:'');
   $('dhAct').textContent=hint?'E · '+hint:'E · '+(ag.order==='hold'?'Squad: follow':'Squad: hold here');
   $('dhCast').textContent=(ag.scd>0?'⌛ '+Math.ceil(ag.scd)+' · ':'Space · ')+SPELL[ag.r.d.spell];$('dhCast').disabled=ag.scd>0;$('dhSend').textContent=DUN.sendMode?'Tap a spot…':'Send squad';
-  $('dhNext').hidden=P.filter(g=>!g.down).length<2;$('dhMap').textContent=$('dunMap').hidden?'M · Map':'M · Hide map';$('dhLeave').textContent=DUN.leaveArm>0?'Tap again to retreat':'Retreat';}
+  $('dhNext').hidden=true;$('dhMap').textContent=$('dunMap').hidden?'M · Map':'M · Hide map';$('dhLeave').textContent=DUN.leaveArm>0?'Tap again to withdraw':'Withdraw '+ag.r.d.short;}
 function dunVrHud(x,line){if(!DUN){line('...',30);return;}const ag=dAct();x.font='700 26px Silkscreen, monospace';x.fillStyle='#b6a4e6';x.fillText(DUN.D.name.toUpperCase().slice(0,34),24,16);
   line(ag.r.d.short+' · HP '+Math.ceil(ag.r.hp)+' · troops '+dunSurvivors(ag)+'/'+ag.bring+' · '+(ag.order==='hold'?'squad holding':'squad following'),54,'#f1e8d4','17px');
   line(SPELL[ag.r.d.spell]+(ag.scd>0?' in '+Math.ceil(ag.scd)+'s':' ready (R trig)')+(DUN.st.keys?' · keys '+DUN.st.keys:'')+(DUN.gold?' · '+DUN.gold+' gold':''),80,ag.scd>0?'#a99fb8':'#f0c055','16px');
   line(DUN.hint?'A: '+DUN.hint:'A: send squad where you point · X: hold / follow',108,'#ffe39a','16px');
   if(DUN.riv.some(g=>!g.down))line(NATIONS[DUN.rivNat].name+' expedition inside: '+DUN.riv.filter(g=>!g.down).map(g=>g.r.d.short).join(', '),134,'#ff9a7a','15px');
-  line('L stick move · L trig next general · R stick click map · Y twice: retreat',160,'#857aa0','14px');}
+  line((DUN.bench.length?'Waiting: '+DUN.bench.map(b=>b.r.d.short).join(', ')+' · ':'')+'R stick click map · Y twice: withdraw',160,'#857aa0','14px');}
 
 
 /* ================= DUNGEONS · rival kingdom expeditions (Build 160) =================
@@ -4280,11 +4317,13 @@ function dunVrHud(x,line){if(!DUN){line('...',30);return;}const ag=dAct();x.font
    fighting guardians, taking treasure); when you are inside they are physically there and act in real time. Every change they make to the
    dungeon (opened gates, empty chests, dead guardians, a plundered sanctum) is the same shared state you see. */
 function dunRivSpawn(){const rec=DUN.R,R=rec.riv;DUN.riv=[];DUN.rk=0;DUN.rivNat=R?R.nat:null;if(!R)return;const D=DUN.D,n=D.nodes[R.room]||D.nodes[0];DUN.rk=R.keys||0;DUN.rseen=new Set(R.seen||[R.room]);DUN.rai={t:0,goal:null,rest:0,room:n.id};
-  R.gens.forEach((x,i)=>{const r=x.r||GENS[x.gi];if(!r||!r.alive||x.men<=0&&!x.bring)return;const g=dunGenMake(r,2,dwx(n.tx)+(i-0.5)*1.4,dwz(n.ty)-0.8,x.bring,Math.max(0,x.men),x.home);g.rx=x;DUN.riv.push(g);});}
-function dunRivSave(){const rec=DUN.R,R=rec.riv;if(!R)return;const live=DUN.riv.filter(g=>!g.down);if(!live.length){rec.riv=null;return;}
-  R.gens=live.map(g=>({gi:g.rx.gi,r:g.rx.r,bring:g.bring,men:dunSurvivors(g),home:g.home}));R.room=DUN.rai.room;R.keys=DUN.rk;R.seen=[...DUN.rseen];}
+  DUN.rbench=R.gens.filter(x=>{const r=x.r||GENS[x.gi];return r&&r.alive&&x.men>0;});DUN.rai.rally={x:dwx(n.tx),z:dwz(n.ty)-0.8};if(DUN.rbench.length)dunRivNext(true);}
+function dunRivNext(first){const x=DUN.rbench.shift(),r=x.r||GENS[x.gi],A=DUN.rai;const g=dunGenMake(r,2,A.rally.x,A.rally.z,x.bring,x.men,x.home);g.rx=x;DUN.riv.push(g);A.goal=null;A.rest=0;
+  if(!first&&dRoomOf(dAct().x,dAct().z)===dRoomOf(g.x,g.z))showBanner(r.d.short+' takes over the '+NATIONS[DUN.rivNat].name+' expedition',true);}
+function dunRivSave(){const rec=DUN.R,R=rec.riv;if(!R)return;const live=DUN.riv.filter(g=>!g.down);if(!live.length&&!(DUN.rbench||[]).length){rec.riv=null;return;}
+  R.gens=live.map(g=>({gi:g.rx.gi,r:g.rx.r,bring:g.bring,men:dunSurvivors(g),home:g.home})).concat(DUN.rbench||[]);R.room=DUN.rai.room;R.keys=DUN.rk;R.seen=[...DUN.rseen];}
 function dunRivHome(r,home,men){if(!r||r.dunSk)return;r.troops=(home||0)+(men||0);r.rest=Math.max(r.rest||0,1);const c=CASTLES[r.loc];if(c&&c.o!==r.nat){const h=CASTLES.find(k=>k.o===r.nat);if(h)r.loc=h.id;}}
-function dunRivExit(){const R=DUN.R.riv,gold=R?R.gold||0:0;for(const g of DUN.riv){if(g.down)continue;g.down=g.gone=true;dunRivHome(g.r,g.home,dunSurvivors(g));for(const u of DUN.us)if(u.g===g&&u.st==='alive'){u.st='gone';dunG.remove(u.sp);}}
+function dunRivExit(){const R=DUN.R.riv,gold=R?R.gold||0:0;for(const x of DUN.rbench||[])dunRivHome(x.r||GENS[x.gi],x.home,x.men);DUN.rbench=[];for(const g of DUN.riv){if(g.down)continue;g.down=g.gone=true;dunRivHome(g.r,g.home,dunSurvivors(g));for(const u of DUN.us)if(u.g===g&&u.st==='alive'){u.st='gone';dunG.remove(u.sp);}}
   if(R&&!DUN.sk)clog(`${NATIONS[R.nat].name}'s expedition leaves ${DUN.D.name}${gold?' with '+gold+' gold':''}.`);showBanner(NATIONS[DUN.rivNat].name+"'s expedition has left the dungeon");DUN.R.riv=null;}
 /* the rooms a side can walk to right now (shared gate state), with hop counts */
 function dunReachNow(from){const D=DUN.D,hop=new Map([[from,0]]),Q=[from];while(Q.length){const a=Q.shift();for(const e of D.edges){if(e.a!==a&&e.b!==a)continue;const b=e.a===a?e.b:e.a;if(hop.has(b))continue;const g=e.gate!=null?D.gates[e.gate]:null;if(g&&!DUN.st.solved[g.id])continue;hop.set(b,hop.get(a)+1);Q.push(b);}}return hop;}
@@ -4309,10 +4348,11 @@ function dunRivPlan(L,ps){const D=DUN.D,ld=L[0],A=DUN.rai,st=DUN.st,men=dMenOf(L
   if(!C.length||Math.max(...C.map(c=>c.s))<0.2)return Object.assign(leave,{why:'done'});
   let best=null,bv=-1e9;for(const c of C){const v=c.s+Math.random()*0.4;if(v>bv){bv=v;best=c;}}return best;}
 function dunRivAI(dt){if(!DUN.riv.length)return;const L=DUN.riv.filter(g=>!g.down);if(!L.length)return;const A=DUN.rai,ld=L[0],ps=gpOf(ld.r),D=DUN.D;
-  const rn=dRoomOf(ld.x,ld.z);if(rn){A.room=rn.id;DUN.rseen.add(rn.id);}
+  const rn=dRoomOf(ld.x,ld.z);if(rn){A.room=rn.id;DUN.rseen.add(rn.id);}A.ralT=(A.ralT||0)-dt;if(A.ralT<=0){A.ralT=0.5;if(!dLive(2,ld.x,ld.z,9))A.rally={x:ld.x,z:ld.z};}
   L.forEach((g,i)=>{if(i===0)return;const d=Math.hypot(ld.x-g.x,ld.z-g.z);if(d>1.8+i*0.6){const s=dSteer(g,ld.x,ld.z,false),sp=Math.min(4.6,2.4+d*0.4);if(dMove(g,s[0]*sp*dt,s[1]*sp*dt,0.32,false))g.walk+=dt;if(Math.abs(s[0])>0.2)g.face=s[0]<0?1:0;}});
   for(const g of L)if(g.scd<=0&&dLive(2,g.x,g.z,9)&&Math.random()<dt*0.8)dunCast(g);
-  {const men=dMenOf(L),br=L.reduce((a,g)=>a+g.bring,0),hurt=L.some(g=>g.r.hp<g.r.d.hp*(0.3-0.1*ps.A));if((men<br*(0.35-0.15*ps.A)||hurt)&&!(A.goal&&(A.goal.k==='leave'||A.goal.k==='guard'))){const pt=DUN.D.ents.find(e=>e.k==='portal');A.goal=dunReachNow(A.room).has(pt.room)?{k:'leave',x:dwx(pt.x),z:dwz(pt.y),why:'losses'}:{k:'guard',x:ld.x,z:ld.z,why:'cut off'};A.rest=0;if(A.goal.k==='leave'&&dRoomOf(dAct().x,dAct().z)===rn)showBanner(NATIONS[DUN.rivNat].name+' is falling back!');}}
+  {const men=dMenOf(L),br=L.reduce((a,g)=>a+g.bring,0),hurt=L.some(g=>g.r.hp<g.r.d.hp*(0.3-0.1*ps.A));if((men<br*(0.35-0.15*ps.A)||hurt)&&DUN.rbench&&DUN.rbench.length){ld.down=ld.gone=true;dunRivHome(ld.r,ld.home,dunSurvivors(ld));for(const u of DUN.us)if(u.g===ld&&u.st==='alive'){u.st='gone';dunG.remove(u.sp);}if(dRoomOf(dAct().x,dAct().z)===rn)showBanner(ld.r.d.short+' pulls back',true);return;}
+  if((men<br*(0.35-0.15*ps.A)||hurt)&&!(A.goal&&(A.goal.k==='leave'||A.goal.k==='guard'))){const pt=DUN.D.ents.find(e=>e.k==='portal');A.goal=dunReachNow(A.room).has(pt.room)?{k:'leave',x:dwx(pt.x),z:dwz(pt.y),why:'losses'}:{k:'guard',x:ld.x,z:ld.z,why:'cut off'};A.rest=0;if(A.goal.k==='leave'&&dRoomOf(dAct().x,dAct().z)===rn)showBanner(NATIONS[DUN.rivNat].name+' is falling back!');}}
   const fleeing=A.goal&&A.goal.k==='leave';if(!fleeing){if(dLive(2,ld.x,ld.z,4.5)||DUN.us.some(u=>u.side===2&&u.st==='alive'&&u.tgt&&u.tgt.st==='alive')){A.rest=2.5;return;}if(A.rest>0){A.rest-=dt;return;}}
   A.t-=dt;if(fleeing)A.t=1;if(A.goal&&(A.goal.k==='plateB'||(A.goal.k==='gate'&&A.wait>0)))A.t=Math.max(A.t,0.5);if(A.t<=0||!A.goal){A.t=1.2;const ng=dunRivPlan(L,ps);if(!A.goal||ng.k!==A.goal.k||ng.e!==A.goal.e||ng.g!==A.goal.g||ng.room!==A.goal.room){if(A.goal&&A.goal.k==='gate'&&A.goal.g.k==='plates')ld.order='follow';A.goal=ng;A.wait=0;}}
   const G=A.goal;if(!G)return;let tx=G.x,tz=G.z;if(G.k==='hunt'){const P=DUN.party.filter(g=>!g.down).sort((a,b)=>Math.hypot(a.x-ld.x,a.z-ld.z)-Math.hypot(b.x-ld.x,b.z-ld.z))[0];if(!P){A.goal=null;return;}tx=P.x;tz=P.z;}
@@ -4320,9 +4360,9 @@ function dunRivAI(dt){if(!DUN.riv.length)return;const L=DUN.riv.filter(g=>!g.dow
   const d=Math.hypot(tx-ld.x,tz-ld.z);
   if(d>(G.k==='hunt'?1.2:0.9)){const s=dSteer(ld,tx,tz,false),sp=3.6;if(dMove(ld,s[0]*sp*dt,s[1]*sp*dt,0.32,false))ld.walk+=dt;if(Math.abs(s[0])>0.2)ld.face=s[0]<0?1:0;return;}
   const st=DUN.st,seen=!!rn&&dRoomOf(dAct().x,dAct().z)===rn,nm=NATIONS[DUN.rivNat].name;
-  if(G.k==='chest'&&!st.open[G.e.id]){st.open[G.e.id]=1;const v=G.e.gold||20;if(!DUN.sk)addGold(DUN.rivNat,v);if(DUN.R.riv)DUN.R.riv.gold=(DUN.R.riv.gold||0)+v;const o=DUN.ents.find(o=>o.e===G.e);if(o&&o.sp)o.sp.material=dunEMat('chestO').m;if(seen)showBanner(nm+' loots the chest!',true);A.goal=null;}
+  if(G.k==='chest'&&!st.open[G.e.id]){const o=DUN.ents.find(o=>o.e===G.e);if(o)dunOpenChest(o,2);A.goal=null;}
   else if(G.k==='key'&&!st.open[G.e.id]){const o=DUN.ents.find(o=>o.e===G.e);if(o)dunTakeKey(o,2);A.goal=null;}
-  else if(G.k==='altar'&&!st.cleared){const boss=D.encs.find(c=>c.boss);if(boss&&!st.dead[boss.id]){A.goal=null;return;}st.cleared=DUN.rivNat;const v=G.e.gold||100;if(!DUN.sk){addGold(DUN.rivNat,v);clog(`${nm} plunders the sanctum of ${D.name}.`);}if(DUN.R.riv)DUN.R.riv.gold=(DUN.R.riv.gold||0)+v;showBanner(nm+' has plundered the sanctum!',true);sfx('horn');A.goal=null;}
+  else if(G.k==='altar'&&!st.cleared){const o=DUN.ents.find(o=>o.e===G.e);if(o)dunClaimAltar(o,2,false);A.goal=null;}
   else if(G.k==='gate'){const g=G.g;if(st.solved[g.id]){if(g.k==='plates')ld.order='follow';A.goal=null;return;}
     if(g.k==='lock'){if(DUN.rk>0){DUN.rk--;dunSolve(g,'rival');if(seen)showBanner(nm+' unlocks the door',true);}A.goal=null;return;}
     if(g.k==='plates'){const pl=g.plates.map(i=>D.ents[i]),[p0,p1]=Math.hypot(dwx(pl[0].x)-ld.x,dwz(pl[0].y)-ld.z)>Math.hypot(dwx(pl[1].x)-ld.x,dwz(pl[1].y)-ld.z)?pl:[pl[1],pl[0]];
@@ -4371,9 +4411,9 @@ function dunMapDraw(){if(!DUN)return;const vr=DUN.mapB&&DUN.mapB.visible,c=vr?DU
   x.fillStyle='#b6a4e6';x.font='bold 13px monospace';x.textAlign='left';x.textBaseline='top';x.fillText(D.name+' · '+Object.keys(st.seen).length+'/'+D.nodes.length+' rooms',4,3);
   if(vr){DUN.mapT.needsUpdate=true;const ag=dAct();DUN.mapB.position.set(ag.x,9,ag.z-8);}}
 /* ---------- Dungeon Lab play mode: any generals, any conditions, a fresh copy of the map each run, nothing touches the campaign ---------- */
-function dunSkLeave(why){const D=DUN.D,P=DUN.party,tot=P.reduce((a,g)=>a+g.bring,0),sv=P.reduce((a,g)=>a+(g.out!=null?g.out:dunSurvivors(g)),0),st=DUN.st,ch=D.ents.filter(e=>e.k==='chest'),rv=DUN.rivNat;
+function dunSkLeave(why){const D=DUN.D,P=DUN.party,B=DUN.bench||[],tot=P.reduce((a,g)=>a+g.bring,0)+B.reduce((a,b)=>a+b.bring,0),sv=P.reduce((a,g)=>a+(g.out!=null?g.out:dunSurvivors(g)),0)+B.reduce((a,b)=>a+b.bring,0),st=DUN.st,ch=D.ents.filter(e=>e.k==='chest'),rv=DUN.rivNat;
   const res=`${D.name}: ${why==='defeat'?'driven out':why==='retreat'?'retreated':'left by the stairs'} · ${sv}/${tot} troops survived · ${ch.filter(e=>st.open[e.id]).length}/${ch.length} chests opened · ${D.gates.filter(g=>st.solved[g.id]).length}/${D.gates.length} obstacles cleared · ${Object.keys(st.seen).length}/${D.nodes.length} rooms seen · sanctum ${st.cleared===1?'claimed':st.cleared?'taken by '+NATIONS[st.cleared].name:'not claimed'}${rv?' · rival '+NATIONS[rv].name+': '+DUN.riv.map(g=>g.r.d.short+(g.captured?' captured':g.down?' beaten':' '+dunSurvivors(g)+'/'+g.bring)).join(', '):''}`;
-  DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;
+  DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;$('dunSel').hidden=true;
   state='title';phase='intro';kingdom.visible=true;battle.visible=false;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);updateModeUI();setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});
   try{const s=renderer.xr.getSession&&renderer.xr.getSession();if(s)s.end();}catch(e){}
   $('title').hidden=false;$('dunlab').hidden=false;$('dlPlay').hidden=false;$('dlpRes').textContent='Last run · '+res;DE4LOG.info('lab run '+res);}
@@ -4440,7 +4480,7 @@ function dlpStart(){const D=DLAB.D;if(!D||!DLP.pick.size){showBanner('Pick at le
 $('dlPlayBtn').addEventListener('click',dlpOpen);$('dlpBack').addEventListener('click',()=>{$('dlPlay').hidden=true;});$('dlpGo').addEventListener('click',dlpStart);
 $('dlpVR').addEventListener('click',()=>{dlpStart();if(state==='dungeon'){const b=$('vrBtn2');if(b&&!b.disabled)b.click();else showBanner('VR is not available in this browser');}});
 $('dlpTr').addEventListener('input',e=>{$('dlpTrV').textContent=e.target.value;});
-$('dhMap').addEventListener('click',()=>{dunMapToggle();dunHud();});
+$('dhMap').addEventListener('click',()=>{dunMapToggle();dunHud();});$('dsLeave').addEventListener('click',()=>dunSelLeave());
 
 /* ================= LOOP ================= */
 let last=performance.now()/1000;
