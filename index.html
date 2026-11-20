@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 168';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 169';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4065,6 +4065,9 @@ function dunBuildScene(){const D=DUN.D,A=DARCH[D.arch],T=DUN.T;while(dunG.childr
   DUN.gates=D.gates.map(g=>dunGateMesh(g));dunDoorBuild();
   const ring=new THREE.Mesh(new THREE.RingGeometry(0.55,0.72,24),new THREE.MeshBasicMaterial({color:0xf0c055,transparent:true,opacity:0.85,depthWrite:false}));ring.rotation.x=-Math.PI/2;ring.position.y=0.04;dunG.add(ring);DUN.ring=ring;
   const aimR=new THREE.Mesh(new THREE.RingGeometry(0.4,0.55,20),new THREE.MeshBasicMaterial({color:0x7fe8c8,transparent:true,opacity:0.8,depthWrite:false}));aimR.rotation.x=-Math.PI/2;aimR.visible=false;dunG.add(aimR);DUN.aimR=aimR;
+  /* blood stains and flying drops, same textures and rules as the battlefield (the Blood slider and Ludicrous gore apply) */
+  DUN.dec=BLOODT.map(t=>{const m=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,opacity:0.88,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}),300);m.count=0;m.frustumCulled=false;m.renderOrder=1;dunG.add(m);return{m,i:0,n:0};});
+  DUN.gore=[];for(let i=0;i<220;i++){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:T_DROP,transparent:true,depthWrite:false}));sp.visible=false;dunG.add(sp);DUN.gore.push({s:sp,life:0});}
   DUN.fx=[];for(let i=0;i<90;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));s.visible=false;dunG.add(s);DUN.fx.push({s,life:0});}}
 /* the way in and out: a great door set into a wall of the entrance hall (a wall with no corridor behind it, north first so it faces you).
    Every general comes in through it, and walking up to it offers to send the general out and someone else in, or to leave */
@@ -4174,7 +4177,7 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
   /* the other generals follow in a loose column */
   P.forEach((g,i)=>{if(g===ag||g.down)return;const d=Math.hypot(ag.x-g.x,ag.z-g.z),want=1.8+0.6*((i+P.length-DUN.ai)%P.length);if(d>want){const s=dSteer(g,ag.x,ag.z,false),sp=Math.min(4.8,2.6+d*0.4);if(dMove(g,s[0]*sp*dt,s[1]*sp*dt,0.32,false))g.walk+=dt;if(Math.abs(s[0])>0.2)g.face=s[0]<0?1:0;}});
   try{dunRivAI(dt);}catch(e){DE4LOG.err(e,'dunRivAI');}
-  dunUnits(dt);dunPlates();dunKeys();dunProj(dt);dunFxTick(dt);
+  dunUnits(dt);dunPlates();dunKeys();dunProj(dt);dunFxTick(dt);dunGoreTick(dt);
   for(const g of DUN.allG){g.cd-=dt;g.scd=Math.max(0,g.scd-dt);if(g.down)continue;dunGenFight(g,dt);}
   for(const g of DUN.allG)if(!g.down&&g.r.hp<=0)dunDown(g);
   if(ag.down){dunLost();return;}
@@ -4202,7 +4205,9 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
 function dunUnits(dt){const U=DUN.us,P=DUN.party;
   const AG=DUN.allG;for(const E of DUN.D.encs){const rt=E.rt;if(!rt||rt.awake)continue;let by=-1;for(const u of rt.us){if(u.st!=='alive')continue;const g=AG.find(g=>!g.down&&Math.hypot(g.x-u.x,g.z-u.z)<7.5&&dSame(g,u));if(g){by=g.side;break;}const v=U.find(v=>v.side!==1&&v.st==='alive'&&Math.hypot(v.x-u.x,v.z-u.z)<6&&dSame(v,u));if(v){by=v.side;break;}}
     if(by>=0){rt.awake=true;if(by===0||dRoomOf(P[DUN.ai].x,P[DUN.ai].z)===DUN.D.nodes[E.room]){sfx('horn');showBanner(E.boss?'The sanctum\'s guardians rise!':'Ambush!',true);}}}
-  for(const u of U){if(u.st==='dying'){u.dieT+=dt;if(u.dieT>1.2){u.st='gone';dunG.remove(u.sp);}continue;}if(u.st!=='alive')continue;
+  for(const u of U){if(u.st==='dying'){/* same death as on the battlefield: thrown from the blow, falls, lies still, blinks out */u.dieT+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}
+      if(!dMove(u,u.vx*dt,u.vz*dt,0.15,true)){u.vx*=-0.3;u.vz*=-0.3;}if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
+      dunDrawU(u);u.sp.visible=u.dieT<=1.0||((u.dieT*16)|0)%2===0;if(u.dieT>1.7&&u.y===0){u.st='gone';dunG.remove(u.sp);}continue;}if(u.st!=='alive')continue;
     const S=STATS[u.t];u.cd-=dt;u.tT-=dt;let gx=null,gz=null,stop=0.2,spd=S.spd*0.9;
     const g=u.g,pers=g?gpOf(g.r):null;
     if(u.side===1&&!u.enc.awake){u.walk=0;dunDrawU(u);continue;}
@@ -4227,11 +4232,25 @@ function dunUnits(dt){const U=DUN.us,P=DUN.party;
     if(vx||vz){if(dMove(u,vx*dt,vz*dt,0.26,u.fly))u.walk+=dt*Math.min(1,Math.hypot(vx,vz)/2);if(Math.abs(vx)>0.3&&!(tg&&!u.task))u.face=vx<0?1:0;}
     dunDrawU(u);}}
 function dunDrawU(u){const f=u.st==='dying'?3:(u.cd>STATS[u.t].cd*0.75&&u.tgt?2:Math.floor(u.walk*5)%2),M=dunUMat(u.pal,u.t,f,u.face);u.sp.material=M.m;u.sp.scale.set(M.w,M.h,1);
-  const fy=u.fly&&u.st==='alive'?1.0+Math.sin(DUN.t*3+u.x)*0.15:0;u.sp.position.set(u.x,fy,u.z);}
+  const fy=u.st==='dying'?u.y:u.fly&&u.st==='alive'?1.0+Math.sin(DUN.t*3+u.x)*0.15:0;u.sp.position.set(u.x,fy,u.z);}
+function dunSplat(x,z,sc){const D=DUN.dec[(Math.random()*DUN.dec.length)|0];_de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x,0.03,z);_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
+  D.m.setMatrixAt(D.i,_dm);D.i=(D.i+1)%300;D.n=Math.min(300,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;}
+function dunDrop(o){const p=DUN.gore.find(p=>p.life<=0);if(!p)return;Object.assign(p,{x:o.x,y:o.y,z:o.z,vx:o.vx||0,vy:o.vy||0,vz:o.vz||0,g:o.g??-22,life:o.life,splat:!!o.splat});p.s.material.map=o.tex||T_DROP;p.s.material.color.setHex(o.col||0xffffff);p.s.scale.set(o.w||0.25,o.w||0.25,1);p.s.visible=true;p.s.position.set(p.x,p.y,p.z);}
+function dunGoreTick(dt){for(const p of DUN.gore){if(p.life<=0)continue;p.life-=dt;if(p.life<=0){p.s.visible=false;continue;}p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;
+  if(p.y<0.05){if(p.splat&&p.vy<0){dunSplat(p.x,p.z,R(0.9,1.8));p.life=Math.min(p.life,0.05);p.splat=false;}p.y=0.05;p.vy*=-0.3;p.vx*=0.55;p.vz*=0.55;}p.s.position.set(p.x,p.y,p.z);}}
+/* a death in the dungeon follows the battlefield's rules: thrown away from the blow (higher by spells), armour chips fly, blood by the Blood slider, Ludicrous gore adds sprays and the odd burst */
+function dunKill(u,k){const dx=u.x-k.x,dz=u.z-k.z,d=Math.hypot(dx,dz)||1;u.vx=dx/d*k.p;u.vz=dz/d*k.p;u.vy=k.l;u.y=u.fly?1.0:0;
+  const cc=[T_CHIPS[u.pal===0?1:2],T_CHIPS[u.pal===0?0:3],T_CHIPS[4]];for(let i=0;i<(k.l>3?4:2);i++)dunDrop({x:u.x,y:0.6+u.y,z:u.z,vx:R(-2,2),vy:R(2,4),vz:R(-1,1),life:R(0.9,1.6),tex:cc[(Math.random()*3)|0],w:0.3});
+  const x=u.x,z=u.z;
+  if(goreX){dunSplat(x+R(-0.4,0.4),z+R(-0.4,0.4),R(1.6,3.2));if(Math.random()<0.5)dunSplat(x+R(-1.5,1.5),z+R(-1.5,1.5),R(0.8,1.8));
+    for(let i=0;i<12;i++)dunDrop({x,y:0.8,z,vx:R(-6,6),vy:R(4,10),vz:R(-6,6),life:R(0.5,1),w:0.28});
+    if(Math.random()<0.06){sfx('boom');shake=Math.max(shake,0.5);for(let i=0;i<9;i++)dunDrop({x:x+R(-0.4,0.4),y:R(0.6,1.4),z:z+R(-0.4,0.4),vx:R(-6,6),vy:R(8,15),vz:R(-6,6),g:-20,tex:T_BPUFF,w:R(0.7,1.3),life:R(1.1,1.6),splat:true});for(let i=0;i<30;i++)dunDrop({x,y:0.8,z,vx:R(-12,12),vy:R(5,14),vz:R(-12,12),life:R(0.7,1.4),w:R(0.2,0.45)});for(let i=0;i<7;i++){const a=R(0,6.28),r=R(0,5);dunSplat(x+Math.cos(a)*r,z+Math.sin(a)*r,R(1.5,4));}}return;}
+  if(blood<=0||Math.random()>0.35+blood*0.65)return;dunSplat(x+R(-0.25,0.25),z+R(-0.25,0.25),(0.9+Math.random()*0.8)*(0.6+blood*1.0));
+  if(blood>0.3)for(let i=0,n=Math.round(blood*4);i<n;i++)dunDrop({x,y:0.7,z,vx:R(-2.5,2.5),vy:R(2,5),vz:R(-2.5,2.5),life:R(0.4,0.8),w:0.18});}
 function dunHit(a,b){if(!b||(b.st&&b.st!=='alive')||(b.r&&b.down))return;const bt=b.r?b.r.d.troop:b.t,dm=STATS[a.t].dmg*MULT[a.t][bt]*Math.max(1,dmen(a))*0.35;
   if(b.r){b.r.hp-=dm*0.09*10/(10+b.r.d.def);b.hitBy=a.side;dunFx(b.x,1,b.z,{col:0xff5a3a,s:0.5,life:0.3});return;}dunDmg(b,dm,a);}
-function dunDmg(b,dm,src){if(b.st!=='alive')return;b.hp-=dm;if(Math.random()<0.5)dunFx(b.x+R(-0.2,0.2),0.8,b.z,{col:0xff7a5a,s:0.35,life:0.25});if(b.side===1&&!b.enc.awake){b.enc.awake=true;}
-  if(b.hp<=0){b.hp=0;b.st='dying';b.dieT=0;if(b.side===0)sfx('clang');const E=b.enc;if(E&&E.us.every(v=>v.st!=='alive')){DUN.st.dead[E.en.id]=1;sfx('fanfare');showBanner(E.en.boss?'The sanctum is yours. Claim the altar.':'The guardians are defeated');}}}
+function dunDmg(b,dm,src,kick){if(b.st!=='alive')return;b.hp-=dm;if(Math.random()<0.5)dunFx(b.x+R(-0.2,0.2),0.8,b.z,{col:0xff7a5a,s:0.35,life:0.25});if(b.side===1&&!b.enc.awake){b.enc.awake=true;}
+  if(b.hp<=0){b.hp=0;b.st='dying';b.dieT=0;dunKill(b,kick||(src?{x:src.x,z:src.z,p:3,l:0}:{x:b.x,z:b.z,p:0,l:0}));if(b.side===0)sfx('clang');const E=b.enc;if(E&&E.us.every(v=>v.st!=='alive')){DUN.st.dead[E.en.id]=1;sfx('fanfare');showBanner(E.en.boss?'The sanctum is yours. Claim the altar.':'The guardians are defeated');}}}
 function dunGenFight(g,dt){if(g.cd>0)return;let best=null,bd=1.5;for(const v of DUN.us){if(v.side===g.side||v.st!=='alive'||(v.side===1&&!v.enc.awake))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
   let bg=null;for(const o of DUN.allG){if(o.side===g.side||o.down)continue;const d=Math.hypot(o.x-g.x,o.z-g.z);if(d<bd){bd=d;bg=o;best=null;}}
   if(bg){g.cd=1.0;g.face=bg.x<g.x?1:0;bg.r.hp-=g.r.d.atk*0.35*10/(10+bg.r.d.def);bg.hitBy=g.side;dunFx(bg.x,1,bg.z,{col:0xffe39a,s:0.6,life:0.3});sfx('clang');return;}
@@ -4330,7 +4349,7 @@ function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,
   const tags=SPELL_TAGS[sp]||[],pw=30+(g.r.lvl||1)*8.5;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
   if(!tg){bd=11;for(const G of DUN.gates){if(DUN.st.solved[G.g.id]||!GATES[G.g.k].any||!GATES[G.g.k].any.some(t=>tags.includes(t)))continue;const d=Math.hypot(G.x-g.x,G.z-g.z);if(d<bd){bd=d;tg={x:G.x,z:G.z};}}}
   if(!tg)tg={x:g.x+(g.face?-5:5),z:g.z};g.scd=5;g.face=tg.x<g.x?1:0;
-  const area=(x,z,rad,dm)=>{if(!DUN)return;for(const v of DUN.us){if(!foe(v))continue;const d=Math.hypot(v.x-x,v.z-z);if(d>=rad)continue;dunDmg(v,dm*(1-0.35*d/rad),g);if(dm&&d>0.05){const k=(rad-d)*0.45;dMove(v,(v.x-x)/d*k,(v.z-z)/d*k,0.26,v.fly);}}if(dm)for(const o of DUN.allG)if(o.side!==g.side&&!o.down&&Math.hypot(o.x-x,o.z-z)<rad){o.r.hp-=dm*0.12;o.hitBy=g.side;}
+  const area=(x,z,rad,dm)=>{if(!DUN)return;for(const v of DUN.us){if(!foe(v))continue;const d=Math.hypot(v.x-x,v.z-z);if(d>=rad)continue;dunDmg(v,dm*(1-0.35*d/rad),g,{x,z,p:6+R(0,3),l:R(4,8)});if(dm&&d>0.05){const k=(rad-d)*0.45;dMove(v,(v.x-x)/d*k,(v.z-z)/d*k,0.26,v.fly);}}if(dm)for(const o of DUN.allG)if(o.side!==g.side&&!o.down&&Math.hypot(o.x-x,o.z-z)<rad){o.r.hp-=dm*0.12;o.hitBy=g.side;}
       for(const G of DUN.gates){const gg=G.g;if(!DUN.st.solved[gg.id]&&GATES[gg.k].any&&GATES[gg.k].any.some(t=>tags.includes(t))&&Math.hypot(G.x-x,G.z-z)<rad+1.6)dunSolve(gg,me?SPELL[sp]:'rival');}};
   const burst=(x,z,col,n,rad)=>{for(let i=0;i<n;i++)dunFx(x+R(-rad,rad),R(0.2,1.5),z+R(-rad,rad),{col,s:R(0.6,1.3),life:R(0.4,0.9),vy:R(0.5,2.5),grow:1.5});};
   if(me)showBanner(SPELL[sp]+'!');else if(dRoomOf(g.x,g.z)===dRoomOf(dAct().x,dAct().z))showBanner(g.r.d.short+' casts '+SPELL[sp]+'!',true);sfx(sp==='thunder'?'zap':sp==='mend'?'chant':sp==='volley'?'arrow':'boom');
