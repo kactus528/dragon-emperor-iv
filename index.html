@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 164';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 165';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4172,7 +4172,9 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
   for(const o of DUN.ents)if(o.e.k==='torch'&&o.sp&&Math.random()<dt*5)dunFx(o.sp.position.x,1.95,o.sp.position.z,{col:0xff9a3a,s:0.5,life:0.5,vy:0.8});
   if(DUN.leaveArm>0)DUN.leaveArm-=dt;
   /* camera */
-  if(xrActive){if(!g1&&!g2&&!vrTw){const w=new THREE.Vector3(ag.x,0,ag.z);dunG.localToWorld(w);const k=Math.min(1,dt*2.5);vr.pos.x+=(0-w.x)*k;vr.pos.z+=(-0.55-w.z)*k;}}
+  /* VR: the table follows your general, but wherever you last put it with the grips is where he stays */
+  if(xrActive){const w=new THREE.Vector3(ag.x,0,ag.z);dunG.updateMatrixWorld(true);dunG.localToWorld(w);if(!DUN.anchor)DUN.anchor={x:0,z:-0.55};
+    if(g1||g2||vrTw){DUN.held=true;}else{if(DUN.held){DUN.held=false;DUN.anchor={x:w.x,z:w.z};}const k=Math.min(1,dt*2.5);vr.pos.x+=(DUN.anchor.x-w.x)*k;vr.pos.z+=(DUN.anchor.z-w.z)*k;}}
   else{orbit.g=null;const k=Math.min(1,dt*4);orbit.tx+=(ag.x-orbit.tx)*k;orbit.tz+=(ag.z-orbit.tz)*k;orbit.r=clamp(orbit.r,10,90);}
   if(scene.fog){const c=dunG.getWorldPosition(_fv),d=camera.position.distanceTo(c);scene.fog.near=d*2;scene.fog.far=d*6;}
   DUN.hudT=(DUN.hudT||0)-dt;if(DUN.hudT<=0){DUN.hudT=0.2;dunHud();}}
