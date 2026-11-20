@@ -384,6 +384,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 .dlwrap{max-width:1100px;margin:0 auto;display:grid;gap:10px}.dlhead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}.dlhead b{color:#b6a4e6;font-size:18px}.dlhead span{color:var(--dim);font-size:12px;flex:1}
 .dlctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.dlctl input[type=number]{width:110px}.dlctl #dlNote{flex:1;min-width:160px}
 .dlmain{display:grid;grid-template-columns:minmax(0,440px) 1fr;gap:14px;align-items:start}#dlCv{width:100%;image-rendering:pixelated;border:1px solid var(--line)}
+#dlBest{font-size:12px;color:var(--ink);max-height:60vh;overflow:auto;border:1px solid var(--line);padding:8px;margin:8px 0}#dlBest table{border-collapse:collapse;width:100%}#dlBest th{text-align:left;color:var(--gold);padding:8px 4px 2px}#dlBest td{padding:2px 4px;border-top:1px solid var(--line)}#dlBest tr.pl td{color:var(--dim)}#dlBest tr.ok td:last-child{color:#8fd08a}#dlBest s{opacity:.6}
 #dlInfo{font-size:12px;color:var(--ink)}#dlInfo p{margin:4px 0;color:var(--dim)}#dlInfo ul{list-style:none;padding:0;margin:6px 0;display:grid;gap:2px}
 #dunlab .ok{color:#7fe8a0}#dunlab .no{color:#ff9a7a}#dlList{font-size:12px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px}#dlList p{width:100%;margin:2px 0}
 #dunMap{position:fixed;top:56px;right:10px;z-index:6;background:rgba(10,8,14,.92);border:1px solid var(--line);padding:4px;pointer-events:none}#dmCv{display:block;width:min(46vw,440px);image-rendering:pixelated}html.phone #dunMap{left:8px;right:8px;top:48px}html.phone #dmCv{width:100%}
@@ -610,10 +611,11 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 <div id="dunSel" hidden><div class="panel"><b id="dsWhy"></b><div id="dsList"></div><button id="dsLeave">Leave the dungeon</button><button id="dsStay" hidden>Stay</button></div></div>
 <div id="dunMap" hidden><canvas id="dmCv"></canvas></div>
 <div id="dunlab" hidden><div class="dlwrap">
-  <div class="dlhead"><b>Dungeon Lab</b><span>Every map here is built by the generator from its seed. Approve the ones worth keeping, then copy the export and paste it to Claude to build them in.</span><button id="dlClose">Close</button></div>
+  <div class="dlhead"><b>Dungeon Lab</b><span>Every map here is built by the generator from its seed. Approve the ones worth keeping, then copy the export and paste it to Claude to build them in.</span><button id="dlBestBtn">Bestiary</button><button id="dlClose">Close</button></div>
   <div class="dlctl"><label>Seed <input id="dlSeed" type="number" min="1"></label><button id="dlPrev">◀</button><button id="dlNext">▶</button><button id="dlRand">Random</button>
-    <select id="dlArch"><option value="">Any archetype</option><option value="crypt">Ancient Crypt</option><option value="lair">Dragon Lair</option><option value="fort">Abandoned Fortress</option></select><select id="dlFloors"><option value="0">Floors: as the seed says</option><option value="1">1 floor</option><option value="2">2 floors</option><option value="3">3 floors</option></select></div>
+    <select id="dlArch"><option value="">Any archetype</option><option value="crypt">Ancient Crypt</option><option value="lair">Natural Cavern</option><option value="fort">Abandoned Fortress</option></select><select id="dlFloors"><option value="0">Floors: as the seed says</option><option value="1">1 floor</option><option value="2">2 floors</option><option value="3">3 floors</option></select></div>
   <div class="dlmain"><canvas id="dlCv"></canvas><div id="dlInfo"></div></div>
+  <div id="dlBest" hidden></div>
   <div class="dlctl"><input id="dlNote" placeholder="Note for Claude (optional): what you liked or didn't"><button id="dlOk" class="start">✓ Approve</button><button id="dlNo">✗ Reject</button><button id="dlTest" title="The dungeon entrance on the war table will open this map">Use for test entrance</button><button id="dlPlayBtn" class="start">▶ Play this map</button></div>
   <div id="dlPlay" hidden><b>Play this map</b><p id="dlpCap"></p><div id="dlpGens"></div><p id="dlpInfo"></p>
     <div class="dlctl"><label>Troops each <input id="dlpTr" type="range" min="10" max="300" step="10"> <b id="dlpTrV"></b></label>
@@ -695,7 +697,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 176';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 177';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -3778,6 +3780,171 @@ function vrAim(now){
   const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld);
   const h=aimAt(o,d),L=rc.userData.laser;L.visible=true;L.scale.z=h?h.distance:4;L.material.color.set(mp[0]>=spellCost(0)&&spellCD[0]<=0?0xf0c055:0x7a6f98);placeReticle(true,now);
 }
+/* ================= DUNGEONS · bestiary (Build 177) =================
+   Dungeon-native monsters, kept apart from kingdom troops. Everything here is data: a monster is a role (which sets its base numbers),
+   a tier, a list of behaviour components, a body plan for its sprite and a few overrides. A monster is PLAYABLE only when every behaviour
+   it lists is implemented below; the generator only ever spawns playable monsters. The rest are design entries, shown as planned in the Lab. */
+const MON_IMPL=new Set(['chase','melee','ranged','keep','swoop','fly','web','ambush','burrow','split','reassemble','reanimate','summon','engulf','armor','mimic','charge','flee','territorial','neutral','patrol','poison','explode','heal','guard','dormant']);
+const MROLE={melee:{hp:34,spd:2.2,rng:0.9,cd:1.1,dmg:6,pow:10,as:'inf'},ranged:{hp:22,spd:2.0,rng:7,cd:1.8,dmg:5,pow:9,as:'arc',keep:4},caster:{hp:30,spd:1.8,rng:7.5,cd:2.4,dmg:8,pow:16,as:'mage',keep:5},
+  flyer:{hp:16,spd:4.2,rng:0.8,cd:1.0,dmg:4,pow:6,as:'harp'},brute:{hp:120,spd:1.4,rng:1.3,cd:1.6,dmg:11,pow:35,as:'kni'},swarm:{hp:10,spd:3.4,rng:0.7,cd:0.8,dmg:3,pow:3,as:'inf'},blob:{hp:40,spd:1.2,rng:0.8,cd:1.2,dmg:5,pow:10,as:'inf'}};
+const MFAM={undead:{n:'Undead',hab:['crypt','fort'],loot:['Ancient coin','Grave dust']},cave:{n:'Cave creatures',hab:['cave'],loot:['Spider silk','Chitin']},classic:{n:'Classic roguelike',hab:['cave','crypt','fort'],loot:['Strange gel']},
+  gothic:{n:'Gothic horrors',hab:['crypt'],loot:['Cursed relic shard']},construct:{n:'Magical constructs',hab:['fort','labyrinth'],loot:['Arcane gear','Rune stone']},fungi:{n:'Fungi & parasites',hab:['cave','fungal'],loot:['Glow spores']},
+  elemental:{n:'Elementals',hab:['cave','labyrinth'],loot:['Elemental core']},demon:{n:'Demons & eldritch',hab:['abyss','fort'],loot:['Brimstone']},folk:{n:'Underground folk',hab:['fort','cave'],loot:['Trinket']},rare:{n:'Rare & bizarre',hab:['any'],loot:['Oddity']}};
+/* who fights whom. Anything not listed is neutral (they ignore each other). Demons fight everything */
+const MREL={'undead|cave':'hostile','undead|folk':'hostile','cave|folk':'hostile','cave|fungi':'hostile','construct|demon':'hostile','gothic|folk':'hostile','classic|folk':'hostile'};
+const monRel=(a,b)=>a===b?'allied':a==='demon'||b==='demon'?'hostile':MREL[a+'|'+b]||MREL[b+'|'+a]||'neutral';
+/* id, name, family, tier, role, plan, behaviours, spawn weight, min floor, flags (E elite, B boss, U unique), extra */
+const MON_ROWS=[
+['skeleton_warrior','Skeleton Warrior','undead',1,'melee','skel','chase melee reassemble',10,0,'E',{pal:['#e8e0c8','#7a7262','#ff4030'],wpn:'sword',res:{pierce:0.5,blunt:1.5,holy:1.5}}],
+['bone_archer','Bone Archer','undead',1,'ranged','skel','ranged keep',8,0,'E',{pal:['#e0d8c0','#6a6252','#ff4030'],wpn:'bow',res:{pierce:0.5,blunt:1.5,holy:1.5}}],
+['skull_bomber','Skull Bomber','undead',2,'ranged','skel','ranged keep bomb',5,1,'',{pal:['#d8d0b8','#5a5040','#ff9030']}],
+['zombie','Zombie','undead',1,'melee','zomb','chase melee reanimate',9,0,'E',{pal:['#7a9a6a','#4a5a3a','#d8d070'],spd:1.3,hp:44,res:{fire:1.5,holy:1.5}}],
+['ghoul','Ghoul','undead',2,'melee','zomb','chase melee devour',5,1,'E',{pal:['#9a8aa0','#4a3a50','#ff5050']}],
+['wraith','Wraith','undead',2,'flyer','robe','fly chase melee phasewalls',4,1,'E',{pal:['#8a8ab0','#3a3a60','#a0e0ff']}],
+['banshee','Banshee','undead',2,'caster','robe','fly keep scream',3,1,'',{pal:['#c0c8e0','#5a6080','#ffffff']}],
+['revenant','Revenant','undead',3,'melee','zomb','chase melee grudge',3,2,'E',{pal:['#6a6a7a','#2a2a3a','#80ff80']}],
+['bone_golem','Bone Golem','undead',3,'brute','brute','chase melee armor shatter',2,2,'EB',{pal:['#e0d8c0','#8a8270','#ff4030']}],
+['lich','Lich','undead',3,'caster','robe','ranged keep summon',1,1,'B',{pal:['#3a2a50','#c9962e','#80ffa0'],crown:1,hp:70,dmg:11,sum:'skeleton_warrior',res:{holy:1.6,magic:0.6}}],
+['necromancer','Necromancer','undead',2,'caster','robe','ranged keep summon',4,0,'E',{pal:['#4a2a5a','#8a6aa0','#b070ff'],sum:'skeleton_warrior',res:{holy:1.4}}],
+['giant_bat','Giant Bat','cave',1,'flyer','bat','fly swoop',12,0,'',{pal:['#4a3a4a','#2a1a2a','#ff3030']}],
+['cave_spider','Cave Spider','cave',1,'melee','spider','ambush web melee flee',8,0,'E',{pal:['#3a2a2a','#6a4a3a','#ff4040'],flee:0.35,rng:0.9,web:6}],
+['giant_centipede','Giant Centipede','cave',2,'melee','bug','chase melee poison wallcrawl',5,0,'E',{pal:['#8a4a2a','#5a2a1a','#ffd040']}],
+['cave_scorpion','Cave Scorpion','cave',2,'melee','bug','ambush melee poison',6,0,'E',{pal:['#9a7a4a','#5a4a2a','#202020'],tail:1,res:{slash:0.8}}],
+['burrowing_worm','Burrowing Worm','cave',2,'brute','worm','burrow melee',4,0,'EB',{pal:['#c08a7a','#7a4a4a','#ffe0d0'],hp:90,spd:2.4}],
+['blind_stalker','Blind Stalker','cave',2,'melee','zomb','chase melee hearing',4,1,'E',{pal:['#c0b0a0','#6a5a4a','#c0b0a0']}],
+['rock_beetle','Rock Beetle','cave',2,'melee','hound','chase melee armor weakpoint',5,0,'E',{pal:['#6a6a72','#3a3a42','#ffa040']}],
+['cave_leech','Cave Leech','cave',1,'swarm','worm','chase melee drain',6,0,'',{pal:['#5a2a3a','#2a1020','#ff8090']}],
+['crystal_mantis','Crystal Mantis','cave',3,'melee','bug','ambush melee',3,1,'E',{pal:['#9ad8ff','#4a8ab0','#ffffff'],dmg:10}],
+['tunnel_maw','Tunnel Maw','cave',3,'brute','worm','disguise melee',2,2,'B',{pal:['#5a4a3a','#2a1a10','#ff5030']}],
+['mimic','Mimic','classic',2,'melee','chest','mimic melee',0,0,'E',{pal:['#7a4a22','#c9962e','#ff3030'],hp:60,dmg:9}],
+['gelatinous_cube','Gelatinous Cube','classic',2,'blob','cube','engulf patrol chase',3,0,'E',{pal:['#7fe8a0','#3a9a5a','#ffffff'],hp:110,spd:0.8,heavy:1,res:{slash:0.6,pierce:0.4,fire:1.4}}],
+['rust_eater','Rust Eater','classic',2,'melee','hound','chase melee corrode',4,1,'',{pal:['#b06a3a','#6a3a1a','#ffd070']}],
+['floating_eye','Floating Eye','classic',2,'caster','orb','fly gaze',3,1,'',{pal:['#e8e0e0','#a04040','#2050ff']}],
+['cockatrice','Cockatrice','classic',3,'melee','hound','chase melee petrify',2,2,'',{pal:['#c0a040','#6a5a20','#ff2020']}],
+['phase_spider','Phase Spider','classic',3,'melee','spider','teleport web melee',2,2,'E',{pal:['#5a3a8a','#2a1a4a','#c0a0ff']}],
+['doppelganger','Doppelganger','classic',3,'melee','zomb','copy',1,2,'',{pal:['#b0a0b0','#5a4a5a','#ffffff']}],
+['slime','Slime','classic',1,'blob','blob','chase melee split',9,0,'E',{pal:['#5ad86a','#2a8a3a','#ffffff'],res:{slash:0.8,blunt:0.7,fire:1.4}}],
+['living_armor','Living Armor','classic',2,'melee','brute','dormant chase melee armor',4,0,'E',{pal:['#9a9aa8','#4a4a58','#ff4040'],hp:70,res:{slash:0.5,pierce:0.5,blunt:1.4,magic:1.3}}],
+['treasure_imp','Treasure Imp','classic',2,'swarm','imp','steal flee',2,1,'U',{pal:['#d0a040','#7a5020','#ff2020']}],
+['flea_fiend','Flea Fiend','gothic',1,'swarm','imp','leap melee',6,0,'',{pal:['#6a3a3a','#3a1a1a','#ffff60']}],
+['serpent_head','Serpent Head','gothic',2,'flyer','worm','fly wave melee',4,1,'',{pal:['#5a8a5a','#2a4a2a','#ff4040']}],
+['haunted_blade','Haunted Blade','gothic',2,'flyer','blade','fly chase melee',5,0,'E',{pal:['#c8d0e0','#6a5a3a','#a0c0ff'],dmg:7,hp:24,res:{pierce:0.5,magic:1.4}}],
+['possessed_portrait','Possessed Portrait','gothic',2,'caster','orb','guard pull',2,1,'',{pal:['#8a5a2a','#3a2a1a','#ff40ff']}],
+['dancing_ghost','Dancing Ghost','gothic',1,'flyer','robe','fly erratic melee',5,0,'',{pal:['#d0d8f0','#8a90b0','#202040']}],
+['hunchback_beast','Hunchback Beast','gothic',2,'melee','zomb','leap melee',4,1,'E',{pal:['#8a6a5a','#4a3a2a','#ffe040']}],
+['phantom_knight','Phantom Knight','gothic',3,'melee','brute','phase chase melee',2,2,'EB',{pal:['#6a7aa0','#2a3a60','#a0e0ff']}],
+['blood_puppet','Blood Puppet','gothic',2,'blob','blob','chase melee split explode',4,1,'',{pal:['#a02a2a','#5a1010','#ffd0d0']}],
+['cursed_bell','Cursed Bell','gothic',2,'caster','orb','guard summonspirits',2,1,'',{pal:['#a08a40','#5a4a20','#c0a0ff']}],
+['vampire_noble','Vampire Noble','gothic',3,'caster','robe','teleport drain batform',1,2,'B',{pal:['#2a1a2a','#a01020','#ffffff']}],
+['stone_golem','Stone Golem','construct',2,'brute','brute','chase melee armor',4,0,'EB',{pal:['#8a8a80','#5a5a52','#60c0ff'],spd:1.1,res:{slash:0.65,pierce:0.5,blunt:1.5,magic:1.2,lightning:1.3}}],
+['clockwork_soldier','Clockwork Soldier','construct',1,'melee','brute','patrol chase melee armor',8,0,'E',{pal:['#b08a40','#5a4420','#ff8020'],size:0.8,res:{slash:0.7,pierce:0.6,lightning:1.6}}],
+['arcane_sentinel','Arcane Sentinel','construct',2,'ranged','orb','guard ranged',5,0,'E',{pal:['#5a6a9a','#2a3a5a','#80c0ff'],rng:9,res:{pierce:0.6,magic:0.5}}],
+['animated_statue','Animated Statue','construct',2,'brute','brute','dormant chase melee armor',4,0,'E',{pal:['#a0a098','#6a6a62','#ffffff'],hp:100,res:{slash:0.5,pierce:0.4,blunt:1.4}}],
+['crystal_guardian','Crystal Guardian','construct',3,'brute','brute','reflect melee',2,2,'B',{pal:['#9ad8ff','#4a8ab0','#ffffff']}],
+['runic_sphere','Runic Sphere','construct',2,'ranged','orb','orbit ranged',3,1,'',{pal:['#c0a060','#6a5a30','#ff8040']}],
+['living_spellbook','Living Spellbook','construct',2,'caster','orb','fly spellpool',2,1,'',{pal:['#7a3a2a','#e0d0a0','#ff60ff']}],
+['mirror_construct','Mirror Construct','construct',3,'caster','orb','illusions',1,2,'B',{pal:['#e0e8f0','#8a90a0','#ffffff']}],
+['iron_colossus','Iron Colossus','construct',3,'brute','brute','components melee',1,2,'B',{pal:['#5a5a62','#2a2a32','#ff4020']}],
+['mana_parasite','Mana Parasite','construct',1,'swarm','orb','fly drainmagic',3,1,'',{pal:['#80a0ff','#3050a0','#ffffff']}],
+['sporeling','Sporeling','fungi',1,'swarm','shroom','chase melee explode',8,0,'',{pal:['#c06a8a','#f0e0c0','#ffffff'],size:0.7,boom:'poison'}],
+['myconid_guardian','Myconid Guardian','fungi',2,'melee','shroom','territorial chase melee',6,0,'E',{pal:['#9a6a3a','#e8d8b0','#40ff80'],hp:50}],
+['corpse_fungus','Corpse Fungus','fungi',2,'melee','shroom','infect',3,1,'',{pal:['#6a7a4a','#c0c8a0','#ff4040']}],
+['thorn_creeper','Thorn Creeper','fungi',1,'ranged','vine','ambush guard ranged',5,0,'',{pal:['#4a6a2a','#2a3a1a','#c0ff60'],rng:5}],
+['root_strangler','Root Strangler','fungi',2,'ranged','vine','guard web',4,0,'',{pal:['#6a4a2a','#3a2a1a','#a0ff60'],rng:6,web:5}],
+['puffball_horror','Puffball Horror','fungi',1,'blob','blob','chase explode',5,0,'',{pal:['#d8c8a0','#8a7a5a','#6a4a2a'],boom:'poison',spd:1.6}],
+['parasitic_bloom','Parasitic Bloom','fungi',3,'caster','vine','guard control',1,2,'',{pal:['#d04a8a','#5a2a3a','#ffff80']}],
+['walking_mushroom','Walking Mushroom','fungi',1,'caster','shroom','flee summon',4,0,'',{pal:['#e04a3a','#f0e8d0','#ffffff'],sum:'sporeling',flee:0.7,dmg:3}],
+['rotting_treant','Rotting Treant','fungi',3,'brute','vine','chase melee rootblock',2,2,'B',{pal:['#5a4a2a','#2a2a1a','#a0ff40']}],
+['fungal_queen','Fungal Queen','fungi',3,'caster','shroom','summon buff sporecloud',1,2,'B',{pal:['#c04ab0','#f0d0e0','#ffff80']}],
+['fire_imp','Fire Imp','elemental',1,'ranged','imp','fly ranged ignite',6,0,'',{pal:['#ff6a2a','#8a2a1a','#ffff80']}],
+['magma_slime','Magma Slime','elemental',2,'blob','blob','chase melee split trail',4,1,'',{pal:['#ff5a1a','#8a1a0a','#ffe060']}],
+['ice_wraith','Ice Wraith','elemental',2,'flyer','robe','fly freeze',3,1,'',{pal:['#c0f0ff','#5090b0','#ffffff']}],
+['frost_serpent','Frost Serpent','elemental',3,'melee','worm','icewall melee',2,2,'B',{pal:['#a0e0ff','#4080a0','#ffffff']}],
+['storm_wisp','Storm Wisp','elemental',2,'flyer','orb','fly chain',4,1,'',{pal:['#e0f0ff','#6080ff','#ffffff']}],
+['earth_elemental','Earth Elemental','elemental',3,'brute','brute','raise melee armor',2,2,'B',{pal:['#8a6a4a','#4a3a2a','#ffa040']}],
+['water_weird','Water Weird','elemental',2,'melee','blob','pull',2,1,'',{pal:['#4a8ad8','#2a4a8a','#ffffff']}],
+['ash_phantom','Ash Phantom','elemental',2,'flyer','robe','fly smoke',3,1,'',{pal:['#5a5a5a','#2a2a2a','#ff6020']}],
+['crystal_elemental','Crystal Elemental','elemental',2,'brute','brute','chase melee explode',3,1,'E',{pal:['#b0e8ff','#5a9ad0','#ffffff'],boom:'shards',hp:80}],
+['chaos_elemental','Chaos Elemental','elemental',3,'caster','orb','shift',1,2,'B',{pal:['#ff40ff','#4020a0','#ffff40']}],
+['lesser_demon','Lesser Demon','demon',2,'melee','brute','chase melee',6,0,'E',{pal:['#b02a2a','#5a1010','#ffe040'],horns:1,size:0.85,hp:55,dmg:9,res:{fire:0.4,holy:1.6}}],
+['hellhound','Hellhound','demon',2,'melee','hound','chase melee charge',6,0,'E',{pal:['#5a1a1a','#2a0a0a','#ff8020'],spd:3.6,res:{fire:0.3,holy:1.5}}],
+['shadow_fiend','Shadow Fiend','demon',2,'melee','zomb','darkness melee',3,1,'',{pal:['#2a2a3a','#0a0a1a','#ff2060']}],
+['abyssal_watcher','Abyssal Watcher','demon',3,'caster','orb','multieye',2,2,'B',{pal:['#5a2a6a','#2a0a3a','#ffff40']}],
+['flesh_horror','Flesh Horror','demon',3,'brute','blob','devour melee',2,2,'B',{pal:['#c06a6a','#6a2a2a','#ffffff']}],
+['soul_collector','Soul Collector','demon',3,'caster','robe','devour ranged',1,2,'',{pal:['#3a3a5a','#1a1a2a','#80ffff']}],
+['void_crawler','Void Crawler','demon',2,'melee','spider','portal melee',3,1,'',{pal:['#2a1a3a','#5a3a8a','#ff40ff']}],
+['nightmare_weaver','Nightmare Weaver','demon',3,'caster','robe','illusions',1,2,'',{pal:['#4a2a5a','#1a0a2a','#ff80ff']}],
+['possessor','Possessor','demon',3,'caster','robe','fly control',1,2,'',{pal:['#5a5a7a','#2a2a3a','#ff2020']}],
+['abyssal_herald','Abyssal Herald','demon',3,'caster','robe','portal summon',1,2,'B',{pal:['#8a1a2a','#2a0a0a','#ffa040']}],
+['kobold_trapper','Kobold Trapper','folk',1,'ranged','imp','traps flee',5,0,'',{pal:['#8a6a3a','#4a3a1a','#ffff40']}],
+['goblin_scavenger','Goblin Scavenger','folk',1,'swarm','imp','steal flee',5,0,'',{pal:['#6a8a3a','#3a4a1a','#ff4040']}],
+['goblin_shaman','Goblin Shaman','folk',1,'caster','robe','keep ranged heal',5,0,'E',{pal:['#6a8a3a','#8a3a2a','#80ff80'],size:0.75,dmg:5}],
+['deep_dwarf','Deep Dwarf','folk',2,'ranged','zomb','tunnels ranged',3,1,'E',{pal:['#a07a5a','#5a4a3a','#ffd040']}],
+['ratfolk_assassin','Ratfolk Assassin','folk',2,'melee','imp','huntisolated melee',3,1,'E',{pal:['#7a6a5a','#3a3a3a','#ff2020']}],
+['troglodyte','Troglodyte','folk',1,'melee','zomb','ambush melee',7,0,'E',{pal:['#6a7a6a','#3a4a3a','#ffff60'],size:0.9}],
+['cultist','Cultist','folk',1,'caster','robe','ritual',4,0,'',{pal:['#5a1a1a','#2a0a0a','#ff6040']}],
+['dark_acolyte','Dark Acolyte','folk',2,'caster','robe','curse ranged',3,1,'',{pal:['#2a2a4a','#6a6aa0','#a080ff']}],
+['minotaur','Minotaur','folk',3,'brute','brute','chase melee charge',2,1,'EB',{pal:['#7a4a2a','#3a2010','#ffffff'],horns:1,hp:140,spd:2.0}],
+['dungeon_warden','Dungeon Warden','folk',3,'caster','robe','mechanisms summon',1,2,'B',{pal:['#5a5a5a','#c9962e','#ffffff']}],
+['living_door','Living Door','rare',2,'brute','chest','disguisedoor',1,1,'',{pal:['#6b4420','#3a2a1a','#ff3030']}],
+['false_staircase','False Staircase','rare',3,'caster','orb','teleportparty',1,2,'',{pal:['#5a5060','#2a2430','#ff80ff']}],
+['gold_devourer','Gold Devourer','rare',3,'brute','blob','eatgold',1,2,'U',{pal:['#f0c055','#8a6a20','#ff2020']}],
+['echo_beast','Echo Beast','rare',3,'caster','hound','echo',1,2,'',{pal:['#8a8ab0','#4a4a6a','#ffffff']}],
+['time_wraith','Time Wraith','rare',3,'flyer','robe','fly slowaura',1,2,'',{pal:['#c0b080','#5a5030','#80ffff']}],
+['lantern_lurker','Lantern Lurker','rare',2,'melee','zomb','darkness ambush melee',1,1,'',{pal:['#3a3a2a','#1a1a0a','#ffff40']}],
+['memory_eater','Memory Eater','rare',3,'caster','orb','mapwipe',1,2,'',{pal:['#a06ab0','#4a2a5a','#ffffff']}],
+['mirror_general','Mirror General','rare',3,'melee','zomb','copy',1,2,'B',{pal:['#e0e8f0','#8a90a0','#ffffff']}],
+['dungeon_heart','Dungeon Heart','rare',3,'brute','blob','control',1,2,'B',{pal:['#a01030','#4a0a1a','#ffffff']}],
+['the_wanderer','The Wanderer','rare',3,'brute','zomb','roam chase melee flee',0,2,'U',{pal:['#2a2a3a','#a0a0c0','#ff2020']}]];
+const MON={};MON_ROWS.forEach(([id,n,fam,tier,role,plan,beh,w,minF,flags,x])=>{const b=MROLE[role],k=1+0.6*(tier-1),kd=1+0.35*(tier-1),B=beh.split(' ');
+  MON[id]=Object.assign({id,n,fam,tier,role,plan,beh:B,w,minF,elite:flags.includes('E'),boss:flags.includes('B'),unique:flags.includes('U'),hab:MFAM[fam].hab,
+    hp:Math.round(b.hp*k),spd:b.spd,rng:b.rng,cd:b.cd,dmg:+(b.dmg*kd).toFixed(1),pow:Math.round(b.pow*k),as:b.as,keep:B.includes('keep')?(b.keep||4):0,fly:B.includes('fly'),
+    res:{},size:1,loot:{gold:[0,tier*2],drop:MFAM[fam].loot[0],p:0.08*tier},art:{plan,pal:x.pal},sfx:{hit:'clang',die:'boom'}},x);
+  const m=MON[id];m.playable=m.beh.every(t=>MON_IMPL.has(t))&&id!=='the_wanderer';m.missing=m.beh.filter(t=>!MON_IMPL.has(t));});
+/* the battle code reads troop stats by type; monsters answer the same questions */
+const ST=t=>STATS[t]||MON[t];
+const TDMG={inf:'slash',kni:'slash',cav:'pierce',arc:'pierce',monk:'blunt',mage:'magic',harp:'slash',drag:'fire'},SPELL_DT={starfall:'fire',ashrain:'fire',breath:'fire',volley:'pierce',thunder:'lightning',mend:'holy',eclipse:'magic'};
+/* ecosystem profiles: which families live where. Weighted: primary 60%, secondary 30%, rare 10% (rare only from floor 2 or danger 2) */
+const ECO={crypt:{pri:['undead'],sec:['gothic'],rare:['construct'],amb:['cave','classic'],boss:['lich']},
+  lair:{pri:['cave'],sec:['classic','fungi'],rare:['elemental'],amb:['cave'],boss:['burrowing_worm']},
+  fort:{pri:['construct','folk'],sec:['undead'],rare:['demon'],amb:['cave','classic'],boss:['stone_golem','minotaur']}};
+const monPool=(fams,floor)=>Object.values(MON).filter(m=>m.playable&&m.w>0&&fams.includes(m.fam)&&m.minF<=floor);
+/* builds one encounter from the ecosystem. Budget is in troop-equivalents (a monster's pow), so it lines up with the expedition's strength */
+function dunEncounter(D,n,rng,o){const A=ECO[D.arch],ri=k=>Math.floor(rng()*k),wpick=L=>{const T=L.reduce((a,m)=>a+m.w,0);let r=rng()*T;for(const m of L){r-=m.w;if(r<=0)return m;}return L[L.length-1];},FL=D.floor||0;
+  const fam=o.fam||(()=>{const r=rng();return r<0.6?A.pri[ri(A.pri.length)]:r<0.9||!(FL>=1||D.diff>=2)?A.sec[ri(A.sec.length)]:A.rare[ri(A.rare.length)];})();
+  let pool=monPool([fam],FL),rf=fam;if(!pool.length){pool=monPool(A.pri,FL);rf=pool.length?pool[0].fam:fam;}const U=[],cap=o.cap||10;let left=o.budget;
+  const sp=[wpick(pool)];if(pool.length>1&&rng()<0.6)sp.push(wpick(pool));/* one or two species per group, so groups read as a pack, not a zoo */
+  while(left>0&&U.length<cap){let m=sp[ri(sp.length)];if(m.role==='brute'&&U.filter(u=>MON[u.t].role==='brute').length>=2){m=sp.find(s=>s.role!=='brute');if(!m)break;}/* at most two big brutes per group */const el=m.elite&&rng()<0.12&&!U.some(u=>u.elite);U.push({t:m.id,men:1,pw:Math.round(m.pow*(el?1.8:1)),elite:el||undefined});left-=m.pow*(el?1.8:1);}
+  return{U,fam:rf};}
+/* ---------- sprites: one small pixel body plan per kind of creature, coloured by the monster's palette. Frames 0-1 move, 2 attacks, 3 lies dead ---------- */
+const MPLAN={
+  skel:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(7,1,6,5,a);g(8,3,1,1,c);g(11,3,1,1,c);g(8,6,4,1,a);g(9,7,2,6,a);g(7,8,6,1,a);g(7,10,6,1,a);g(9,13,2,1,b);
+    g(7+l,14,2,6,a);g(11-l,14,2,6,a);g(5,8,2,5,a);g(13,8,2,f===2?2:5,a);if(x.wpn==='sword'){if(f===2){g(14,7,6,1,'#c8d0e0');g(15,6,1,3,b);}else{g(15,6,1,8,'#c8d0e0');g(14,12,3,1,b);}}if(x.wpn==='bow'){g(15,5,1,10,b);g(16,4,1,1,b);g(16,15,1,1,b);if(f===2)g(12,9,4,1,'#e8e0c8');}},
+  zomb:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(7,2,6,5,a);g(8,4,1,1,c);g(11,4,1,1,c);g(6,7,8,7,b);g(7,8,6,5,a);g(7+l,14,3,6,b);g(10-l,14,3,6,b);g(f===2?14:4,8,f===2?6:3,2,a);g(14,f===2?8:9,3,2,a);},
+  robe:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(7,1,6,6,a);g(8,3,4,3,'#1a1420');g(8,4,1,1,c);g(11,4,1,1,c);if(x.crown){g(7,0,6,1,'#f0c055');g(7,-1+1,1,1,'#f0c055');}g(5,7,10,12,a);g(6,8,8,1,b);g(9,8,2,11,b);g(5+l,19,4,1,a);g(11-l,19,4,1,a);
+    g(15,f===2?3:5,1,15,'#6a4a2a');g(14,f===2?1:3,3,3,c);if(f===2){g(16,1,2,2,'#ffffff');}},
+  brute:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(9,2,10,8,a);g(11,5,2,2,c);g(15,5,2,2,c);if(x.horns){g(7,1,3,2,'#e8e0c8');g(18,1,3,2,'#e8e0c8');g(6,0,2,2,'#e8e0c8');g(20,0,2,2,'#e8e0c8');}
+    g(6,10,16,11,a);g(8,12,12,7,b);g(3,10,4,f===2?6:10,a);g(21,f===2?6:10,4,f===2?6:10,a);if(f===2)g(24,5,3,3,b);g(8+l,21,5,8,a);g(15-l,21,5,8,a);g(8+l,28,6,2,b);g(14-l,28,6,2,b);},
+  bat:(g,f,p,x)=>{const [a,b,c]=p;g(8,6,4,5,a);g(8,6,1,1,c);g(11,6,1,1,c);g(8,4,1,2,a);g(11,4,1,2,a);if(f===1){g(2,9,6,2,b);g(12,9,6,2,b);g(1,11,3,2,b);g(16,11,3,2,b);}else{g(1,4,7,2,b);g(12,4,7,2,b);g(0,6,4,2,b);g(16,6,4,2,b);g(3,8,2,1,b);g(15,8,2,1,b);}if(f===2)g(9,11,2,2,'#ffffff');},
+  spider:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(7,8,8,6,a);g(8,6,6,3,b);g(9,7,1,1,c);g(12,7,1,1,c);g(10,8,1,1,c);for(let i=0;i<4;i++){const y=9+i*2-(i%2?l:0);g(2,y,5,1,a);g(1,y+1,1,2,a);g(15,y,5,1,a);g(20,y+1,1,2,a);}if(f===2){g(9,13,1,3,'#ffffff');g(12,13,1,3,'#ffffff');}},
+  bug:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;for(let i=0;i<5;i++){g(2+i*4,10+(i%2?l:-l),4,4,i%2?a:b);g(3+i*4,14,1,2,b);}g(20,9,4,5,a);g(22,10,1,1,c);if(x.tail){g(1,6,2,4,a);g(2,4,3,2,a);g(4,3,2,2,c);}else{g(23,14,2,1,b);g(23,8,2,1,b);}if(f===2)g(24,12,3,1,c);},
+  worm:(g,f,p,x)=>{const [a,b,c]=p,u=f===1?1:0;for(let i=0;i<6;i++){g(2+i*4,12-Math.round(Math.sin((i+u)*0.9)*3),5,5,i%2?a:b);}g(24,6,6,7,a);g(26,7,2,2,c);g(29,8,2,4,f===2?'#ffffff':b);},
+  blob:(g,f,p,x)=>{const [a,b,c]=p,s=f===1?1:0;g(3,8+s,14,10-s,a);g(5,6+s,10,2,a);g(4,16,12,3,b);g(7,10,2,2,c);g(12,10,2,2,c);g(6,8,2,1,'#ffffff');if(f===2){g(8,14,5,2,'#1a1420');}},
+  cube:(g,f,p,x)=>{const [a,b,c]=p;g(1,2,26,26,a);g(1,2,26,2,c);g(1,2,2,26,c);g(3,24,22,4,b);g(8,12,3,4,'#e8e0c8');g(16,8,2,5,'#8a8a8a');g(12,18,5,2,'#c9962e');if(f===1)g(4,4,6,2,'#ffffff');},
+  chest:(g,f,p,x)=>{const [a,b,c]=p;if(f===0){g(1,6,18,12,a);g(1,6,18,3,'#a06a32');g(1,11,18,1,b);g(9,10,2,3,b);return;}g(1,10,18,8,a);g(1,1,18,6,'#5a3618');g(2,7,16,3,'#1a0a0a');for(let i=0;i<8;i++){g(2+i*2,7,1,2,'#ffffff');g(3+i*2,9,1,1,'#ffffff');}
+    g(5,3,2,2,c);g(13,3,2,2,c);if(f===2){g(8,9,4,8,'#d04060');g(9,16,6,2,'#d04060');}},
+  blade:(g,f,p,x)=>{const [a,b,c]=p,o=f===1?1:0;g(9,1+o,2,14,a);g(10,1+o,1,14,'#ffffff');g(6,15+o,8,2,b);g(9,17+o,2,4,b);g(8,21+o,4,2,'#c9962e');g(4,6+o,1,1,c);g(15,10+o,1,1,c);if(f===2){g(3,8,14,1,c);}},
+  imp:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(7,4,6,5,a);g(8,6,1,1,c);g(11,6,1,1,c);g(6,3,1,2,a);g(13,3,1,2,a);g(7,9,6,6,a);g(2,6-l,5,4,b);g(13,6-l,5,4,b);g(7+l,15,2,5,a);g(11-l,15,2,5,a);if(f===2)g(13,9,4,2,c);},
+  shroom:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(3,3,14,6,a);g(5,1,10,2,a);g(5,4,2,2,'#ffffff');g(12,5,2,2,'#ffffff');g(7,9,6,8,b);g(8,11,1,1,'#1a1420');g(11,11,1,1,'#1a1420');g(7+l,17,2,4,b);g(11-l,17,2,4,b);if(f===2){g(2,9,3,3,c);g(15,9,3,3,c);}},
+  orb:(g,f,p,x)=>{const [a,b,c]=p,o=f===1?1:0;g(4,3+o,12,12,a);g(3,5+o,14,8,a);g(6,5+o,8,8,b);g(8,7+o,4,4,c);g(9,8+o,2,2,'#ffffff');g(9,16+o,2,3,b);if(f===2){g(0,8,3,2,c);g(17,8,3,2,c);}},
+  vine:(g,f,p,x)=>{const [a,b,c]=p,s=f===1?1:0;g(2,18,16,3,b);for(let i=0;i<4;i++){const h=8+((i*5)%7)+s;g(3+i*4,20-h,2,h,a);g(2+i*4,20-h,4,1,c);}if(f===2){g(14,4,6,1,c);g(19,3,1,3,c);}},
+  hound:(g,f,p,x)=>{const [a,b,c]=p,l=f===1?1:0;g(4,8,16,7,a);g(18,5,7,6,a);g(22,7,1,1,c);g(23,10,3,1,'#ffffff');g(4,6,4,3,b);g(5+l,15,2,5,b);g(9-l,15,2,5,b);g(15+l,15,2,5,b);g(19-l,15,2,5,b);g(1,8,3,2,a);if(f===2)g(25,8,3,3,a);}};
+const MSZ={skel:[20,22],zomb:[20,22],robe:[20,22],brute:[28,32],bat:[20,16],spider:[22,18],bug:[28,20],worm:[32,20],blob:[20,20],cube:[28,30],chest:[20,20],blade:[20,24],imp:[20,22],shroom:[20,22],orb:[20,22],vine:[22,22],hound:[28,22]};
+const MCV={};function monCanvas(id,f,elite){const k=id+f+(elite?'e':'');if(MCV[k])return MCV[k];const m=MON[id],[w,h]=MSZ[m.art.plan]||[20,22];if(f===3)return MCV[k]=rot90(monCanvas(id,0,elite),1);
+  const c=cv(w,h),g=rectFn(c.getContext('2d'));MPLAN[m.art.plan](g,f,m.art.pal,m);if(elite){const x=c.getContext('2d');x.globalCompositeOperation='source-atop';x.fillStyle='rgba(255,200,60,0.22)';x.fillRect(0,0,w,h);}return MCV[k]=finish(c);}
+const MMC={};function dunMMat(u,f,left){const k=u.t+f+(left?'L':'R')+(u.elite?'e':'');if(!MMC[k]){const base=monCanvas(u.t,f,u.elite),c=left?mirror(base):base;MMC[k]={m:smat(c),w:c.width*PX,h:c.height*PX};}
+  const M=MMC[k],s=(u.m.size||1)*(u.elite?1.15:1)*(u.boss?1.6:1)*(u.gen?Math.pow(0.75,u.gen):1);return{m:M.m,w:M.w*s,h:M.h*s};}
+
 /* ================= DUNGEONS · generator (Build 159) =================
    Pipeline: parameters -> progression graph -> grid layout from room templates -> populate -> validate -> polish -> validate again -> save (seed + state).
    Everything is driven by one seeded random stream, so a seed always rebuilds the same dungeon. No runtime AI or network is involved. */
@@ -3807,8 +3974,8 @@ const gateClue=k=>({lock:'An iron door with a heavy lock. Its key lies somewhere
 const DARCH={
   crypt:{n:'Ancient Crypt',cap:3,troopCap:120,fl:['#3b3546','#433c50','#37313f'],wall:[0x77708a,0x2a2436],acc:'#b6a4e6',foes:['inf','arc','monk','mage'],gates:['seal','curse','boulder','crystal'],tmpl:['hall','pillars','cross','crypt','round'],
     names:['the Hollow King','Saint Orrin','the Nameless Dead','Varrow Deep','the Ninth Bell'],lore:['Names are carved here, then scratched out.','A cold draught smells of old incense.','Someone left fresh flowers on this tomb.']},
-  lair:{n:'Dragon Lair',cap:2,troopCap:150,fl:['#4a3328','#55392b','#42302a'],wall:[0x8a5c44,0x2e1c16],acc:'#ff8a3a',foes:['harp','cav','inf','drag'],gates:['thorns','chasm','boulder'],tmpl:['cave','round','cave','hall'],
-    names:['Ember Throat','the Scorched Spiral','Old Cinderjaw','the Ash Wyrm'],lore:['The rock here is warm to the touch.','Claw marks, each one longer than a spear.','Molten gold has cooled into the cracks.']},
+  lair:{n:'Natural Cavern',cap:2,troopCap:150,fl:['#4a3328','#55392b','#42302a'],wall:[0x8a5c44,0x2e1c16],acc:'#ff8a3a',foes:['harp','cav','inf','drag'],gates:['thorns','chasm','boulder'],tmpl:['cave','round','cave','hall'],
+    names:['the Dripping Dark','Glowworm Deep','the Hollow Throat','Mosswater Hollow'],lore:['The rock here is warm to the touch.','Claw marks, each one longer than a spear.','Molten gold has cooled into the cracks.']},
   fort:{n:'Abandoned Fortress',cap:5,troopCap:100,fl:['#4a4a44','#52524a','#44443e'],wall:[0x8c8c7a,0x30302a],acc:'#e0c870',foes:['inf','kni','arc','cav'],gates:['barricade','crystal','boulder','thorns'],tmpl:['hall','pillars','cross','hall','round'],
     names:['Greywatch','the Iron Bastion','Fort Halloran','the Last Redoubt'],lore:['A muster roll lists two hundred names. None returned.','Arrow slits look out onto solid rock.','The garrison\'s last ration crate, still sealed.']}};
 function dRng(s){let a=s>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
@@ -3885,12 +4052,22 @@ function dunTry(seed,att,opt){const FL=opt.floor||0,LAST=opt.last!==false;
     if(g.k==='lock')g.key=(D.ents.find(e=>e.k==='key')||{}).id;
     if(g.k==='chasm'){const lv=ent('lever',fn,take(fn,[g.x,g.y]),{gate:g.id});if(lv)g.lever=lv.id;}}
   /* encounters: half of the inner halls, the key room sometimes, guarded vaults, and the sanctum's guardians */
-  const foes=n=>{const boss=n.role==='sanctum',tot=Math.round((boss?1.5:n.role==='key'||n.role==='vault'?0.6:1)*D.cap*D.troopCap*(0.2+0.07*diff)),k=Math.max(3,Math.min(boss?8:6,Math.round(tot/8))),U=[];
-    for(let i=0;i<k;i++){let t=pick(A.foes);if(t==='drag'&&!boss)t='harp';U.push({t,men:Math.max(1,Math.round(tot/k*(t==='drag'?0.45:t==='kni'?0.8:1)))});}
-    D.encs.push({id:D.encs.length,room:n.id,boss,units:U});};
+  /* encounters come from the floor's ecosystem (the bestiary), never from kingdom troop types: half of the inner halls, the key room sometimes,
+     guarded vaults, the sanctum's boss, some harmless-ish ambient wildlife, the odd fight between two families, and sometimes a mimic */
+  D.floor=FL;const EC=ECO[ak],bud=n=>Math.round((n.role==='sanctum'?1.2:n.role==='key'||n.role==='vault'?0.6:1)*D.cap*D.troopCap*(0.2+0.07*diff));
+  const foes=n=>{const boss=n.role==='sanctum'&&LAST,b=bud(n);
+    if(boss){const bid=pick(EC.boss),bm=MON[bid],e=dunEncounter(D,n,rng,{fam:EC.pri[0],budget:Math.max(10,b-bm.pow*4.5),cap:5});
+      D.encs.push({id:D.encs.length,room:n.id,boss:true,type:'boss',fam:bm.fam,units:[{t:bid,men:1,pw:Math.round(bm.pow*4.5),boss:1}].concat(e.U)});return;}
+    const e=dunEncounter(D,n,rng,{budget:b,cap:n.role==='sanctum'?8:6}),c={id:D.encs.length,room:n.id,boss:false,type:rng()<0.2?'patrol':'guard',fam:e.fam,units:e.U};
+    if(rng()<0.15){const hf=Object.keys(MFAM).filter(f=>monRel(e.fam,f)==='hostile'&&monPool([f],FL).length);if(hf.length){const f2=pick(hf),e2=dunEncounter(D,n,rng,{fam:f2,budget:Math.round(b*0.7),cap:4});
+      c.type='conflict';c.fam2=f2;c.units=c.units.slice(0,4).concat(e2.U.map(u=>Object.assign(u,{grp:1})));}}
+    D.encs.push(c);};
   const inner=shuf(M.slice(1,L-1).filter(n=>n.role==='hall'));inner.slice(0,Math.max(1,Math.ceil(inner.length/2))).forEach(foes);
   if(!inner.length){const p=M.slice(1,L-1)[0];if(p)foes(p);}
   foes(S);if(rng()<0.5)foes(K);nodes.filter(n=>n.role==='vault'&&rng()<0.6).forEach(foes);
+  for(const n of nodes)if(n.role!=='entry'&&!D.encs.some(c=>c.room===n.id)&&rng()<0.35){const e=dunEncounter(D,n,rng,{fam:pick(EC.amb),budget:Math.round(bud(n)*0.3),cap:4});if(e.U.length)D.encs.push({id:D.encs.length,room:n.id,boss:false,type:'ambient',fam:e.fam,units:e.U});}
+  if(rng()<0.3){const cand=nodes.filter(n=>n.role!=='entry'&&n.role!=='sanctum'&&slot[n.id]&&slot[n.id].length),n=cand.length?pick(cand):null;
+    if(n){const o=ent('chest',n,take(n),{gold:gold(30+diff*15),mimic:1});if(o)D.encs.push({id:D.encs.length,room:n.id,boss:false,type:'mimic',fam:'classic',units:[{t:'mimic',men:1,pw:MON.mimic.pow,ent:o.id}]});}}
   D.T=T;D.slot=slot;D.par=par;
   dunValidate(D);if(!D.valid)return D;
   /* Stage 6: polish, then validate again */
@@ -3940,8 +4117,9 @@ function dunValidate(D){const C=[],ok=(n,v,d)=>C.push({n,ok:!!v,d:d||''}),N=D.no
   let narrow=0;for(const e of D.edges){const [x,y]=e.door;let c=0;for(const o of[-1,0,1]){const i=e.h?(y+o)*DGW+x:y*DGW+x+o;if(D.T[i]===1||D.T[i]===2)c++;}if(c<3)narrow++;}ok('Squads fit through every door',!narrow);
   const inLine=D.ents.filter(e=>!e.deco&&e.room>=0&&(Math.abs(e.x-N[e.room].tx)<=1||Math.abs(e.y-N[e.room].ty)<=1));ok('Nothing stands in a doorway line',!inLine.length);
   ok('Every obstacle has a clue',D.gates.every(g=>D.ents.some(e=>e.k==='sign'&&e.gate===g.id)));
-  let run=0,worst=0;for(const n of main){if(D.encs.some(c=>c.room===n.id&&!c.boss)){run++;worst=Math.max(worst,run);}else run=0;}
-  ok('Pacing: rest between fights',worst<=2,'longest run of fights: '+worst);ok('Treasure placed',D.ents.some(e=>e.k==='chest'&&!N[e.room].role.match(/vault|ante/)));
+  let run=0,worst=0;for(const n of main){if(D.encs.some(c=>c.room===n.id&&!c.boss&&c.type!=='ambient'&&c.type!=='mimic')){run++;worst=Math.max(worst,run);}else run=0;}
+  ok('Pacing: rest between fights',worst<=2,'longest run of fights: '+worst);ok('Treasure placed',D.ents.some(e=>e.k==='chest'&&!e.mimic&&!N[e.room].role.match(/vault|ante/)));
+  ok('Monsters come from the bestiary',D.encs.every(c=>c.units.every(u=>MON[u.t]&&(MON[u.t].playable))),'only finished monsters spawn; kingdom troops never appear as wild monsters');
   ok('Retreat always possible',true,'gates latch open; the entrance stairs are always reachable');
   D.checks=C;D.valid=C.every(c=>c.ok);return D.valid;}
 function dunHash(D){let h=2166136261;const f=v=>{h^=v&255;h=Math.imul(h,16777619)>>>0;};for(const t of D.T)f(t);for(const e of D.ents){f(e.x);f(e.y);f(e.k.charCodeAt(0));}for(const g of D.gates){f(g.k.charCodeAt(0));f(g.x);}return(h>>>0).toString(16).padStart(8,'0');}
@@ -3952,12 +4130,13 @@ function dunHash(D){let h=2166136261;const f=v=>{h^=v&255;h=Math.imul(h,16777619
 const dunG=new THREE.Group();dunG.visible=false;world.add(dunG);
 let DUN=null;const DPREP={open:false,c:null,D:null,pick:new Set(),hover:-1,hash:''};
 const dwx=i=>(i+0.5-DGW/2)*DT,dwz=j=>(j+0.5-DGH/2)*DT,dtx=x=>Math.floor(x/DT+DGW/2),dtz=z=>Math.floor(z/DT+DGH/2);
-const dmen=u=>Math.max(0,Math.ceil(u.hp/STATS[u.t].hp-1e-6));
+const dmen=u=>u.m?(u.hp>0?1:0):Math.max(0,Math.ceil(u.hp/STATS[u.t].hp-1e-6));
+const dAs=t=>MON[t]?MON[t].as:t,dMult=(a,b)=>(MULT[dAs(a)]||{})[dAs(b)]??1;
 /* which dungeon the test entrance opens: the Lab's "use for test entrance" pick, else the curated approved list, else one random seed per campaign */
 function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed)return{seed:t.seed,arch:t.arch||'',floors:t.floors||0};
   if(DUN_APPROVED.length){const a=DUN_APPROVED[(CAMP.dunPick=CAMP.dunPick??Math.floor(Math.random()*DUN_APPROVED.length))%DUN_APPROVED.length];return{seed:a.seed,arch:a.arch||'',floors:a.floors||0};}
   if(!CAMP.dunSeed)CAMP.dunSeed=1+Math.floor(Math.random()*999999);return{seed:CAMP.dunSeed,arch:''};}
-function dunRec(){const s=dunSeed(),k=s.seed+':'+s.arch+':'+(s.floors||0);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0}};return CAMP.dungeons[k];}
+function dunRec(){const s=dunSeed(),k=s.seed+':'+s.arch+':'+(s.floors||0);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177};const r=CAMP.dungeons[k];if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
 const dunCache={};function dunGet(seed,arch,floors){const k=seed+':'+(arch||'')+':'+(floors||0);if(!dunCache[k])dunCache[k]=dunGen(seed,{arch,floors:floors||0});return dunCache[k];}
 const dunFloorSt=()=>({open:{},solved:{},dead:{},keys:0,cleared:0,visits:0,seen:{}}),dunLastSt=R=>(R.fl&&R.fl[R.fl.length-1])||R.st;
 /* ---------- the entrance on the war table: beside your castle with the most troops ---------- */
@@ -4159,7 +4338,10 @@ function dunEnter(D,gs,c,rec0,o){o=o||{};const rec=rec0||dunRec();rec.st.visits+
 function dunSpawnEncs(){const D=DUN.D;
   if(DUN.mscale<=0)for(const en of D.encs)DUN.st.dead[en.id]=1;
   for(const en of D.encs)if(!DUN.st.dead[en.id]&&DUN.mscale>0){const n=D.nodes[en.room],E2={en,awake:false,us:[]};en.rt=E2;
-    en.units.forEach((u,k)=>{const a=k/en.units.length*Math.PI*2,rad=Math.min(n.hw,n.hh)*0.55*DT;E2.us.push(dunUnit(1,u.t,Math.max(1,Math.round(u.men*DUN.mscale)),dwx(n.tx)+Math.cos(a)*rad,dwz(n.ty)+Math.sin(a)*rad,{enc:E2}));});}
+    if(en.type==='conflict')E2.awake=true;
+    const L=en.units.filter(u=>MON[u.t]),cnt=en.boss||en.type==='mimic'?L.length:Math.max(1,Math.round(L.length*Math.min(2,DUN.mscale)));
+    for(let k=0;k<cnt;k++){const u=L[k%L.length];if(k>=L.length&&(u.boss||u.ent!=null))continue;const a=k/cnt*Math.PI*2+(u.grp?Math.PI:0),rad=Math.min(n.hw,n.hh)*(u.grp?0.75:0.5)*DT,e=u.ent!=null?D.ents[u.ent]:null;
+      const v=dunMon(u,e?dwx(e.x):dwx(n.tx)+Math.cos(a)*rad*(u.boss?0:1),e?dwz(e.y):dwz(n.ty)+Math.sin(a)*rad*(u.boss?0:1),E2);if(v&&en.type==='conflict'){v.hidden=v.dormant=v.under=false;}}}
 }
 /* stairs between floors: the general and his troops go down (or up) together; everything else on the floor stays exactly as it was left */
 function dunFloor(n){const D0=DUN.D0;if(!D0.floors||n<0||n>=D0.nfl||DUN.sel)return;const ag=dAct();if(!ag||ag.down)return;const b={r:ag.r,bring:ag.bring,men:dunSurvivors(ag),home:ag.home},down=n>DUN.fl;
@@ -4201,8 +4383,8 @@ function dSnap(x,z){if(dFree(x,z,0.3,false))return[x,z];let best=[x,z],bd=1e9;co
 /* a general in the dungeon: side 0 yours, side 2 a rival kingdom's. His troops come along as files of up to a dozen sprites */
 function dunGenMake(r,side,x,z,bring,men,home){const g={r,side,home,bring,x,z,face:0,order:'follow',hx:0,hz:0,cd:0,scd:0,walk:0,down:false,sp:card(GMF[r.d.key][0][0].m,0.5,0.02,0.45)};[g.x,g.z]=dSnap(g.x,g.z);dunG.add(g.sp);DUN.allG.push(g);
   const n=Math.max(1,Math.min(12,Math.ceil(men/10))),t=r.d.troop;for(let k=0;k<n;k++){const m=Math.floor(men/n)+(k<men%n?1:0);if(m>0)dunUnit(side,t,m,g.x+R(-1.2,1.2),g.z+R(0.6,2.2),{g,k});}return g;}
-function dunUnit(side,t,men,x,z,o){[x,z]=dSnap(x,z);const u=Object.assign({side,pal:side===1?2:side===2?1:0,t,hp:men*STATS[t].hp,men0:men,x,z,cd:Math.random(),tgt:null,tT:0,face:side?1:0,walk:Math.random()*3,st:'alive',task:null,fly:!!FLY[t],sp:null},o);
-  const M=dunUMat(u.pal,t,0,side?1:0);u.sp=card(M.m,0.5,0.02,0.45);u.sp.scale.set(M.w,M.h,1);u.sp.position.set(x,0,z);dunG.add(u.sp);DUN.us.push(u);return u;}
+function dunUnit(side,t,men,x,z,o){[x,z]=dSnap(x,z);const u=Object.assign({side,pal:side===1?2:side===2?1:0,t,hp:men*ST(t).hp,men0:men,x,z,cd:Math.random(),tgt:null,tT:0,face:side?1:0,walk:Math.random()*3,st:'alive',task:null,fly:!!FLY[t],sp:null},o);
+  const M=u.m?dunMMat(u,0,true):dunUMat(u.pal,t,0,side?1:0);u.sp=card(M.m,0.5,0.02,0.45);u.sp.scale.set(M.w,M.h,1);u.sp.position.set(x,0,z);dunG.add(u.sp);DUN.us.push(u);return u;}
 function dunSurvivors(g){return DUN.us.filter(u=>u.g===g&&u.st==='alive').reduce((a,u)=>a+dmen(u),0);}
 function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}
   for(const g of DUN.party){const sv=g.out!=null?g.out:dunSurvivors(g);g.r.troops=g.home+sv;lost+=g.bring-sv;if(g.r.hp<=0)g.r.hp=1;L.push(g.r.d.short+' '+sv+'/'+g.bring);}
@@ -4234,12 +4416,12 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
   /* the active general: stick / keys, or walk to a tapped spot */
   let mx=DUN.mv.x,mz=DUN.mv.z;if(!xrActive){let sx=0,fw=0;if(keys.has('a')||keys.has('arrowleft'))sx-=1;if(keys.has('d')||keys.has('arrowright'))sx+=1;if(keys.has('w')||keys.has('arrowup'))fw+=1;if(keys.has('s')||keys.has('arrowdown'))fw-=1;if(sx||fw){mx=sx;mz=-fw;DUN.goal=null;}}
   if(Math.hypot(mx,mz)>0.1){DUN.goal=null;}else if(DUN.goal){const s=dSteer(ag,DUN.goal.x,DUN.goal.z,false);if(Math.hypot(DUN.goal.x-ag.x,DUN.goal.z-ag.z)<0.4)DUN.goal=null;else{mx=s[0];mz=s[1];}}
-  const ml=Math.hypot(mx,mz);if(ml>0.05&&!ag.down){const sp=4.6*Math.min(1,ml)/Math.max(1,ml);dMove(ag,mx*sp*dt,mz*sp*dt,0.32,false);ag.walk+=dt*Math.min(1,ml);if(Math.abs(mx)>0.2)ag.face=mx<0?1:0;}
+  const ml=Math.hypot(mx,mz);if(ml>0.05&&!ag.down){const sp=(ag.web>0?0.9:4.6)*Math.min(1,ml)/Math.max(1,ml);dMove(ag,mx*sp*dt,mz*sp*dt,0.32,false);ag.walk+=dt*Math.min(1,ml);if(Math.abs(mx)>0.2)ag.face=mx<0?1:0;}
   /* the other generals follow in a loose column */
   P.forEach((g,i)=>{if(g===ag||g.down)return;const d=Math.hypot(ag.x-g.x,ag.z-g.z),want=1.8+0.6*((i+P.length-DUN.ai)%P.length);if(d>want){const s=dSteer(g,ag.x,ag.z,false),sp=Math.min(4.8,2.6+d*0.4);if(dMove(g,s[0]*sp*dt,s[1]*sp*dt,0.32,false))g.walk+=dt;if(Math.abs(s[0])>0.2)g.face=s[0]<0?1:0;}});
   try{dunRivAI(dt);}catch(e){DE4LOG.err(e,'dunRivAI');}
   dunUnits(dt);dunPlates();dunKeys();dunProj(dt);dunFxTick(dt);dunGoreTick(dt);dunBoomTick(dt);
-  for(const g of DUN.allG){g.cd-=dt;g.scd=Math.max(0,g.scd-dt);if(g.down)continue;dunGenFight(g,dt);}
+  for(const g of DUN.allG){g.cd-=dt;g.scd=Math.max(0,g.scd-dt);if(g.down)continue;if(g.web>0)g.web-=dt;if(g.poison&&g.poison.t>0){g.poison.t-=dt;g.r.hp-=g.poison.dps*0.15*dt;g.hitBy=1;}dunGenFight(g,dt);}
   for(const g of DUN.allG)if(!g.down&&g.r.hp<=0)dunDown(g);
   if(ag.down){dunLost();return;}
   if(DUN.D0.nfl>1){let near=null,nd=9;for(const o of DUN.ents)if(o.e.k==='up'||o.e.k==='down'){const d=Math.hypot(ag.x-o.x,ag.z-o.z);if(d<nd){nd=d;near=o;}}
@@ -4268,36 +4450,53 @@ function dunTick(dt,now){if(!DUN)return;if(DUN.sel){dunSelDraw();if(scene.fog){s
   DUN.hudT=(DUN.hudT||0)-dt;if(DUN.hudT<=0){DUN.hudT=0.2;dunHud();}}
 /* troops and monsters: target, chase, fight, follow, work on puzzles */
 function dunUnits(dt){const U=DUN.us,P=DUN.party;
-  const AG=DUN.allG;for(const E of DUN.D.encs){const rt=E.rt;if(!rt||rt.awake)continue;let by=-1;for(const u of rt.us){if(u.st!=='alive')continue;const g=AG.find(g=>!g.down&&Math.hypot(g.x-u.x,g.z-u.z)<7.5&&dSame(g,u));if(g){by=g.side;break;}const v=U.find(v=>v.side!==1&&v.st==='alive'&&Math.hypot(v.x-u.x,v.z-u.z)<6&&dSame(v,u));if(v){by=v.side;break;}}
-    if(by>=0){rt.awake=true;if(by===0||dRoomOf(P[DUN.ai].x,P[DUN.ai].z)===DUN.D.nodes[E.room]){sfx('horn');showBanner(E.boss?'The sanctum\'s guardians rise!':'Ambush!',true);}}}
+  const AG=DUN.allG;for(const E of DUN.D.encs){const rt=E.rt;if(!rt||rt.awake)continue;let by=-1;const amb=E.type==='ambient'?0.45:1;for(const u of rt.us){if(u.st!=='alive'||u.hidden||u.dormant)continue;const aw=(u.m?u.m.aw||7.5:7.5)*amb;const g=AG.find(g=>!g.down&&Math.hypot(g.x-u.x,g.z-u.z)<aw&&dSame(g,u));if(g){by=g.side;break;}const v=U.find(v=>v.side!==1&&v.st==='alive'&&Math.hypot(v.x-u.x,v.z-u.z)<aw*0.8&&dSame(v,u));if(v){by=v.side;break;}}
+    if(by>=0){rt.awake=true;if(by===0||dRoomOf(P[DUN.ai].x,P[DUN.ai].z)===DUN.D.nodes[E.room]){sfx('horn');const lead=rt.us.find(v=>v.boss)||rt.us[0];showBanner(E.boss?(lead&&lead.m?lead.m.n:'The sanctum\'s guardian')+' rises!':E.type==='ambient'?'Wild '+(lead&&lead.m?lead.m.n.toLowerCase()+'s':'creatures')+' turn on you':E.type==='patrol'?'A patrol spots you!':'Ambush!',true);}}}
   for(const u of U){if(u.st==='dying'){/* same death as on the battlefield: thrown from the blow, falls, lies still, blinks out */u.dieT+=dt;u.vy-=22*dt;u.y+=u.vy*dt;if(u.y<0){u.y=0;u.vy=0;}
       if(!dMove(u,u.vx*dt,u.vz*dt,0.15,true)){u.vx*=-0.3;u.vz*=-0.3;}if(u.y===0){const fr=Math.max(0,1-dt*4);u.vx*=fr;u.vz*=fr;}
-      dunDrawU(u);u.sp.visible=u.dieT<=1.0||((u.dieT*16)|0)%2===0;if(u.dieT>1.7&&u.y===0){u.st='gone';dunG.remove(u.sp);}continue;}if(u.st!=='alive')continue;
-    const S=STATS[u.t];u.cd-=dt;u.tT-=dt;let gx=null,gz=null,stop=0.2,spd=S.spd*0.9;
+      dunDrawU(u);u.sp.visible=u.dieT<=1.0||((u.dieT*16)|0)%2===0;if(u.dieT>1.7&&u.y===0){u.st='gone';dunG.remove(u.sp);}continue;}
+    if(u.st==='bones'){u.reT-=dt;if(u.reT<=0){u.st='alive';u.hp=u.hp0*0.6;u.tgt=null;for(let i=0;i<8;i++)dunFx(u.x+R(-0.4,0.4),R(0.1,1.2),u.z+R(-0.4,0.4),{col:0xe8e0c8,s:0.4,life:0.6,vy:1.5});const P0=DUN.party[DUN.ai];if(P0&&dRoomOf(P0.x,P0.z)===dRoomOf(u.x,u.z)&&Math.random()<0.5)showBanner('The bones pull themselves back together');}dunDrawU(u);continue;}
+    if(u.st!=='alive')continue;
+    const S=ST(u.t);u.cd-=dt;u.tT-=dt;let gx=null,gz=null,stop=0.2,spd=S.spd*0.9;
+    if(u.poison&&u.poison.t>0){u.poison.t-=dt;u.pacc=(u.pacc||0)+u.poison.dps*dt;if(u.pacc>=1||u.poison.t<=0){const d=u.pacc;u.pacc=0;dunDmg(u,d,null,{x:u.x,z:u.z,p:0,l:1,dt:'poison'});if(u.st!=='alive')continue;}}
+    if(u.web>0)u.web-=dt;
     const g=u.g,pers=g?gpOf(g.r):null;
-    if(u.side===1&&!u.enc.awake){u.walk=0;dunDrawU(u);continue;}
+    if(u.m&&monPre(u,dt))continue;
+    if(u.side===1&&!u.enc.awake){if(u.m&&(mHas(u,'patrol')||u.enc.en.type==='patrol')){const n=dRoomOf(u.home.x,u.home.z);if(!u.wp||Math.hypot(u.wp.x-u.x,u.wp.z-u.z)<0.5){u.wp=n?{x:dwx(n.tx+R(-n.hw+1,n.hw-1)),z:dwz(n.ty+R(-n.hh+1,n.hh-1))}:u.home;}
+        const s=dSteer(u,u.wp.x,u.wp.z,u.fly);if(dMove(u,s[0]*S.spd*0.45*dt,s[1]*S.spd*0.45*dt,0.26,u.fly))u.walk+=dt*0.5;if(Math.abs(s[0])>0.3)u.face=s[0]<0?1:0;}else u.walk=0;dunDrawU(u);continue;}
     /* targeting, four times a second */
     if(u.march>0){u.march-=dt;if(Math.hypot(g.hx-u.x,g.hz-u.z)<1.8||g.order!=='hold')u.march=0;}
-    if(u.tT<=0&&!(u.march>0)){u.tT=0.25+Math.random()*0.1;u.tgt=null;if(!u.task){let best=null,bd=1e9;const agg=u.side===1?30:(g.order==='hold'?5:6+3*pers.A),opp=u.side===1?0:pers.O;
-        for(const v of U){if(v.side===u.side||v.st!=='alive')continue;if(v.side===1&&!v.enc.awake)continue;let d=Math.hypot(v.x-u.x,v.z-u.z);if(d>agg||!(u.fly&&RANGED[u.t]===undefined&&d<4)&&!dSame(u,v))continue;if(opp>0)d*=1-0.4*opp*(1-dmen(v)/v.men0);if(d<bd){bd=d;best=v;}}
+    if(u.tT<=0&&!(u.march>0)){u.tT=0.25+Math.random()*0.1;u.tgt=null;if(!u.task){let best=null,bd=1e9;const agg=u.side===1?(u.m?14:30):(g.order==='hold'?5:6+3*pers.A),opp=u.side===1?0:pers.O;
+        for(const v of U){if(v.st!=='alive'||!dFoe(u,v))continue;if(v.side===1&&!v.enc.awake)continue;let d=Math.hypot(v.x-u.x,v.z-u.z);if(d>agg||!(u.fly&&!dRanged(u)&&d<4)&&!dSame(u,v))continue;if(opp>0)d*=1-0.4*opp*(1-dmen(v)/v.men0);if(d<bd){bd=d;best=v;}}
         for(const pg of AG){if(pg.down||pg.side===u.side||!dSame(pg,u))continue;const d=Math.hypot(pg.x-u.x,pg.z-u.z)*(u.side===1?1.3:2);if(d<bd&&(u.side===1||d<agg*1.3)){bd=d;best=pg;}}
-        if(best&&u.side!==1){const leash=7+4*pers.A,hx=g.order==='hold'?g.hx:g.x,hz=g.order==='hold'?g.hz:g.z;if(Math.hypot(best.x-hx,best.z-hz)>leash)best=null;}u.tgt=best;}}
+        if(best&&u.side!==1){const leash=7+4*pers.A,hx=g.order==='hold'?g.hx:g.x,hz=g.order==='hold'?g.hz:g.z;if(Math.hypot(best.x-hx,best.z-hz)>leash)best=null;}
+        if(best&&u.m&&(mHas(u,'guard')||mHas(u,'territorial'))&&Math.hypot(best.x-u.home.x,best.z-u.home.z)>(mHas(u,'guard')?8:10))best=null;
+        if(!best&&u.side!==1){let bb=3.5;for(const v of U)if(v.st==='bones'&&v.side!==u.side){const d=Math.hypot(v.x-u.x,v.z-u.z);if(d<bb&&dSame(u,v)){bb=d;best=v;}}}u.tgt=best;}}
     const tg=u.tgt;
     if(u.task){const tk=u.task,gt=DUN.D.gates[tk.gate];if(DUN.st.solved[gt.id]){u.task=null;}else{gx=tk.x;gz=tk.z;stop=0.3;
         const d=Math.hypot(gx-u.x,gz-u.z);if(tk.how==='shoot'){const gd=Math.hypot(tk.gx-u.x,tk.gz-u.z);if(gd<8.5){gx=null;if(u.cd<=0){u.cd=S.cd;dunShot(u,{x:tk.gx,z:tk.gz,y:2.5},()=>dunWork(gt,1,'shoot'));}}}
         else if(d<0.9){gx=null;u.walk+=dt*1.5;dunWork(gt,dt,tk.how);if(Math.random()<dt*4)dunFx(tk.gx+R(-0.8,0.8),R(0.3,1.2),tk.gz+R(-0.8,0.8),{col:tk.how==='fly'?0xf0c055:0xd8c8a8,s:0.4,life:0.5,vy:1});}}}
-    if(!u.task&&tg){const d=Math.hypot(tg.x-u.x,tg.z-u.z),rng=S.rng+(tg.r?0.4:0.35);
-      if(d<=rng){if(Math.abs(tg.x-u.x)>0.1)u.face=tg.x<u.x?1:0;if(u.cd<=0){u.cd=S.cd*(0.9+Math.random()*0.2);if(RANGED[u.t])dunShot(u,tg,()=>dunHit(u,tg));else dunHit(u,tg);}}
-      else{gx=tg.x;gz=tg.z;stop=rng*0.8;}}
+    if(!u.task&&tg){const d=Math.hypot(tg.x-u.x,tg.z-u.z),rng=S.rng+(tg.r?0.4:0.35),m=u.m,away=k=>{const l=d||1;gx=u.x+(u.x-tg.x)/l*k;gz=u.z+(u.z-tg.z)/l*k;stop=0.1;};
+      let flee=m&&m.flee&&u.hp<u.hp0*m.flee&&!(u.fleeT>4);if(flee&&m.role!=='caster')u.fleeT=(u.fleeT||0)+dt;/* runs for a few seconds, then turns and fights when cornered */
+      if(m&&m.web&&!dRanged(u)&&d>2&&d<m.web&&!(u.wcd>0)){u.wcd=5;dunShot(u,tg,()=>{if(tg.r)tg.web=Math.max(tg.web||0,1.6);else if(tg.st==='alive')dWeb(tg,2.2);},'web');}if(u.wcd>0)u.wcd-=dt;
+      if(m&&mHas(u,'charge')&&!(u.chT>0)&&d>2.5&&d<9){u.chg=0.9;u.chT=6;if(Math.random()<0.5)sfx('horn');}if(u.chT>0)u.chT-=dt;
+      if(u.chg>0){u.chg-=dt;spd=S.spd*2.6;}
+      if(u.swT>0){u.swT-=dt;away(4);spd=S.spd*1.1;}
+      else if(flee){away(5);spd=S.spd*1.15;if(dRanged(u)&&d<=rng&&u.cd<=0){u.cd=S.cd;dunShot(u,tg,()=>dunHit(u,tg));}}
+      else if(d<=rng&&!(m&&m.keep&&d<m.keep*0.6)){if(Math.abs(tg.x-u.x)>0.1)u.face=tg.x<u.x?1:0;if(u.cd<=0){u.cd=S.cd*(0.9+Math.random()*0.2);if(dRanged(u))dunShot(u,tg,()=>dunHit(u,tg));else dunHit(u,tg);}}
+      else if(m&&m.keep&&d<m.keep*0.6){away(m.keep);spd=S.spd*0.8;if(u.cd<=0){u.cd=S.cd*1.2;dunShot(u,tg,()=>dunHit(u,tg));}}
+      else if(!(m&&mHas(u,'guard'))){gx=tg.x;gz=tg.z;stop=rng*0.8;}}
+    else if(!u.task&&u.m&&u.enc.awake&&Math.hypot(u.home.x-u.x,u.home.z-u.z)>(mHas(u,'guard')?0.6:6)){gx=u.home.x;gz=u.home.z;stop=0.5;spd=S.spd*0.6;}
     else if(!u.task&&u.side!==1){/* follow the general, or hold the commanded spot */const hx=g.order==='hold'?g.hx:g.x,hz=g.order==='hold'?g.hz:g.z,ring=g.order==='hold'?0.45+0.4*(u.k%4):1.4+0.5*(u.k%3);
       if(Math.hypot(hx-u.x,hz-u.z)>ring){gx=hx;gz=hz;stop=ring;spd=S.spd*(Math.hypot(hx-u.x,hz-u.z)>6?1.5:1.1);}}
     let vx=0,vz=0;if(gx!=null&&Math.hypot(gx-u.x,gz-u.z)>stop){const s=dSteer(u,gx,gz,u.fly);vx=s[0]*spd;vz=s[1]*spd;}
     /* spacing */for(const v of U){if(v===u||v.st!=='alive')continue;const dx=u.x-v.x,dz=u.z-v.z,d2=dx*dx+dz*dz;if(d2<0.36&&d2>1e-6){const d=Math.sqrt(d2),p=(0.6-d)*3;vx+=dx/d*p;vz+=dz/d*p;}}
     if(u.side!==1)for(const pg of AG){if(pg.side!==u.side)continue;const dx=u.x-pg.x,dz=u.z-pg.z,d2=dx*dx+dz*dz;if(d2<0.5&&d2>1e-6){const d=Math.sqrt(d2);vx+=dx/d*2;vz+=dz/d*2;}}
-    if(vx||vz){if(dMove(u,vx*dt,vz*dt,0.26,u.fly))u.walk+=dt*Math.min(1,Math.hypot(vx,vz)/2);if(Math.abs(vx)>0.3&&!(tg&&!u.task))u.face=vx<0?1:0;}
+    if(u.web>0){vx*=0.15;vz*=0.15;}
+    if(vx||vz){if(dMove(u,vx*dt,vz*dt,0.26,u.fly))u.walk+=dt*Math.min(1,Math.hypot(vx,vz)/2);if(Math.abs(vx)>0.3&&!(tg&&!u.task&&!u.swT))u.face=vx<0?1:0;}
     dunDrawU(u);}}
-function dunDrawU(u){const f=u.st==='dying'?3:(u.cd>STATS[u.t].cd*0.75&&u.tgt?2:Math.floor(u.walk*5)%2),M=dunUMat(u.pal,u.t,f,u.face);u.sp.material=M.m;u.sp.scale.set(M.w,M.h,1);
-  const fy=u.st==='dying'?u.y:u.fly&&u.st==='alive'?1.0+Math.sin(DUN.t*3+u.x)*0.15:0;u.sp.position.set(u.x,fy,u.z);}
+function dunDrawU(u){const f=u.st==='dying'||u.st==='bones'?3:u.dormant?0:(u.cd>ST(u.t).cd*0.75&&u.tgt?2:Math.floor(u.walk*5)%2),M=u.m?dunMMat(u,f,u.face===1):dunUMat(u.pal,u.t,f,u.face);u.sp.material=M.m;u.sp.scale.set(M.w,M.h,1);
+  const fy=u.st==='dying'?u.y:u.fly&&u.st==='alive'?1.0+Math.sin(DUN.t*3+u.x)*0.15:0;u.sp.position.set(u.x,fy,u.z);if(u.m&&u.st!=='dying')u.sp.visible=!u.hidden&&!u.under;if(u.web>0&&u.st==='alive'&&Math.random()<0.05)dunFx(u.x,R(0.3,1),u.z,{col:0xf0f0f0,s:0.3,life:0.4});}
 function dunSplat(x,z,sc){const D=DUN.dec[(Math.random()*DUN.dec.length)|0];_de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x,0.03,z);_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
   D.m.setMatrixAt(D.i,_dm);D.i=(D.i+1)%300;D.n=Math.min(300,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;}
 function dunDrop(o){const p=DUN.gore.find(p=>p.life<=0);if(!p)return;Object.assign(p,{x:o.x,y:o.y,z:o.z,vx:o.vx||0,vy:o.vy||0,vz:o.vz||0,g:o.g??-22,life:o.life,splat:!!o.splat});p.s.material.map=o.tex||T_DROP;p.s.material.color.setHex(o.col||0xffffff);p.s.scale.set(o.w||0.25,o.w||0.25,1);p.s.visible=true;p.s.position.set(p.x,p.y,p.z);}
@@ -4329,14 +4528,22 @@ function dunKill(u,k){const dx=u.x-k.x,dz=u.z-k.z,d=Math.hypot(dx,dz)||1;u.vx=dx
     if(Math.random()<0.06){sfx('boom');shake=Math.max(shake,0.5);for(let i=0;i<9;i++)dunDrop({x:x+R(-0.4,0.4),y:R(0.6,1.4),z:z+R(-0.4,0.4),vx:R(-6,6),vy:R(8,15),vz:R(-6,6),g:-20,tex:T_BPUFF,w:R(0.7,1.3),life:R(1.1,1.6),splat:true});for(let i=0;i<30;i++)dunDrop({x,y:0.8,z,vx:R(-12,12),vy:R(5,14),vz:R(-12,12),life:R(0.7,1.4),w:R(0.2,0.45)});for(let i=0;i<7;i++){const a=R(0,6.28),r=R(0,5);dunSplat(x+Math.cos(a)*r,z+Math.sin(a)*r,R(1.5,4));}}return;}
   if(blood<=0||Math.random()>0.35+blood*0.65)return;dunSplat(x+R(-0.25,0.25),z+R(-0.25,0.25),(0.9+Math.random()*0.8)*(0.6+blood*1.0));
   if(blood>0.3)for(let i=0,n=Math.round(blood*4);i<n;i++)dunDrop({x,y:0.7,z,vx:R(-2.5,2.5),vy:R(2,5),vz:R(-2.5,2.5),life:R(0.4,0.8),w:0.18});}
-function dunHit(a,b){if(!b||(b.st&&b.st!=='alive')||(b.r&&b.down))return;const bt=b.r?b.r.d.troop:b.t,dm=STATS[a.t].dmg*MULT[a.t][bt]*Math.max(1,dmen(a))*0.35;
-  if(b.r){b.r.hp-=dm*0.09*10/(10+b.r.d.def);b.hitBy=a.side;dunFx(b.x,1,b.z,{col:0xff5a3a,s:0.5,life:0.3});return;}dunDmg(b,dm,a);}
-function dunDmg(b,dm,src,kick){if(b.st!=='alive')return;b.hp-=dm;if(Math.random()<0.5)dunFx(b.x+R(-0.2,0.2),0.8,b.z,{col:0xff7a5a,s:0.35,life:0.25});if(b.side===1&&!b.enc.awake){b.enc.awake=true;}
-  if(b.hp<=0){b.hp=0;b.st='dying';b.dieT=0;dunKill(b,kick||(src?{x:src.x,z:src.z,p:3,l:0}:{x:b.x,z:b.z,p:0,l:0}));if(b.side===0)sfx('clang');const E=b.enc;if(E&&E.us.every(v=>v.st!=='alive')){DUN.st.dead[E.en.id]=1;sfx('fanfare');showBanner(E.en.boss?'The sanctum is yours. Claim the altar.':'The guardians are defeated');}}}
-function dunGenFight(g,dt){if(g.cd>0)return;let best=null,bd=1.5;for(const v of DUN.us){if(v.side===g.side||v.st!=='alive'||(v.side===1&&!v.enc.awake))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
+function dunHit(a,b){if(!b||(b.r&&b.down))return;if(a.st&&a.st!=='alive')return;
+  if(b.st==='bones'){b.bonesHp-=(a.m?a.m.dmg:ST(a.t).dmg*Math.max(1,dmen(a))*0.35)*1.5;if(b.bonesHp<=0)monBonesBreak(b);return;}
+  if(b.st&&b.st!=='alive')return;const bt=b.r?b.r.d.troop:b.t;let dm;
+  if(a.m){dm=a.m.dmg*(a.elite?1.4:1)*(a.boss?1.5:1)*(a.gen?0.6:1)*dMult(a.t,bt)*(a.chg>0?1.6:1);if(a.chg>0){a.chg=0;if(!b.r)dMove(b,(b.x-a.x)*0.8,(b.z-a.z)*0.8,0.26,b.fly);}
+    if(mHas(a,'swoop'))a.swT=1.1;if(mHas(a,'poison')){if(b.r)b.poison={t:3,dps:a.m.dmg*0.4};else dPoison(b,a.m.dmg*0.4);}
+    if(mHas(a,'web')&&dRanged(a)){if(b.r)b.web=Math.max(b.web||0,1.4);else dWeb(b,2);}}
+  else dm=ST(a.t).dmg*dMult(a.t,bt)*Math.max(1,dmen(a))*0.35;
+  if(b.r){b.r.hp-=dm*0.09*10/(10+b.r.d.def)*(a.m?1.6:1);b.hitBy=a.side;dunFx(b.x,1,b.z,{col:0xff5a3a,s:0.5,life:0.3});return;}dunDmg(b,dm,a);}
+function dunDmg(b,dm,src,kick){if(b.st!=='alive'||b.under)return;
+  if(b.m){const dt=kick&&kick.dt||(src?(src.m?(src.m.role==='caster'?'magic':src.m.role==='ranged'?'pierce':'slash'):src.t?TDMG[dAs(src.t)]:src.r?TDMG[src.r.d.troop]:null):null);dm*=(dt&&b.m.res[dt])||1;if(b.hidden||b.dormant)monReveal(b,'quiet');}
+  b.hp-=dm;if(Math.random()<0.5)dunFx(b.x+R(-0.2,0.2),0.8,b.z,{col:0xff7a5a,s:0.35,life:0.25});if(b.side===1&&!b.enc.awake){b.enc.awake=true;}
+  if(b.hp<=0){b.hp=0;if(b.m&&monDie(b,src))return;b.st='dying';b.dieT=0;dunKill(b,kick||(src?{x:src.x,z:src.z,p:3,l:0}:{x:b.x,z:b.z,p:0,l:0}));if(b.side===0)sfx('clang');const E=b.enc;if(E&&E.us.every(v=>v.st!=='alive'&&v.st!=='bones')){DUN.st.dead[E.en.id]=1;const near=src&&src.side===0;if(E.en.boss){sfx('fanfare');showBanner('The sanctum is yours. Claim the altar.');}else if(near&&E.en.type!=='ambient'&&E.en.type!=='mimic'){sfx('fanfare');showBanner(E.en.type==='conflict'?'The fight is over':'The guardians are defeated');}}}}
+function dunGenFight(g,dt){if(g.cd>0)return;let best=null,bd=1.5;for(const v of DUN.us){if(v.side===g.side||v.st!=='alive'||v.hidden||v.under||(v.side===1&&!v.enc.awake))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;best=v;}}
   let bg=null;for(const o of DUN.allG){if(o.side===g.side||o.down)continue;const d=Math.hypot(o.x-g.x,o.z-g.z);if(d<bd){bd=d;bg=o;best=null;}}
   if(bg){g.cd=1.0;g.face=bg.x<g.x?1:0;bg.r.hp-=g.r.d.atk*0.35*10/(10+bg.r.d.def);bg.hitBy=g.side;dunFx(bg.x,1,bg.z,{col:0xffe39a,s:0.6,life:0.3});sfx('clang');return;}
-  if(best){g.cd=0.9;g.face=best.x<g.x?1:0;dunDmg(best,g.r.d.atk*0.9*MULT[g.r.d.troop][best.t],g);if(g.side===0||Math.random()<0.3)sfx('clang');}}
+  if(best){g.cd=0.9;g.face=best.x<g.x?1:0;dunDmg(best,g.r.d.atk*0.9*dMult(g.r.d.troop,best.t),g);if(g.side===0||Math.random()<0.3)sfx('clang');}}
 /* a general beaten down. Beaten by monsters: his troops carry him out. Beaten by another kingdom's expedition: the war table's own rule for a
    defeat away from the battlefield applies (a general is taken prisoner 22% of the time, a ruler 8%; otherwise he escapes with his survivors) */
 function dunDown(g){g.down=true;g.out=dunSurvivors(g);g.r.hp=1;g.gone=true;for(const u of DUN.us)if(u.g===g&&u.st==='alive'){u.st='gone';dunG.remove(u.sp);}
@@ -4353,7 +4560,7 @@ function dunProjMesh(mage){const P=DUN.pm||(DUN.pm=[]);let m=P.find(o=>!o.visibl
   else{m=new THREE.Group();const sh=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,1.0),new THREE.MeshBasicMaterial({color:0x8a5a2b}));const hd=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.25,4),new THREE.MeshBasicMaterial({color:0xe8e8f0}));hd.rotation.x=Math.PI/2;hd.position.z=0.6;
     const fl=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.02,0.18),new THREE.MeshBasicMaterial({color:0xf1e8d4}));fl.position.z=-0.45;m.add(sh,hd,fl);}
   m.userData.mage=mage;dunG.add(m);P.push(m);return m;}
-function dunShot(u,tg,onHit){const mage=u.t==='mage',m=dunProjMesh(mage),d=Math.hypot(tg.x-u.x,tg.z-u.z);m.visible=true;m.position.set(u.x,0.9,u.z);
+function dunShot(u,tg,onHit,sty){const mage=u.t==='mage'||sty==='web'||!!(u.m&&u.m.role==='caster'),m=dunProjMesh(mage);if(mage&&m.material)m.material.color.setHex(sty==='web'?0xf4f4f4:u.m?(parseInt((u.m.art.pal[2]||'#c08aff').slice(1),16)):0xc08aff);const d=Math.hypot(tg.x-u.x,tg.z-u.z);m.visible=true;m.position.set(u.x,0.9,u.z);
   DUN.proj.push({x:u.x,z:u.z,y:0.9,tg,tx:tg.x,tz:tg.z,t:0,dur:Math.max(0.15,d/(mage?11:17)),arc:mage?0.3:0.25+d*0.06,onHit,m,mage,side:u.side});if(Math.random()<0.5)sfx('arrow');}
 function dunProj(dt){const _w=new THREE.Vector3();for(let i=DUN.proj.length-1;i>=0;i--){const p=DUN.proj[i];p.t+=dt;if(p.tg.st==='alive'||p.tg.r){p.tx=p.tg.x;p.tz=p.tg.z;}const k=Math.min(1,p.t/p.dur),ty=p.tg.y??0.8;
   const at=k=>[p.x+(p.tx-p.x)*k,p.y+(ty-p.y)*k+Math.sin(k*Math.PI)*p.arc,p.z+(p.tz-p.z)*k],c=at(k);p.m.position.set(c[0],c[1],c[2]);
@@ -4393,7 +4600,7 @@ function dunClaimAltar(o,side,asked){const e=o.e,S=DUN.D.encs.find(c=>c.boss);if
   else{DUN.st.cleared=DUN.rivNat;if(!DUN.sk){addGold(DUN.rivNat,v);clog(`${NATIONS[DUN.rivNat].name} plunders the sanctum of ${DUN.D.name}.`);}if(DUN.R.riv)DUN.R.riv.gold=(DUN.R.riv.gold||0)+v;showBanner(NATIONS[DUN.rivNat].name+' has plundered the sanctum!',true);sfx('horn');}}
 function dunKeys(){const near=(x,z,r)=>{let side=-1;for(const g of DUN.allG)if(!g.down&&Math.hypot(g.x-x,g.z-z)<r){side=g.side;if(side===0)return 0;}for(const u of DUN.us)if(u.side!==1&&u.st==='alive'&&Math.hypot(u.x-x,u.z-z)<r){side=u.side;if(side===0)return 0;}return side;};
   for(const o of DUN.ents){const k=o.e.k;if(k==='key'&&!DUN.st.open[o.e.id]){const s=near(o.x,o.z,DT*0.8);if(s>=0)dunTakeKey(o,s);}
-    else if(k==='chest'&&!DUN.st.open[o.e.id]){const s=near(o.x,o.z,DT*0.8);if(s>=0)dunOpenChest(o,s);}
+    else if(k==='chest'&&!DUN.st.open[o.e.id]){const s=near(o.x,o.z,DT*0.8);if(s>=0){const mm=o.e.mimic&&DUN.us.find(u=>u.ent===o.e.id&&u.st==='alive');if(mm){if(mm.hidden)monReveal(mm);}else if(!o.e.mimic||s===1)dunOpenChest(o,s);}}
     else if(k==='altar'&&!DUN.st.cleared){const s=near(o.x,o.z,DT*0.9);if(s>=0)dunClaimAltar(o,s,false);}
     else if(k==='sign'&&!(DUN.signs||(DUN.signs={}))[o.e.id]){const ag=dAct();if(ag&&Math.hypot(ag.x-o.x,ag.z-o.z)<DT*1.2){DUN.signs[o.e.id]=1;showBanner(o.e.txt||'');}}}
   for(const G of DUN.gates){const g=G.g;if(g.k!=='lock'||DUN.st.solved[g.id])continue;const s=near(G.x,G.z,DT*1.9);if(s===0&&DUN.st.keys>0){DUN.st.keys--;dunSolve(g,'unlocked');}else if(s===2&&DUN.rk>0){DUN.rk--;dunSolve(g,'rival');}}}
@@ -4433,7 +4640,8 @@ function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,
   const tags=SPELL_TAGS[sp]||[],pw=30+(g.r.lvl||1)*8.5;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
   if(!tg){bd=11;for(const G of DUN.gates){if(DUN.st.solved[G.g.id]||!GATES[G.g.k].any||!GATES[G.g.k].any.some(t=>tags.includes(t)))continue;const d=Math.hypot(G.x-g.x,G.z-g.z);if(d<bd){bd=d;tg={x:G.x,z:G.z};}}}
   if(!tg)tg={x:g.x+(g.face?-5:5),z:g.z};g.scd=5;g.face=tg.x<g.x?1:0;
-  const area=(x,z,rad,dm)=>{if(!DUN)return;for(const v of DUN.us){if(!foe(v))continue;const d=Math.hypot(v.x-x,v.z-z);if(d>=rad)continue;dunDmg(v,dm*(1-0.35*d/rad),g,{x,z,p:6+R(0,3),l:R(4,8)});if(dm&&d>0.05){const k=(rad-d)*0.45;dMove(v,(v.x-x)/d*k,(v.z-z)/d*k,0.26,v.fly);}}if(dm)for(const o of DUN.allG)if(o.side!==g.side&&!o.down&&Math.hypot(o.x-x,o.z-z)<rad){o.r.hp-=dm*0.12;o.hitBy=g.side;}
+  const area=(x,z,rad,dm)=>{if(!DUN)return;for(const v of DUN.us){if(!foe(v))continue;const d=Math.hypot(v.x-x,v.z-z);if(d>=rad)continue;dunDmg(v,dm*(1-0.35*d/rad),g,{x,z,p:6+R(0,3),l:R(4,8),dt:SPELL_DT[sp]});if(dm&&d>0.05){const k=(rad-d)*0.45;dMove(v,(v.x-x)/d*k,(v.z-z)/d*k,0.26,v.fly);}}if(dm)for(const o of DUN.allG)if(o.side!==g.side&&!o.down&&Math.hypot(o.x-x,o.z-z)<rad){o.r.hp-=dm*0.12;o.hitBy=g.side;}
+      if(dm)for(const v of DUN.us)if(v.st==='bones'&&v.side!==g.side&&Math.hypot(v.x-x,v.z-z)<rad)monBonesBreak(v);
       for(const G of DUN.gates){const gg=G.g;if(!DUN.st.solved[gg.id]&&GATES[gg.k].any&&GATES[gg.k].any.some(t=>tags.includes(t))&&Math.hypot(G.x-x,G.z-z)<rad+1.6)dunSolve(gg,me?SPELL[sp]:'rival');}};
   const burst=(x,z,col,n,rad)=>{for(let i=0;i<n;i++)dunFx(x+R(-rad,rad),R(0.2,1.5),z+R(-rad,rad),{col,s:R(0.6,1.3),life:R(0.4,0.9),vy:R(0.5,2.5),grow:1.5});};
   if(me)showBanner(SPELL[sp]+'!');else if(dRoomOf(g.x,g.z)===dRoomOf(dAct().x,dAct().z))showBanner(g.r.d.short+' casts '+SPELL[sp]+'!',true);sfx(sp==='thunder'?'zap':sp==='mend'?'chant':sp==='volley'?'arrow':'boom');
@@ -4497,6 +4705,70 @@ function dunVrHud(x,line){if(!DUN){line('...',30);return;}const ag=dAct();x.font
   line((DUN.bench.length?'Waiting: '+DUN.bench.map(b=>b.r.d.short).join(', ')+' · ':'')+'L trig: switch general · R stick click: map · B or Y: retreat',160,'#857aa0','14px');}
 
 
+/* ================= DUNGEONS · monster behaviours (Build 177) =================
+   Shared components, switched on by the behaviour names in each bestiary entry. The generic squad code still does targeting, chasing and
+   hitting; these add the special parts: hiding, burrowing, webs, poison, splitting, bones that get back up, summoning, healing, engulfing,
+   charging, exploding, keeping distance, fleeing, patrols and boss phases. */
+const mHas=(u,b)=>u.m&&u.m.beh.includes(b);
+const dFoe=(u,v)=>{if(v.hidden||v.under)return false;if(u.side!==v.side){if(u.m&&u.m.beh.includes('neutral')&&!u.enc.awake)return false;return true;}
+  if(u.side!==1||!u.m||!v.m)return false;if(u.enc===v.enc&&(u.grp||0)===(v.grp||0))return false;return monRel(u.m.fam,v.m.fam)==='hostile';};
+const dRanged=u=>u.m?u.m.rng>2:!!RANGED[u.t];
+function dunMon(spec,x,z,E){const m=MON[spec.t];if(!m)return null;const u=dunUnit(1,spec.t,1,x,z,{enc:E,m,elite:!!spec.elite,boss:!!spec.boss,grp:spec.grp||0,gen:spec.gen||0,ent:spec.ent});
+  u.hp=u.hp0=m.hp*(u.elite?1.8:1)*(u.boss?3.2:1)*(u.gen?Math.pow(0.5,u.gen):1);u.fly=m.fly;u.home={x:u.x,z:u.z};
+  if(mHas(u,'ambush')||mHas(u,'mimic'))u.hidden=true;if(mHas(u,'burrow'))u.under=true;if(mHas(u,'dormant'))u.dormant=true;
+  if(spec.awake)u.wakeNow=true;E.us.push(u);dunDrawU(u);return u;}
+function dPoison(b,dps){if(!b)return;b.poison={t:3,dps:Math.max(b.poison&&b.poison.t>0?b.poison.dps:0,dps)};const x=b.x,z=b.z;if(DUN.fx)dunFx(x,1,z,{col:0x7fe860,s:0.5,life:0.4,vy:1});}
+function dWeb(b,t){if(!b)return;b.web=Math.max(b.web||0,t);if(DUN.fx)for(let i=0;i<5;i++)dunFx(b.x+R(-0.4,0.4),R(0.3,1.2),b.z+R(-0.4,0.4),{col:0xf0f0f0,s:0.35,life:0.9});}
+/* nearest thing this monster would fight */
+function monFoe(u,r){let best=null,bd=r;for(const v of DUN.us){if(v===u||v.st!=='alive'||!dFoe(u,v))continue;if(v.side===1&&!v.enc.awake)continue;const d=Math.hypot(v.x-u.x,v.z-u.z);if(d<bd&&dSame(u,v)){bd=d;best=v;}}
+  for(const g of DUN.allG){if(g.down)continue;const d=Math.hypot(g.x-u.x,g.z-u.z);if(d<bd&&dSame(u,g)){bd=d;best=g;}}return best;}
+function monReveal(u,why){u.hidden=false;u.dormant=false;u.enc.awake=true;const P=DUN.party[DUN.ai],mine=P&&dRoomOf(P.x,P.z)===dRoomOf(u.x,u.z);
+  if(u.ent!=null){DUN.st.open[u.ent]=1;const o=DUN.ents.find(o=>o.e.id===u.ent);if(o&&o.sp)o.sp.visible=false;if(mine)showBanner("It's a Mimic!",true);sfx('horn');}
+  else if(mine&&why!=='quiet')showBanner(mHas(u,'dormant')?'The '+u.m.n.toLowerCase()+' comes to life!':'Ambush!',true);
+  for(let i=0;i<8;i++)dunFx(u.x+R(-0.6,0.6),R(0.2,1.4),u.z+R(-0.6,0.6),{col:0xb0a890,s:0.6,life:0.6,vy:R(0.5,2),grow:1});}
+/* the per-monster step. Returns true when it fully handled the monster this frame (hidden, underground, ...) */
+function monPre(u,dt){const m=u.m,E=u.enc;if(u.wakeNow){u.wakeNow=false;E.awake=true;}
+  if(u.hidden||u.dormant){const f=monFoe(u,u.ent!=null?1.5:3.2);if(f&&f.side!==1)monReveal(u);else{dunDrawU(u);return true;}}
+  if(!E.awake)return false;
+  if(u.boss){if(!u.ph1&&u.hp<u.hp0*0.66){u.ph1=1;monPhase(u);}else if(!u.ph2&&u.hp<u.hp0*0.33){u.ph2=1;monPhase(u);}}
+  if(mHas(u,'burrow')){if(u.under){const f=monFoe(u,22);if(!f){dunDrawU(u);return true;}const d=Math.hypot(f.x-u.x,f.z-u.z),s=dSteer(u,f.x,f.z,false),sp=m.spd*1.3;dMove(u,s[0]*sp*dt,s[1]*sp*dt,0.26,false);
+      u.dirtT=(u.dirtT||0)-dt;if(u.dirtT<=0){u.dirtT=0.12;dunFx(u.x+R(-0.3,0.3),0.15,u.z+R(-0.3,0.3),{col:0x8a6a4a,s:0.7,life:0.5,vy:0.8});}
+      u.uT=(u.uT||0)-dt;if(d<1.0&&u.uT<=0){u.under=false;u.surf=4.5;monBlast(u,1.6,m.dmg*(u.boss?1.4:1),{p:3,l:7},0xb08a6a);const P=DUN.party[DUN.ai];if(P&&dRoomOf(P.x,P.z)===dRoomOf(u.x,u.z)){showBanner('The ground erupts!',true);}}dunDrawU(u);return true;}
+    u.surf-=dt;if(u.surf<=0){u.under=true;u.uT=3;for(let i=0;i<10;i++)dunFx(u.x+R(-0.8,0.8),0.3,u.z+R(-0.8,0.8),{col:0x8a6a4a,s:0.8,life:0.6,vy:1});}}
+  if(mHas(u,'summon')){u.sumT=(u.sumT??3)-dt;if(u.sumT<=0){u.sumT=m.sumCd||9;const mine=E.us.filter(v=>v.summoner===u&&v.st==='alive').length;if(mine<(u.boss?4:3)&&(u.nSum||0)<(u.boss?12:6)){u.nSum=(u.nSum||0)+2;const C=(DUN.corpses||[]).filter(c=>Math.hypot(c.x-u.x,c.z-u.z)<7);
+      for(let i=0;i<2;i++){const c=C.length?C.splice((Math.random()*C.length)|0,1)[0]:{x:u.x+R(-2,2),z:u.z+R(-2,2)};const v=dunMon({t:m.sum||'skeleton_warrior',awake:1},c.x,c.z,E);if(v){v.summoner=u;for(let k=0;k<8;k++)dunFx(c.x+R(-0.5,0.5),R(0,1.5),c.z+R(-0.5,0.5),{col:0xb070ff,s:0.6,life:0.7,vy:1.5});}}sfx('chant');}}}
+  if(mHas(u,'heal')){u.hlT=(u.hlT??4)-dt;if(u.hlT<=0){u.hlT=6;let best=null,bv=0.8;for(const v of E.us){if(v.st!=='alive'||Math.hypot(v.x-u.x,v.z-u.z)>7)continue;const k=v.hp/v.hp0;if(k<bv){bv=k;best=v;}}
+      if(best){best.hp=Math.min(best.hp0,best.hp+Math.min(best.hp0*(best.boss?0.05:0.2),25));for(let k=0;k<8;k++)dunFx(best.x+R(-0.4,0.4),R(0.2,1.4),best.z+R(-0.4,0.4),{col:0x80ff90,s:0.5,life:0.6,vy:1.2});}}}
+  if(mHas(u,'engulf')){u.enT=(u.enT??0.5)-dt;if(u.enT<=0){u.enT=0.5;let nE=0;for(const v of DUN.us){if(nE>=2)break;if(v===u||v.st!=='alive'||v.enc===E||Math.hypot(v.x-u.x,v.z-u.z)>1.1)continue;nE++;dunDmg(v,m.dmg*0.45*(u.elite?1.4:1),u,{x:u.x,z:u.z,p:1,l:1,dt:'acid'});dWeb(v,0.35);}
+      for(const g of DUN.allG)if(!g.down&&Math.hypot(g.x-u.x,g.z-u.z)<1.3){g.r.hp-=m.dmg*0.08;g.web=Math.max(g.web||0,0.35);g.hitBy=1;}}}
+  return false;}
+/* an area hit centred on a monster (eruptions, explosions, boss shockwaves). Hurts everyone except its own group */
+function monBlast(u,rad,dm,k,col){const x=u.x,z=u.z;for(const v of DUN.us){if(v===u||v.st!=='alive'||(v.enc===u.enc&&v.side===1))continue;const d=Math.hypot(v.x-x,v.z-z);if(d>rad)continue;dunDmg(v,dm*(1-0.4*d/rad),u,{x,z,p:k.p,l:k.l,dt:'blunt'});if(u.m.boom==='poison')dPoison(v,u.m.dmg*0.5);}
+  for(const g of DUN.allG)if(!g.down&&Math.hypot(g.x-x,g.z-z)<rad){g.r.hp-=dm*0.15;g.hitBy=1;if(u.m.boom==='poison')g.poison={t:3,dps:u.m.dmg*0.5};}
+  for(let i=0;i<18;i++){const a=R(0,6.28),v=R(3,8);dunFx(x,R(0.3,1),z,{col,s:R(0.5,1),life:R(0.3,0.6),vx:Math.cos(a)*v,vy:R(1,4),vz:Math.sin(a)*v,grow:1});}shake=Math.max(shake,0.35);sfx('boom');}
+function monPhase(u){const m=u.m,A=ECO[DUN.D.arch],P=DUN.party[DUN.ai];if(P&&dRoomOf(P.x,P.z)===dRoomOf(u.x,u.z))showBanner(m.n+' rages!',true);sfx('horn');
+  monBlast(u,3.2,m.dmg*0.5,{p:7,l:4},0xffa040);const pool=monPool(A.pri,DUN.fl||0).filter(x=>!x.boss&&x.role!=='brute');
+  for(let i=0;i<3&&pool.length;i++){const s=m.sum||pool[(Math.random()*pool.length)|0].id,v=dunMon({t:s,awake:1},u.x+R(-3,3),u.z+R(-3,3),u.enc);if(v){v.summoner=u;v.hidden=false;v.under=false;v.dormant=false;}}}
+/* death: bones that can rise again, splitting, exploding, loot. Returns true if the monster is not really gone yet */
+function monDie(u,src){const m=u.m;DUN.corpses=(DUN.corpses||[]).slice(-24);DUN.corpses.push({x:u.x,z:u.z,t:DUN.t});
+  if(!u.summoner&&(mHas(u,'reassemble')&&(u.rises||0)<3)||!u.summoner&&(mHas(u,'reanimate')&&!u.rises&&Math.random()<0.4)){u.st='bones';u.bonesHp=u.hp0*0.5;u.reT=mHas(u,'reassemble')?6:4;u.rises=(u.rises||0)+1;u.tgt=null;
+    for(let i=0;i<6;i++)dunDrop({x:u.x,y:0.8,z:u.z,vx:R(-2,2),vy:R(2,4),vz:R(-2,2),life:R(0.6,1),tex:T_CHIPS[4],w:0.25});dunDrawU(u);return true;}
+  if(mHas(u,'split')&&(u.gen||0)<2){for(let i=0;i<2;i++){const v=dunMon({t:u.t,gen:(u.gen||0)+1,awake:1},u.x+R(-0.8,0.8),u.z+R(-0.8,0.8),u.enc);if(v){v.hidden=false;}}}
+  if(mHas(u,'explode'))monBlast(u,2.2,m.dmg*(m.role==='swarm'?3:1.4),{p:5,l:5},m.boom==='poison'?0x7fe860:m.boom==='shards'?0xb0e8ff:0xff7a3a);
+  monLoot(u,src);
+  return false;}
+function monLoot(u,src){const m=u.m;if(src&&src.side===0&&!u.summoner){const [a,b]=m.loot.gold,mul=(u.elite?2:1)*(u.boss?12:1)*(u.gen?0.3:1),gl=Math.round((a+Math.random()*(b-a))*mul)+(u.ent!=null?(DUN.D.ents[u.ent].gold||0):0);
+    if(gl>0){DUN.gold+=gl;if(!DUN.sk)addGold(NET.me,gl);for(let i=0;i<4;i++)dunFx(u.x,0.6,u.z,{col:0xf0c055,s:0.3,life:0.7,vx:R(-1,1),vy:R(1,3),vz:R(-1,1)});}
+    if(!u.gen&&Math.random()<m.loot.p*(u.elite?2:1)*(u.boss?6:1)){DUN.found=(DUN.found||[]).concat(m.loot.drop);showBanner('Found: '+m.loot.drop+(gl?' and '+gl+' gold':''));}}
+  return false;}
+function monBonesBreak(u){monLoot(u,{side:0});u.st='dying';u.dieT=0.6;u.vx=u.vz=u.vy=0;u.y=0;for(let i=0;i<8;i++)dunDrop({x:u.x,y:0.4,z:u.z,vx:R(-3,3),vy:R(2,5),vz:R(-3,3),life:R(0.6,1),tex:T_CHIPS[4],w:0.28});sfx('clang');
+  const E=u.enc;if(E&&E.us.every(v=>v.st!=='alive'&&v.st!=='bones')){DUN.st.dead[E.en.id]=1;showBanner('The dead stay down');}}
+/* the bestiary page in the Dungeon Lab */
+function dlBestiary(){const fams=Object.keys(MFAM),rows=fams.map(f=>{const L=Object.values(MON).filter(m=>m.fam===f);return`<tr><th colspan="6">${MFAM[f].n} <small>(${L.filter(m=>m.playable).length}/${L.length} playable · lives in ${MFAM[f].hab.join(', ')})</small></th></tr>`+
+  L.map(m=>`<tr class="${m.playable?'ok':'pl'}"><td>${m.n}${m.boss?' <b title="boss">★</b>':''}${m.elite?' <span title="can be elite">◆</span>':''}${m.unique?' <span title="unique">U</span>':''}</td><td>T${m.tier} ${m.role}</td><td>${m.hp} hp · ${m.dmg} dmg</td><td>${m.beh.map(b=>MON_IMPL.has(b)?b:`<s title="not built yet">${b}</s>`).join(' ')}</td><td>floor ${m.minF+1}+</td><td>${m.playable?'playable':'planned'}</td></tr>`).join('');}).join('');
+  const n=Object.values(MON).filter(m=>m.playable).length;$('dlBest').innerHTML=`<p>${Object.keys(MON).length} monsters · ${n} playable (every behaviour built) · the rest are design entries the generator never spawns. Struck-through behaviours aren't built yet.</p>
+  <p>Ecosystems: ${Object.entries(ECO).map(([k,e])=>`<b>${DARCH[k].n}</b>: ${e.pri.map(f=>MFAM[f].n).join(' + ')} · then ${e.sec.map(f=>MFAM[f].n).join(', ')} · rarely ${e.rare.map(f=>MFAM[f].n).join(', ')} · boss ${e.boss.map(b=>MON[b].n).join(' or ')}`).join('<br>')}</p><table>${rows}</table>`;}
+
 /* ================= DUNGEONS · rival kingdom expeditions (Build 160) =================
    Rival nations send real campaign generals into the dungeon. Off-screen they advance a step each week (solving what their abilities allow,
    fighting guardians, taking treasure); when you are inside they are physically there and act in real time. Every change they make to the
@@ -4517,7 +4789,7 @@ function dunRivExit(){const R=DUN.R.riv,gold=R?R.gold||0:0;for(const x of DUN.rb
   if(R&&!DUN.sk)clog(`${NATIONS[R.nat].name}'s expedition leaves ${DUN.D.name}${gold?' with '+gold+' gold':''}.`);showBanner(NATIONS[DUN.rivNat].name+"'s expedition has left the dungeon");DUN.R.riv=null;}
 /* the rooms a side can walk to right now (shared gate state), with hop counts */
 function dunReachNow(from){const D=DUN.D,hop=new Map([[from,0]]),Q=[from];while(Q.length){const a=Q.shift();for(const e of D.edges){if(e.a!==a&&e.b!==a)continue;const b=e.a===a?e.b:e.a;if(hop.has(b))continue;const g=e.gate!=null?D.gates[e.gate]:null;if(g&&!DUN.st.solved[g.id])continue;hop.set(b,hop.get(a)+1);Q.push(b);}}return hop;}
-const dMenOf=gs=>gs.reduce((a,g)=>a+(g.down?0:dunSurvivors(g)),0),dLive=(side,x,z,r)=>DUN.us.some(u=>u.side!==side&&u.st==='alive'&&(u.side!==1||u.enc.awake)&&Math.hypot(u.x-x,u.z-z)<r&&dSame(u,{x,z}));
+const dMenOf=gs=>gs.reduce((a,g)=>a+(g.down?0:dunSurvivors(g)),0),dLive=(side,x,z,r)=>DUN.us.some(u=>u.side!==side&&u.st==='alive'&&!u.hidden&&!u.under&&(u.side!==1||u.enc.awake)&&Math.hypot(u.x-x,u.z-z)<r&&dSame(u,{x,z}));
 /* weighted choice of what to do next. Aggression pulls toward fights and toward your party, opportunism toward treasure and toward a weakened
    party, caution toward retreat; nothing is scripted to a personality type */
 function dunRivPlan(L,ps){const D=DUN.D,ld=L[0],A=DUN.rai,st=DUN.st,men=dMenOf(L),bring=L.reduce((a,g)=>a+g.bring,0),hop=dunReachNow(A.room),C=[];
@@ -4525,7 +4797,7 @@ function dunRivPlan(L,ps){const D=DUN.D,ld=L[0],A=DUN.rai,st=DUN.st,men=dMenOf(L
   {const dn=D.ents.find(e=>e.k==='down');if(dn&&hop.has(dn.room))C.push({s:1.1-0.25*hop.get(dn.room),k:'descend',x:dwx(dn.x),z:dwz(dn.y)});}
   if(men<bring*(0.35-0.15*ps.A))return Object.assign(leave,{why:'losses'});
   const tags=new Set();for(const g of L){(SPELL_TAGS[g.r.d.spell]||[]).forEach(t=>tags.add(t));}for(const u of DUN.us)if(u.side===2&&u.st==='alive')TROOP_TAGS[u.t].forEach(t=>tags.add(t));
-  const guard=id=>D.encs.filter(en=>en.room===id&&!st.dead[en.id]&&en.rt).reduce((a,en)=>a+en.rt.us.filter(u=>u.st==='alive').reduce((b,u)=>b+dmen(u),0),0);
+  const guard=id=>D.encs.filter(en=>en.room===id&&!st.dead[en.id]&&en.rt).reduce((a,en)=>a+en.rt.us.filter(u=>u.st==='alive').reduce((b,u)=>b+(u.m?u.m.pow:dmen(u)),0),0);
   for(const [id,h] of hop){const n=D.nodes[id],gm=guard(id),pen=-0.25*h;let base=0;if(!DUN.rseen.has(id))base+=2;
     if(gm){const r=men/Math.max(1,gm);if(r>1.2)C.push({s:0.8*(1+ps.A)+pen+(DUN.rseen.has(id)?0:1),k:'room',x:dwx(n.tx),z:dwz(n.ty),room:id});else continue;}
     else if(base)C.push({s:base+pen,k:'room',x:dwx(n.tx),z:dwz(n.ty),room:id});
@@ -4583,7 +4855,7 @@ function dunRivWeek(rec,D0){const R=rec.riv,FL=R.floor||0,D=D0.floors?D0.floors[
       if(!ok&&acts<3){if(g.k==='lock'&&R.keys>0){R.keys--;ok=true;}else if(g.k==='plates')ok=true;else if(GATES[g.k].any&&GATES[g.k].any.some(t=>tags.has(t)))ok=true;if(ok){st.solved[g.id]=1;acts++;}}
       if(ok){Rr.add(a?e.b:e.a);ch=true;}}}return Rr;};
   let Rr=reach();for(const e of D.ents)if(e.k==='key'&&!st.open[e.id]&&Rr.has(e.room)){st.open[e.id]=1;R.keys++;Rr=reach();}
-  for(const en of D.encs){if(st.dead[en.id]||!Rr.has(en.room))continue;const th=en.units.reduce((a,u)=>a+u.men,0),ratio=men()/Math.max(1,th);if(ratio<1&&ps.A<0.3)continue;
+  for(const en of D.encs){if(st.dead[en.id]||!Rr.has(en.room))continue;const th=en.units.reduce((a,u)=>a+(u.pw||u.men),0),ratio=men()/Math.max(1,th);if(ratio<1&&ps.A<0.3)continue;
     fought=true;if(ratio>=1){st.dead[en.id]=1;lose(th*0.45/ratio);R.room=en.room;}else{lose(men()*0.35);R.ret=1;}break;}
   const guarded=id=>D.encs.some(en=>en.room===id&&!st.dead[en.id]);
   for(const e of D.ents)if(e.k==='chest'&&!st.open[e.id]&&Rr.has(e.room)&&!guarded(e.room)){st.open[e.id]=1;addGold(R.nat,e.gold||20);R.gold+=e.gold||20;R.room=e.room;}
@@ -4632,7 +4904,8 @@ function dlShow(){const D0=dunGen(DLAB.seed,{arch:DLAB.arch,floors:DLAB.floors||
     <p>This floor: danger ${D.diff} · ${D.nodes.length} rooms · ${D.encs.length} fights · required ${D.req.length?D.req.map(t=>DTAGN[t]).join(', '):'none'} · optional ${D.opt.length?D.opt.map(t=>DTAGN[t]).join(', '):'none'}</p><p>Gates: ${D.gates.map(g=>GATES[g.k].n+(D.nodes[g.near].main&&D.nodes[g.far].main?' (main)':' (side)')).join(', ')}</p>
     <p>Layout hash ${D0.hash} · built on try ${D.attempt+1}${D.polish?' · polish: '+D.polish.join(', '):''}${was?` · <b class="${was==='approved'?'ok':'no'}">${was}</b>`:''}</p>
     <ul>${D.checks.map(c=>`<li class="${c.ok?'ok':'no'}">${c.ok?'✓':'✗'} ${c.n}${c.d?' <small>'+c.d+'</small>':''}</li>`).join('')}</ul>
-    <p class="dlkey"><i style="background:#f0c055"></i>chest <i style="background:#ffe39a"></i>key <i style="background:#fff"></i>exit / stairs <i style="background:#c07aff"></i>altar <i style="background:#9a90aa"></i>plate <i style="background:#a07a4a"></i>clue <i style="background:#ff5a3a"></i>lever <i style="background:#ff7a5a;border-radius:50%"></i>fight (troops)</p>`;
+    <p class="dlkey"><i style="background:#f0c055"></i>chest <i style="background:#ffe39a"></i>key <i style="background:#fff"></i>exit / stairs <i style="background:#c07aff"></i>altar <i style="background:#9a90aa"></i>plate <i style="background:#a07a4a"></i>clue <i style="background:#ff5a3a"></i>lever <i style="background:#ff7a5a;border-radius:50%"></i>fight (monsters)</p>`;
+  {const EN={boss:'boss',guard:'guards',patrol:'patrol',conflict:'two families fighting',ambient:'wildlife',mimic:'mimic'};$('dlInfo').insertAdjacentHTML('beforeend','<p><b>Encounters on this floor</b> ('+DARCH[D.arch].n+': '+ECO[D.arch].pri.map(f=>MFAM[f].n).join(', ')+' mostly)</p><ul>'+D.encs.map(c=>{const C={};c.units.forEach(u=>{const n=(MON[u.t]||{n:u.t}).n+(u.elite?' (elite)':'');C[n]=(C[n]||0)+1;});return'<li>'+(EN[c.type]||c.type)+' · '+Object.entries(C).map(([n,k])=>k>1?k+'× '+n:n).join(', ')+'</li>';}).join('')+'</ul>');}
   $('dlInfo').querySelectorAll('[data-fl]').forEach(b=>b.addEventListener('click',()=>{DLAB.fl=+b.dataset.fl;dlShow();}));
   dlList();}
 function dlVerdict(ok){const D=DLAB.D;if(!D)return;const V=dlLoad(),rec={seed:D.seed,arch:DLAB.arch||D.arch,floors:DLAB.floors||0,depth:D.nfl||1,hash:D.hash,rooms:(D.floors||[D]).reduce((a,f)=>a+f.nodes.length,0),req:D.reqAll||D.req,note:$('dlNote').value.trim()};
@@ -4644,7 +4917,7 @@ function dlList(){const V=dlLoad();let t=null;try{t=JSON.parse(localStorage.getI
     V.ok.map(a=>`<span class="ok">✓ ${a.seed}${a.note?' “'+a.note+'”':''}</span>`).join(' ')+' '+V.no.map(a=>`<span class="no">✗ ${a.seed}${a.note?' “'+a.note+'”':''}</span>`).join(' ');
   $('dlOut').value=dlExport();const u=$('dlUntest');if(u)u.onclick=()=>{try{localStorage.removeItem('de4-dun-test');}catch(e){}dlList();};}
 function dlOpen(){$('dunlab').hidden=false;if(!DLAB.D){DLAB.seed=1+Math.floor(Math.random()*99999);}dlShow();}
-$('dlBtn').addEventListener('click',dlOpen);$('dlClose').addEventListener('click',()=>{$('dunlab').hidden=true;});
+$('dlBtn').addEventListener('click',dlOpen);$('dlClose').addEventListener('click',()=>{$('dunlab').hidden=true;});$('dlBestBtn').addEventListener('click',()=>{const B=$('dlBest');B.hidden=!B.hidden;if(!B.hidden)dlBestiary();});
 $('dlPrev').addEventListener('click',()=>{DLAB.seed=Math.max(1,DLAB.seed-1);dlShow();});$('dlNext').addEventListener('click',()=>{DLAB.seed++;dlShow();});
 $('dlRand').addEventListener('click',()=>{DLAB.seed=1+Math.floor(Math.random()*999999);dlShow();});$('dlSeed').addEventListener('change',e=>{DLAB.seed=Math.max(1,parseInt(e.target.value,10)||1);dlShow();});
 $('dlArch').addEventListener('change',e=>{DLAB.arch=e.target.value;dlShow();});$('dlFloors').addEventListener('change',e=>{DLAB.floors=+e.target.value;DLAB.fl=0;dlShow();});
