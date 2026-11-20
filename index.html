@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 175';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 176';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4075,7 +4075,7 @@ function dunBuildScene(){const D=DUN.D,A=DARCH[D.arch],T=DUN.T;while(dunG.childr
   DUN.gates=D.gates.map(g=>dunGateMesh(g));if(!DUN.fl)dunDoorBuild();else DUN.door=null;
   /* darkness, Castle of the Winds style: each room (with its walls) and each corridor is covered by a black block until you have been in it;
      a corridor shows as soon as you've been in either room it joins, so you can see the doors leading out */
-  DUN.shroud=[];{const blk=new THREE.MeshBasicMaterial({color:0x050408}),mk=(i0,j0,i1,j1,nodes)=>{if(i1<i0||j1<j0)return;const w=(i1-i0+1)*DT,d=(j1-j0+1)*DT,m=new THREE.Mesh(new THREE.BoxGeometry(w,3.7,d),blk);m.position.set((i0+i1+1)/2*DT-DGW/2*DT,1.85,(j0+j1+1)/2*DT-DGH/2*DT);m.renderOrder=2;dunG.add(m);DUN.shroud.push({m,nodes,r:[i0,j0,i1,j1]});};
+  DUN.shroud=[];{const blk=new THREE.MeshBasicMaterial({color:0x050408}),mk=(i0,j0,i1,j1,nodes)=>{if(i1<i0||j1<j0)return;/* Build 176: no black blocks in the scene any more; the room and corridor outlines are kept only so the map can show what you've explored */DUN.shroud.push({m:{visible:true},nodes,r:[i0,j0,i1,j1]});};
     for(const n of D.nodes)mk(n.tx-n.hw-1,n.ty-n.hh-1,n.tx+n.hw+1,n.ty+n.hh+1,[n.id]);
     for(const e of D.edges){const a=D.nodes[e.a],b=D.nodes[e.b];if(e.h){const L0=a.tx<b.tx?a:b,R0=L0===a?b:a;mk(L0.tx+L0.hw+2,L0.ty-2,R0.tx-R0.hw-2,L0.ty+2,[e.a,e.b]);}else{const U=a.ty<b.ty?a:b,B=U===a?b:a;mk(U.tx-2,U.ty+U.hh+2,U.tx+2,B.ty-B.hh-2,[e.a,e.b]);}}}
   DUN.st.seen=DUN.st.seen||{};DUN.st.seen[0]=1;dunShroud();
@@ -4428,7 +4428,7 @@ function dunSendSquad(x,z){const ag=dAct();if(!dPass(x,z,false)){[x,z]=dSnap(x,z
 function dunRetreat(){if(DUN.sel){DUN.swap?dunSelClose():dunSelLeave();return;}dunSwapOpen();}
 function dunCastAim(){const g=dAct();if(!g||g.down)return;if(g.scd>0){showBanner(SPELL[g.r.d.spell]+' recharging');return;}let a=null;if(xrActive&&DUN.aim.valid)a=DUN.aim;else if(!xrActive&&DUN.mouse&&!PHONE)a=DUN.mouse;
   if(PHONE&&!xrActive&&!a){DUN.castMode=!DUN.castMode;DUN.sendMode=false;showBanner(DUN.castMode?'Tap where the spell should land':'Spell cancelled');dunHud();return;}
-  if(a){const dx=a.x-g.x,dz=a.z-g.z,L=Math.hypot(dx,dz),m=14;a=L>m?{x:g.x+dx/L*m,z:g.z+dz/L*m}:{x:a.x,z:a.z};if(!dunLit(a.x,a.z)){showBanner("You can't see into that room");sfx('blip',200);return;}}dunCast(g,a||undefined);}
+  if(a){const dx=a.x-g.x,dz=a.z-g.z,L=Math.hypot(dx,dz),m=14;a=L>m?{x:g.x+dx/L*m,z:g.z+dz/L*m}:{x:a.x,z:a.z};}dunCast(g,a||undefined);}
 function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,me=g.side===0,foe=v=>v.side!==g.side&&v.st==='alive';if(g.scd>0){if(me)showBanner(SPELL[sp]+' recharging');return;}
   const tags=SPELL_TAGS[sp]||[],pw=30+(g.r.lvl||1)*8.5;let tg=aimAt||null,bd=11;if(!tg)for(const v of DUN.us){if(!foe(v)||(v.side===1&&!v.enc.awake&&!me))continue;const d=Math.hypot(v.x-g.x,v.z-g.z);if(d<bd){bd=d;tg={x:v.x,z:v.z};}}
   if(!tg){bd=11;for(const G of DUN.gates){if(DUN.st.solved[G.g.id]||!GATES[G.g.k].any||!GATES[G.g.k].any.some(t=>tags.includes(t)))continue;const d=Math.hypot(G.x-g.x,G.z-g.z);if(d<bd){bd=d;tg={x:G.x,z:G.z};}}}
