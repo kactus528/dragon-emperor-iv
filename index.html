@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 169';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 170';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4072,7 +4072,8 @@ function dunBuildScene(){const D=DUN.D,A=DARCH[D.arch],T=DUN.T;while(dunG.childr
 /* the way in and out: a great door set into a wall of the entrance hall (a wall with no corridor behind it, north first so it faces you).
    Every general comes in through it, and walking up to it offers to send the general out and someone else in, or to leave */
 function dunDoorBuild(){const D=DUN.D,E=D.nodes[0],T=DUN.T,at=(x,y)=>x<0||y<0||x>=DGW||y>=DGH?0:T[y*DGW+x];let pick=null;
-  for(const [dx,dy] of[[0,-1],[-1,0],[1,0],[0,1]]){let x=E.tx,y=E.ty;while(at(x+dx,y+dy))(x+=dx,y+=dy);if(at(x,y)!==1)continue;if(!at(x+dx,y+dy)&&!at(x+dx*2,y+dy*2)){pick={x,y,dx,dy};break;}}
+  /* only the entrance hall's own walls: the door must never end up past a gate */
+  for(const [dx,dy] of[[0,-1],[-1,0],[1,0],[0,1]]){const x=E.tx+dx*E.hw,y=E.ty+dy*E.hh;if(at(x,y)!==1)continue;if(!at(x+dx,y+dy)&&!at(x+dx*2,y+dy*2)){pick={x,y,dx,dy};break;}}
   if(!pick)pick={x:E.tx,y:E.ty-E.hh,dx:0,dy:-1};
   const sx=dwx(pick.x),sz=dwz(pick.y),wx=sx+pick.dx*DT*0.5,wz=sz+pick.dy*DT*0.5;DUN.door={x:sx-pick.dx*DT*0.6,z:sz-pick.dy*DT*0.6,wx,wz,arm:false};
   const grp=new THREE.Group(),rot=Math.atan2(-pick.dx,-pick.dy),B=(w,h,d,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color:c}));m.position.set(x,y,z);grp.add(m);return m;};
@@ -4321,7 +4322,8 @@ function dunNearest(){const ag=dAct();let best=null,bd=2.3;
   for(const G of DUN.gates){const g=G.g;if(DUN.st.solved[g.id])continue;const d=Math.hypot(G.x-ag.x,G.z-ag.z)-0.9;if(d<bd+0.6){bd=d;best={G};}}return best;}
 /* A: use the thing you're standing at (or pointing at, if it's within reach); otherwise point at the floor to send your squad there */
 function dunAct(){if(!DUN)return;const ag=dAct();if(ag.down)return;let n=dunNearest();
-  if(xrActive&&DUN.aim.valid){const A=DUN.aim,pos=n&&(n.o||n.G),onIt=pos&&Math.hypot(A.x-pos.x,A.z-pos.z)<2;
+  if(xrActive&&DUN.aim.valid&&DUN.aim.gate&&Math.hypot(DUN.aim.gate.x-ag.x,DUN.aim.gate.z-ag.z)<16)n={G:DUN.aim.gate};
+  else if(xrActive&&DUN.aim.valid){const A=DUN.aim,pos=n&&(n.o||n.G),onIt=pos&&Math.hypot(A.x-pos.x,A.z-pos.z)<2;
     if(!onIt){let best=null,bd=2;for(const o of DUN.ents){const e=o.e;if(e.deco||e.k==='plate'||((e.k==='key'||e.k==='chest')&&DUN.st.open[e.id]))continue;const d=Math.hypot(o.x-A.x,o.z-A.z);if(d<bd&&Math.hypot(o.x-ag.x,o.z-ag.z)<8){bd=d;best={o};}}
       for(const G of DUN.gates){if(DUN.st.solved[G.g.id])continue;const d=Math.hypot(G.x-A.x,G.z-A.z);if(d<bd&&Math.hypot(G.x-ag.x,G.z-ag.z)<9){bd=d;best={G};}}
       if(best&&(best.G||best.o.e.k==='sign'))n=best;else if(Math.hypot(A.x-ag.x,A.z-ag.z)>2.5){dunSendSquad(A.x,A.z);return;}}}
@@ -4390,7 +4392,9 @@ vrAim=(f=>now=>{let rc=null;for(const c of ctrls)if((c.userData.hand||'right')==
   if(state==='dungeon'&&DUN){for(const c of ctrls)c.userData.laser.visible=false;hoverRing.visible=false;reticle.visible=false;aim.valid=false;DUN.aim.valid=false;DUN.aimR.visible=false;if(!rc)return;
     world.updateMatrixWorld(true);rc.updateMatrixWorld(true);const o=new THREE.Vector3().setFromMatrixPosition(rc.matrixWorld),d=new THREE.Vector3(0,0,-1).transformDirection(rc.matrixWorld),L=rc.userData.laser;L.visible=true;L.scale.z=3;L.material.color.set(0x7fe8c8);
     if(DUN.sel&&DUN.selB&&DUN.selB.visible){ray.set(o,d);const h=ray.intersectObject(DUN.selB,false)[0];let hv=-1;if(h&&h.uv){L.scale.z=h.distance;const py=(1-h.uv.y)*640;if(py>640-76&&py<640-20)hv=DUN.swap&&h.uv.x>0.5?101:100;else{const i=Math.floor((py-100)/66);if(i>=0&&i<Math.min(6,DUN.bench.length))hv=i;}}if(hv!==DUN.selHover){DUN.selHover=hv;DUN.selHash='';}L.material.color.set(hv>=0?0xf0c055:0xd8d0e8);return;}
-    const lo=dunG.worldToLocal(o.clone()),ld=dunG.worldToLocal(o.clone().add(d)).sub(lo).normalize();if(ld.y<-1e-3){const t=-lo.y/ld.y,x=lo.x+ld.x*t,z=lo.z+ld.z*t;if(dPass(x,z,false)){DUN.aim={valid:true,x,z};DUN.aimR.visible=true;DUN.aimR.position.set(x,0.05,z);L.scale.z=t*dunG.getWorldScale(_fv).x;}}return;}
+    const lo=dunG.worldToLocal(o.clone()),ld=dunG.worldToLocal(o.clone().add(d)).sub(lo).normalize();if(ld.y<-1e-3){const t=-lo.y/ld.y,x=lo.x+ld.x*t,z=lo.z+ld.z*t;L.scale.z=t*dunG.getWorldScale(_fv).x;
+      /* pointing at (or at the foot of) a closed gate targets the gate itself */let gt=null,gd=2.4;for(const G of DUN.gates){if(DUN.st.solved[G.g.id])continue;const d=Math.hypot(G.x-x,G.z-z);if(d<gd){gd=d;gt=G;}}
+      if(gt){DUN.aim={valid:true,x:gt.x,z:gt.z,gate:gt};L.material.color.set(0xf0c055);}else if(dPass(x,z,false)){DUN.aim={valid:true,x,z};DUN.aimR.visible=true;DUN.aimR.position.set(x,0.05,z);}}return;}
   return f(now);})(vrAim);
 /* ---------- HUD ---------- */
 function dunHud(force){if(!DUN)return;const ag=dAct(),n=dunNearest(),P=DUN.party;let hint='';
