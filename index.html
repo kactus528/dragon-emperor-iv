@@ -695,7 +695,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 167';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 168';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4337,10 +4337,18 @@ function dunCast(g,aimAt){g=g||dAct();if(!g||g.down)return;const sp=g.r.d.spell,
   if(sp==='starfall'){/* one great star and two smaller ones around it */const hits=[[0,0,430,1,3.4,1.8],[R(-2,2),R(-2,2),650,0.45,2.2,1],[R(-2,2),R(-2,2),850,0.45,2.2,1]];for(const [ox,oz,ms,k,rad,sz] of hits){const hx=tg.x+ox,hz=tg.z+oz;dunFx(hx-3*ms/430,9,hz-2*ms/430,{col:0xff7a3a,s:1.4*sz,life:ms/1000,vx:6.6*430/ms,vy:-19*430/ms,vz:4.4*430/ms});
     setTimeout(()=>{if(!DUN)return;burst(hx,hz,0xff8a3a,Math.round(26*sz),rad*0.75);burst(hx,hz,0xfff2b0,Math.round(8*sz),rad*0.35);area(hx,hz,rad,pw*k);shake=Math.max(shake,0.5*sz);sfx('boom');if(xrActive)buzz(0.6*sz,90);},ms);}}
   else if(sp==='ashrain'){for(let k=0;k<4;k++)setTimeout(()=>{if(!DUN)return;burst(tg.x,tg.z,0xff6a2a,10,3);area(tg.x,tg.z,3.5,pw*0.35);},k*450);}
-  else if(sp==='breath'){const dx=tg.x-g.x,dz=tg.z-g.z,L=Math.hypot(dx,dz)||1;for(let s=1;s<=7;s++){const x=g.x+dx/L*s,z=g.z+dz/L*s;burst(x,z,0xff9a3a,3,0.3+s*0.12);area(x,z,0.6+s*0.15,pw*0.22);}}
-  else if(sp==='volley'){for(let i=0;i<14;i++)dunFx(tg.x+R(-3,3),6,tg.z+R(-3,3),{col:0xfff2b0,s:0.3,life:0.35,vy:-16});setTimeout(()=>{if(DUN)area(tg.x,tg.z,3,pw*0.8);},350);}
-  else if(sp==='thunder'){const dx=tg.x-g.x,dz=tg.z-g.z,L=Math.hypot(dx,dz)||1;for(let s=0;s<=L;s+=0.6)dunFx(g.x+dx/L*s,1+R(-0.2,0.2),g.z+dz/L*s,{col:0xbfe8ff,s:0.6,life:0.35});
-    for(const v of DUN.us){if(!foe(v))continue;const t=clamp(((v.x-g.x)*dx+(v.z-g.z)*dz)/(L*L),0,1),px=g.x+dx*t,pz=g.z+dz*t;if(Math.hypot(v.x-px,v.z-pz)<1.1)dunDmg(v,pw*1.1,g);}area(tg.x,tg.z,1.2,0);}
+  else if(sp==='breath'){/* a real cone: everything within 9 units and about 35 degrees of the aim burns */const dx=tg.x-g.x,dz=tg.z-g.z,L=Math.hypot(dx,dz)||1,ux=dx/L,uz=dz/L;
+    for(let s2=1;s2<=11;s2++){const w=0.25+s2*0.42;for(let j=0;j<3;j++){const px=-uz,pz=ux,o=R(-w,w);dunFx(g.x+ux*s2+px*o,R(0.3,1.4),g.z+uz*s2+pz*o,{col:j?0xff9a3a:0xffe39a,s:R(0.6,1.1),life:R(0.3,0.6),vy:R(0.5,1.5),vx:ux*3,vz:uz*3,grow:1});}}
+    for(const v of DUN.us){if(!foe(v))continue;const ex=v.x-g.x,ez=v.z-g.z,d=Math.hypot(ex,ez);if(d>11||d<0.01)continue;if((ex*ux+ez*uz)/d<0.74)continue;dunDmg(v,pw*1.35*(1-d/20),g);const k=0.6;dMove(v,ex/d*k,ez/d*k,0.26,v.fly);}
+    for(const o of DUN.allG)if(o.side!==g.side&&!o.down){const ex=o.x-g.x,ez=o.z-g.z,d=Math.hypot(ex,ez);if(d<11&&d>0.01&&(ex*ux+ez*uz)/d>0.74){o.r.hp-=pw*0.12;o.hitBy=g.side;}}
+    for(let s2=2;s2<=8;s2+=2)area(g.x+ux*s2,g.z+uz*s2,1.4,0);}
+  else if(sp==='volley'){for(const [ms,k] of[[0,1],[380,0.55]]){for(let i=0;i<16;i++)setTimeout(()=>{if(DUN)dunFx(tg.x+R(-3.4,3.4),7,tg.z+R(-3.4,3.4),{col:0xfff2b0,s:0.32,life:0.38,vy:-18});},ms);setTimeout(()=>{if(!DUN)return;area(tg.x,tg.z,3.6,pw*k);for(let i=0;i<10;i++)dunFx(tg.x+R(-3,3),0.3,tg.z+R(-3,3),{col:0xd8c8a8,s:0.4,life:0.4,vy:1});sfx('arrow');},ms+350);}}
+  else if(sp==='thunder'){/* a lance of lightning through everything in line (12 units), then arcs to the three nearest enemies around the end */const dx=tg.x-g.x,dz=tg.z-g.z,L0=Math.hypot(dx,dz)||1,ux=dx/L0,uz=dz/L0,L=Math.max(L0,12);
+    for(let s2=0;s2<=L;s2+=0.5)dunFx(g.x+ux*s2+R(-0.15,0.15),1+R(-0.25,0.25),g.z+uz*s2+R(-0.15,0.15),{col:s2%1?0xffffff:0xbfe8ff,s:0.7,life:0.4});
+    for(const v of DUN.us){if(!foe(v))continue;const t=clamp((v.x-g.x)*ux+(v.z-g.z)*uz,0,L),px=g.x+ux*t,pz=g.z+uz*t;if(Math.hypot(v.x-px,v.z-pz)<1.6)dunDmg(v,pw*1.15,g);}
+    const near=DUN.us.filter(v=>foe(v)&&Math.hypot(v.x-tg.x,v.z-tg.z)<6).sort((a,b)=>Math.hypot(a.x-tg.x,a.z-tg.z)-Math.hypot(b.x-tg.x,b.z-tg.z)).slice(0,3);
+    near.forEach((v,i)=>setTimeout(()=>{if(!DUN||v.st!=='alive')return;for(let k=0;k<=6;k++)dunFx(tg.x+(v.x-tg.x)*k/6+R(-0.2,0.2),1.2,tg.z+(v.z-tg.z)*k/6+R(-0.2,0.2),{col:0xbfe8ff,s:0.5,life:0.3});dunDmg(v,pw*0.6,g);sfx('zap');},150+i*120));
+    for(const o of DUN.allG)if(o.side!==g.side&&!o.down){const t=clamp((o.x-g.x)*ux+(o.z-g.z)*uz,0,L);if(Math.hypot(o.x-(g.x+ux*t),o.z-(g.z+uz*t))<1.6){o.r.hp-=pw*0.15;o.hitBy=g.side;}}area(tg.x,tg.z,1.2,0);}
   else if(sp==='mend'){for(const p of DUN.allG)if(p.side===g.side&&!p.down&&Math.hypot(p.x-g.x,p.z-g.z)<9){p.r.hp=Math.min(p.r.d.hp,p.r.hp+p.r.d.hp*0.3);burst(p.x,p.z,0x9fffc0,8,0.8);}area(tg.x,tg.z,3,0);}
   else if(sp==='eclipse'){burst(tg.x,tg.z,0x8a5aff,22,3);for(const v of DUN.us)if(foe(v)&&Math.hypot(v.x-tg.x,v.z-tg.z)<4)v.cd+=3;area(tg.x,tg.z,4,pw*0.6);}
   else area(tg.x,tg.z,3,pw);}
