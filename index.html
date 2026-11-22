@@ -613,7 +613,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 <div id="dunlab" hidden><div class="dlwrap">
   <div class="dlhead"><b>Dungeon Lab</b><span>Every map here is built by the generator from its seed. Approve the ones worth keeping, then copy the export and paste it to Claude to build them in.</span><button id="dlBestBtn">Bestiary</button><button id="dlClose">Close</button></div>
   <div class="dlctl"><label>Seed <input id="dlSeed" type="number" min="1"></label><button id="dlPrev">◀</button><button id="dlNext">▶</button><button id="dlRand">Random</button>
-    <select id="dlArch"><option value="">Any archetype</option><option value="crypt">Ancient Crypt</option><option value="lair">Natural Cavern</option><option value="fort">Abandoned Fortress</option></select><select id="dlFloors"><option value="0">Floors: as the seed says</option><option value="1">1 floor</option><option value="2">2 floors</option><option value="3">3 floors</option></select></div>
+    <select id="dlArch"><option value="">Any archetype</option><option value="crypt">Ancient Crypt</option><option value="lair">Natural Cavern</option><option value="fort">Abandoned Fortress</option></select><select id="dlFloors"><option value="0">Floors: as the seed says</option><option value="1">1 floor</option><option value="2">2 floors</option><option value="3">3 floors</option><option value="4">4 floors</option><option value="5">5 floors</option><option value="6">6 floors</option><option value="7">7 floors</option><option value="8">8 floors</option><option value="9">9 floors</option><option value="10">10 floors</option></select></div>
   <div class="dlmain"><canvas id="dlCv"></canvas><div id="dlInfo"></div></div>
   <div id="dlBest" hidden></div>
   <div class="dlctl"><input id="dlNote" placeholder="Note for Claude (optional): what you liked or didn't"><button id="dlOk" class="start">✓ Approve</button><button id="dlNo">✗ Reject</button><button id="dlTest" title="The dungeon entrance on the war table will open this map">Use for test entrance</button><button id="dlPlayBtn" class="start">▶ Play this map</button></div>
@@ -697,7 +697,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 178';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 179';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -3915,7 +3915,7 @@ function dunEncounter(D,n,rng,o){const A=ECO[D.arch],ri=k=>Math.floor(rng()*k),w
   const fam=o.fam||(()=>{const r=rng();return r<0.6?A.pri[ri(A.pri.length)]:r<0.9||!(FL>=1||D.diff>=2)?A.sec[ri(A.sec.length)]:A.rare[ri(A.rare.length)];})();
   let pool=monPool([fam],FL),rf=fam;if(!pool.length){pool=monPool(A.pri,FL);rf=pool.length?pool[0].fam:fam;}const U=[],cap=o.cap||10;let left=o.budget;
   const sp=[wpick(pool)];if(pool.length>1&&rng()<0.6)sp.push(wpick(pool));/* one or two species per group, so groups read as a pack, not a zoo */
-  while(left>0&&U.length<cap){let m=sp[ri(sp.length)];if(m.role==='brute'&&U.filter(u=>MON[u.t].role==='brute').length>=2){m=sp.find(s=>s.role!=='brute');if(!m)break;}/* at most two big brutes per group */const el=m.elite&&rng()<0.12&&!U.some(u=>u.elite);U.push({t:m.id,men:1,pw:Math.round(m.pow*(el?1.8:1)),elite:el||undefined});left-=m.pow*(el?1.8:1);}
+  while(left>0&&U.length<cap){let m=sp[ri(sp.length)];if(m.role==='brute'&&U.filter(u=>MON[u.t].role==='brute').length>=2){m=sp.find(s=>s.role!=='brute');if(!m)break;}/* at most two big brutes per group */const el=m.elite&&rng()<Math.min(0.5,0.12+0.04*FL)&&U.filter(u=>u.elite).length<1+Math.floor(FL/3);/* deeper floors: more and more elites */U.push({t:m.id,men:1,pw:Math.round(m.pow*(el?1.8:1)),elite:el||undefined});left-=m.pow*(el?1.8:1);}
   return{U,fam:rf};}
 /* ---------- sprites: one small pixel body plan per kind of creature, coloured by the monster's palette. Frames 0-1 move, 2 attacks, 3 lies dead ---------- */
 const MPLAN={
@@ -3990,10 +3990,13 @@ const DTMPL={
   crypt:(s,hw,hh)=>{DTMPL.hall(s,hw,hh);for(let y=-hh+1;y<hh;y+=2)if(Math.abs(y)>1){s(-hw+1,y,0);s(hw-1,y,0);}},
   cave:(s,hw,hh,rng)=>{for(let y=-hh;y<=hh;y++)for(let x=-hw;x<=hw;x++){const edge=Math.abs(x)===hw||Math.abs(y)===hh,corner=Math.abs(x)>=hw-1&&Math.abs(y)>=hh-1;if(corner&&rng()<0.7)continue;if(edge&&rng()<0.35)continue;s(x,y,1);}}};
 const TMIN={pillars:3,crypt:3};
-/* a dungeon is 1-3 floors (the seed decides unless the Lab overrides it). Every floor is a full dungeon of its own, generated and validated by the
-   same pipeline; every floor but the last ends in a stairs room instead of the sanctum, and every floor below the first starts at the stairs up */
-const dunFloorsOf=seed=>1+Math.floor(dRng((seed^0x5f3759df)>>>0)()*3);
-function dunGen(seed,opt){opt=opt||{};seed=(seed>>>0)||1;const nf=Math.max(1,Math.min(3,opt.floors||dunFloorsOf(seed))),F=[];let arch=opt.arch;
+/* a dungeon is 1-10 floors (the seed decides unless the Lab overrides it). Every floor is a full dungeon of its own, generated and validated by the
+   same pipeline; every floor but the last ends in a stairs room instead of the sanctum, and every floor below the first starts at the stairs up.
+   Since Build 179 most dungeons are 3-6 floors deep and a few reach 9-10; dungeons from older saves and Lab approvals keep the depth they had */
+const DUN_MAXF=10,DUN_FLW=[4,9,14,15,14,12,10,9,7,6];
+const dunFloorsOld=seed=>1+Math.floor(dRng((seed^0x5f3759df)>>>0)()*3);
+const dunFloorsOf=seed=>{let r=dRng((seed^0x2c1b3c6d)>>>0)()*DUN_FLW.reduce((a,b)=>a+b,0);for(let i=0;i<DUN_FLW.length;i++){r-=DUN_FLW[i];if(r<0)return i+1;}return DUN_MAXF;};
+function dunGen(seed,opt){opt=opt||{};seed=(seed>>>0)||1;const nf=Math.max(1,Math.min(DUN_MAXF,opt.floors||dunFloorsOf(seed))),F=[];let arch=opt.arch;
   for(let f=0;f<nf;f++){let D=null;for(let a=0;a<60;a++){const t=dunTry(f?((seed+f*7919)>>>0):seed,a,Object.assign({},opt,{arch,floor:f,last:f===nf-1}));if(t&&t.valid){t.attempt=a;D=t;break;}}if(!D)return null;if(!f)arch=D.arch;F.push(D);}
   const D0=F[0];D0.seed=seed;D0.floors=F;D0.nfl=nf;F.forEach((f,i)=>{f.name=D0.name;f.floor=i;f.top=D0;});
   if(nf>1){let h=2166136261;for(const c of F.map(f=>f.hash).join(''))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;D0.hash=h.toString(16).padStart(8,'0');}
@@ -4139,11 +4142,11 @@ const dAs=t=>MON[t]?MON[t].as:t,dMult=(a,b)=>(MULT[dAs(a)]||{})[dAs(b)]??1;
    When every approved map is finished (or none are approved) it falls back to a fresh generated dungeon. */
 const dunRecKey=s=>s.seed+':'+(s.arch||'')+':'+(s.floors||0),dunDone=s=>{const r=CAMP.dungeons&&CAMP.dungeons[dunRecKey(s)];return!!(r&&dunLastSt(r).cleared);};
 function dunApprovedList(){const L=[],seen=new Set();let lab=[];try{lab=JSON.parse(localStorage.getItem('de4-dun-ok')||'{}').ok||[];}catch(e){}
-  for(const a of DUN_APPROVED.concat(lab)){if(!a||!a.seed)continue;const s={seed:a.seed,arch:a.arch||'',floors:a.floors||0},k=dunRecKey(s);if(!seen.has(k)){seen.add(k);L.push(s);}}return L;}
-function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||0};if(!dunDone(s))return s;}
+  for(const a of DUN_APPROVED.concat(lab)){if(!a||!a.seed)continue;const s={seed:a.seed,arch:a.arch||'',floors:a.floors||a.depth||0},k=dunRecKey(s);if(!seen.has(k)){seen.add(k);L.push(s);}}return L;}
+function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||t.depth||0};if(!dunDone(s))return s;}
   const A=dunApprovedList();if(A.length){CAMP.dunPick=CAMP.dunPick??0;for(let i=0;i<A.length;i++){const s=A[(CAMP.dunPick+i)%A.length];if(!dunDone(s)){CAMP.dunPick=(CAMP.dunPick+i)%A.length;return s;}}}
   for(let n=0;n<50;n++){if(!CAMP.dunSeed)CAMP.dunSeed=1+Math.floor(Math.random()*999999);const s={seed:CAMP.dunSeed,arch:'',floors:0};if(!dunDone(s))return s;CAMP.dunSeed=0;}return{seed:CAMP.dunSeed,arch:'',floors:0};}
-function dunRec(){const s=dunSeed(),k=dunRecKey(s);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177};const r=CAMP.dungeons[k];if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
+function dunRec(){const s=dunSeed(),k=dunRecKey(s);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177,fv:179};const r=CAMP.dungeons[k];if(!r.fv){r.fv=179;if(!r.floors&&r.bv)r.floors=dunFloorsOld(r.seed);/* made before deeper dungeons: keep its depth */}if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
 const dunCache={};function dunGet(seed,arch,floors){const k=seed+':'+(arch||'')+':'+(floors||0);if(!dunCache[k])dunCache[k]=dunGen(seed,{arch,floors:floors||0});return dunCache[k];}
 const dunFloorSt=()=>({open:{},solved:{},dead:{},keys:0,cleared:0,visits:0,seen:{}}),dunLastSt=R=>(R.fl&&R.fl[R.fl.length-1])||R.st;
 /* ---------- the entrance on the war table: beside your castle with the most troops ---------- */
@@ -4339,7 +4342,8 @@ function dunEnter(D,gs,c,rec0,o){o=o||{};const rec=rec0||dunRec();rec.st.visits+
   state='dungeon';kingdom.visible=false;battle.visible=false;dunG.visible=true;CAMP.sel=null;updateCampPanel();updateModeUI();$('dunHud').hidden=false;
   orbit.g=null;orbit.theta=0;orbit.phi=0.72;orbit.r=PHONE?26:30;orbit.tx=DUN.party[0].x;orbit.tz=DUN.party[0].z;
   if(xrActive){vrTw=null;vrSaved=null;vr.scale=0.024;vr.yaw=0;vr.pos.set(-DUN.party[0].x*0.024,0.82,-0.55-DUN.party[0].z*0.024);}
-  sfx('horn');showBanner(D.name);if(!DUN.sk)clog(`${gs.map(r=>r.d.short).join(', ')} go down into ${D.name}, ${gs[0].d.short} leading.`);if(DUN.riv.some(g=>!g.down))setTimeout(()=>{if(DUN)showBanner(NATIONS[DUN.rivNat].name+' is already down here',true);},2200);DE4LOG.info('dungeon enter seed '+D.seed+' '+D.hash);dunHud(true);}
+  sfx('horn');showBanner(D.name);if(!DUN.sk)clog(`${gs.map(r=>r.d.short).join(', ')} go down into ${D.name}, ${gs[0].d.short} leading.`);if(DUN.riv.some(g=>!g.down))setTimeout(()=>{if(DUN)showBanner(NATIONS[DUN.rivNat].name+' is already down here',true);},2200);DE4LOG.info('dungeon enter seed '+D.seed+' '+D.hash);dunHud(true);
+  if(!DUN.sk&&rec.deep>0&&(D.nfl||1)>1&&!dunLastSt(rec).cleared){const n=Math.min(rec.deep,D.nfl-1);dunFloor(n);setTimeout(()=>{if(DUN)showBanner('You know the way: straight down to depth '+(n+1)+'. The stairs up lead back.');},1500);}/* deep dungeons: start from the deepest floor you've reached */}
 /* one general is in the dungeon at a time; the others wait at the stairs. When he falls or withdraws you pick the next (or leave) and he takes
    over from the last safe spot his predecessor reached */
 function dunSpawnEncs(){const D=DUN.D;
@@ -4393,7 +4397,7 @@ function dunGenMake(r,side,x,z,bring,men,home){const g={r,side,home,bring,x,z,fa
 function dunUnit(side,t,men,x,z,o){[x,z]=dSnap(x,z);const u=Object.assign({side,pal:side===1?2:side===2?1:0,t,hp:men*ST(t).hp,men0:men,x,z,cd:Math.random(),tgt:null,tT:0,face:side?1:0,walk:Math.random()*3,st:'alive',task:null,fly:!!FLY[t],sp:null},o);
   const M=u.m?dunMMat(u,0,true):dunUMat(u.pal,t,0,side?1:0);u.sp=card(M.m,0.5,0.02,0.45);u.sp.scale.set(M.w,M.h,1);u.sp.position.set(x,0,z);dunG.add(u.sp);DUN.us.push(u);return u;}
 function dunSurvivors(g){return DUN.us.filter(u=>u.g===g&&u.st==='alive').reduce((a,u)=>a+dmen(u),0);}
-function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}const done=!!dunLastSt(DUN.R).cleared,oldK=dunRecKey(DUN.R);
+function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}DUN.R.deep=Math.max(DUN.R.deep||0,DUN.maxFl||0);const done=!!dunLastSt(DUN.R).cleared,oldK=dunRecKey(DUN.R);
   for(const g of DUN.party){const sv=g.out!=null?g.out:dunSurvivors(g);g.r.troops=g.home+sv;lost+=g.bring-sv;if(g.r.hp<=0)g.r.hp=1;L.push(g.r.d.short+' '+sv+'/'+g.bring);}
   for(const b of DUN.bench){const m=b.men??b.bring;b.r.troops=b.home+m;lost+=b.bring-m;L.push(b.r.d.short+' '+m+'/'+b.bring);}
   dunRivSave();
@@ -4539,7 +4543,7 @@ function dunKill(u,k){const dx=u.x-k.x,dz=u.z-k.z,d=Math.hypot(dx,dz)||1;u.vx=dx
 function dunHit(a,b){if(!b||(b.r&&b.down))return;if(a.st&&a.st!=='alive')return;
   if(b.st==='bones'){b.bonesHp-=(a.m?a.m.dmg:ST(a.t).dmg*Math.max(1,dmen(a))*0.35)*1.5;if(b.bonesHp<=0)monBonesBreak(b);return;}
   if(b.st&&b.st!=='alive')return;const bt=b.r?b.r.d.troop:b.t;let dm;
-  if(a.m){dm=a.m.dmg*(a.elite?1.4:1)*(a.boss?1.5:1)*(a.gen?0.6:1)*dMult(a.t,bt)*(a.chg>0?1.6:1);if(a.chg>0){a.chg=0;if(!b.r)dMove(b,(b.x-a.x)*0.8,(b.z-a.z)*0.8,0.26,b.fly);}
+  if(a.m){dm=a.m.dmg*(a.lvS||1)*(a.elite?1.4:1)*(a.boss?1.5:1)*(a.gen?0.6:1)*dMult(a.t,bt)*(a.chg>0?1.6:1);if(a.chg>0){a.chg=0;if(!b.r)dMove(b,(b.x-a.x)*0.8,(b.z-a.z)*0.8,0.26,b.fly);}
     if(mHas(a,'swoop'))a.swT=1.1;if(mHas(a,'poison')){if(b.r)b.poison={t:3,dps:a.m.dmg*0.4};else dPoison(b,a.m.dmg*0.4);}
     if(mHas(a,'web')&&dRanged(a)){if(b.r)b.web=Math.max(b.web||0,1.4);else dWeb(b,2);}}
   else dm=ST(a.t).dmg*dMult(a.t,bt)*Math.max(1,dmen(a))*0.35;
@@ -4722,7 +4726,7 @@ const dFoe=(u,v)=>{if(v.hidden||v.under)return false;if(u.side!==v.side){if(u.m&
   if(u.side!==1||!u.m||!v.m)return false;if(u.enc===v.enc&&(u.grp||0)===(v.grp||0))return false;return monRel(u.m.fam,v.m.fam)==='hostile';};
 const dRanged=u=>u.m?u.m.rng>2:!!RANGED[u.t];
 function dunMon(spec,x,z,E){const m=MON[spec.t];if(!m)return null;const u=dunUnit(1,spec.t,1,x,z,{enc:E,m,elite:!!spec.elite,boss:!!spec.boss,grp:spec.grp||0,gen:spec.gen||0,ent:spec.ent});
-  u.hp=u.hp0=m.hp*(u.elite?1.8:1)*(u.boss?3.2:1)*(u.gen?Math.pow(0.5,u.gen):1);u.fly=m.fly;u.home={x:u.x,z:u.z};
+  u.lvS=1+Math.min(0.6,0.06*Math.max(0,(DUN.fl||0)-2));u.hp=u.hp0=m.hp*(u.elite?1.8:1)*(u.boss?3.2:1)*u.lvS*(u.gen?Math.pow(0.5,u.gen):1);u.fly=m.fly;u.home={x:u.x,z:u.z};
   if(mHas(u,'ambush')||mHas(u,'mimic'))u.hidden=true;if(mHas(u,'burrow'))u.under=true;if(mHas(u,'dormant'))u.dormant=true;
   if(spec.awake)u.wakeNow=true;E.us.push(u);dunDrawU(u);return u;}
 function dPoison(b,dps){if(!b)return;b.poison={t:3,dps:Math.max(b.poison&&b.poison.t>0?b.poison.dps:0,dps)};const x=b.x,z=b.z;if(DUN.fx)dunFx(x,1,z,{col:0x7fe860,s:0.5,life:0.4,vy:1});}
@@ -4930,7 +4934,7 @@ $('dlPrev').addEventListener('click',()=>{DLAB.seed=Math.max(1,DLAB.seed-1);dlSh
 $('dlRand').addEventListener('click',()=>{DLAB.seed=1+Math.floor(Math.random()*999999);dlShow();});$('dlSeed').addEventListener('change',e=>{DLAB.seed=Math.max(1,parseInt(e.target.value,10)||1);dlShow();});
 $('dlArch').addEventListener('change',e=>{DLAB.arch=e.target.value;dlShow();});$('dlFloors').addEventListener('change',e=>{DLAB.floors=+e.target.value;DLAB.fl=0;dlShow();});
 $('dlOk').addEventListener('click',()=>dlVerdict(true));$('dlNo').addEventListener('click',()=>dlVerdict(false));
-$('dlTest').addEventListener('click',()=>{const D=DLAB.D;if(!D)return;try{localStorage.setItem('de4-dun-test',JSON.stringify({seed:D.seed,arch:DLAB.arch,floors:DLAB.floors||0}));}catch(e){}showBanner('Test entrance now opens seed '+D.seed);dlList();});
+$('dlTest').addEventListener('click',()=>{const D=DLAB.D;if(!D)return;try{localStorage.setItem('de4-dun-test',JSON.stringify({seed:D.seed,arch:DLAB.arch,floors:DLAB.floors||D.nfl||0}));}catch(e){}showBanner('Test entrance now opens seed '+D.seed);dlList();});
 $('dlCopy').addEventListener('click',()=>{const t=dlExport();const ta=$('dlOut');ta.value=t;ta.select();try{navigator.clipboard.writeText(t).then(()=>showBanner('Copied: paste it to Claude'),()=>{document.execCommand('copy');showBanner('Copied');});}catch(e){document.execCommand('copy');showBanner('Copied');}});
 $('dlDl').addEventListener('click',()=>{const b=new Blob([dlExport()],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='de4-dungeon-approvals.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
 $('dlClear').addEventListener('click',()=>{if(confirm('Clear every approval and rejection?')){dlSave({ok:[],no:[]});dlList();}});
@@ -4942,7 +4946,7 @@ $('dhSend').addEventListener('click',()=>{if(DUN){DUN.sendMode=!DUN.sendMode;dun
 /* Lab play mode */
 const DLP={pick:new Set(['kaelen','seren','brannoch'])};
 const dlpDefs=()=>GENDEFS.filter(d=>!d.boss);
-function dlpOpen(){const D=DLAB.D;if(!D)return;$('dlPlay').hidden=false;const tr=$('dlpTr');tr.max=Math.max(300,D.troopCap);if(!tr.dataset.set){tr.value=D.troopCap;tr.dataset.set=1;}$('dlpTrV').textContent=tr.value;dlpList();$('dlPlay').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function dlpOpen(){const D=DLAB.D;if(!D)return;$('dlPlay').hidden=false;{const S=$('dlpRivF'),v=S.value;S.innerHTML='<option value="-1">a random floor</option>'+Array.from({length:D.nfl||1},(_,i)=>`<option value="${i}">floor ${i+1}</option>`).join('');if([...S.options].some(o=>o.value===v))S.value=v;}const tr=$('dlpTr');tr.max=Math.max(300,D.troopCap);if(!tr.dataset.set){tr.value=D.troopCap;tr.dataset.set=1;}$('dlpTrV').textContent=tr.value;dlpList();$('dlPlay').scrollIntoView({behavior:'smooth',block:'nearest'});}
 function dlpList(){const D=DLAB.D;$('dlpCap').textContent=`This map is made for up to ${D.cap} general${D.cap>1?'s':''} with ${D.troopCap} troops each; here you can take up to 5 and any number.`;
   $('dlpGens').innerHTML=dlpDefs().map(d=>`<label class="dlg${DLP.pick.has(d.key)?' on':''}" style="border-color:${NATIONS[d.nat]?NATIONS[d.nat].col:'#6a5e86'}"><input type="checkbox" data-k="${d.key}" ${DLP.pick.has(d.key)?'checked':''}><img src="${portrait(d.key)}" alt=""><b>${d.short}</b><small>${TROOP[d.troop]} · ${SPELL[d.spell]}</small></label>`).join('');
   $('dlpGens').querySelectorAll('input').forEach(i=>i.addEventListener('change',e=>{const k=e.target.dataset.k;if(e.target.checked){if(DLP.pick.size>=5){e.target.checked=false;showBanner('Five generals at most');return;}DLP.pick.add(k);}else DLP.pick.delete(k);dlpList();}));

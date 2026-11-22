@@ -145,6 +145,11 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Deeper dungeons (Build 179):**
+  - **Depth:** dungeons can now be up to 10 floors deep. The seed decides: most are 3–6 floors, about one in six reaches 9 or 10, and a few are still 1–2. Every floor is built and validated like before. The Lab's Floors setting goes up to 10, and the Lab's rival-floor picker lists every floor.
+  - **Deeper means harder:** from depth 4 down, monsters gain about 6% health and damage per floor (up to +60%), and elites get more common, with more of them per group.
+  - **Starting deeper:** coming back to a dungeon puts you straight on the deepest floor you've reached before (until its sanctum is claimed). The stairs up still lead back to earlier floors.
+  - **Saves and approvals:** dungeons already in a save, and maps you approved in the Lab, keep the depth they had.
 - **Next dungeon, click to deselect (Build 178):**
   - **Next dungeon:** once a dungeon's sanctum has been claimed (by you, or plundered by a rival), the entrance on the war table moves on to the next approved map. It uses the maps built into the game, then the ones you approved in the Dungeon Lab, in order. A map pinned with "Test on war map" is used until it's finished, then the approved list takes over. When every approved map is finished, the entrance falls back to freshly generated (still validated) dungeons. Coming back from a finished dungeon tells you where the entrance leads now.
   - **Deselect:** clicking or pulling the trigger on the castle (or army) you already have selected deselects it.
