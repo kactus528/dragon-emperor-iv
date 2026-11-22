@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 185';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 186';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1585,7 +1585,7 @@ function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.leng
 function initCampaign(){if(CAMP){CAMP.gold=null;CAMP.merch=null;CAMP.offers=[];CAMP.fx=[];}if(merchSp)merchSp.visible=false;if(merchTok)merchTok.visible=false;
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);});
   if(endCard){kingdom.remove(endCard);endCard=null;}
-  Object.assign(CAMP,{dunSite:null,dunNextWk:null,dunLastC:null,dungeons:{},dunPick:undefined,dunSeed:0,/* a new campaign starts with a fresh dungeon, not the last campaign's */vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
+  Object.assign(CAMP,{dunSites:null,dunRoadWk:0,dunNextWk:null,dunLastC:null,dungeons:{},dunPick:undefined,dunSeed:0,/* a new campaign starts with a fresh dungeon, not the last campaign's */vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
   CASTLES.forEach(c=>{c.o=c.o0;c.fort=c.cap?1:0;c.task='rest';});
   GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
   for(const r of GENS){r.loy=r.d.key==='kaelen'?100:70;if(r.nat==='wander'){r.alive=false;r.loc=null;}}
@@ -1622,7 +1622,7 @@ function campTick(dt,now){
   for(const a of CAMP.armies.slice()){
     const A=CASTLES[a.path[a.seg]],B=CASTLES[a.path[a.seg+1]];if(!A||!B){DE4LOG.info('army '+a.id+' had no road left; arriving');if(A)arrive(a,A);else removeArmy(a);if(state!=='kingdom')return;continue;}const L=Math.hypot(B.x-A.x,B.z-A.z);
     if(!a.halt)a.t+=sdt*0.9/L;a.x=A.x+(B.x-A.x)*Math.min(1,a.t);a.z=A.z+(B.z-A.z)*Math.min(1,a.t);a.dir=B.x>=A.x?0:1;
-    if(a.t>=1){a.seg++;a.t=0;const c=B;
+    if(a.t>=1){a.seg++;a.t=0;const c=B;if(isHum(a.nat)&&!a.retreat)try{dunRoadFind(a,A,B);}catch(e){DE4LOG.err(e,'dunRoad');}
       if(a.seg>=a.path.length-1||(c.o!==a.nat&&!a.retreat)){arrive(a,c);if(state!=='kingdom')return;}}
   }
   for(let i=0;i<CAMP.armies.length;i++)for(let j=i+1;j<CAMP.armies.length;j++){const a=CAMP.armies[i],b=CAMP.armies[j];
@@ -4146,52 +4146,68 @@ const dAs=t=>MON[t]?MON[t].as:t,dMult=(a,b)=>(MULT[dAs(a)]||{})[dAs(b)]??1;
 const dunRecKey=s=>s.seed+':'+(s.arch||'')+':'+(s.floors||0),dunDone=s=>{const r=CAMP.dungeons&&CAMP.dungeons[dunRecKey(s)];return!!(r&&dunLastSt(r).cleared);};
 function dunApprovedList(){const L=[],seen=new Set();let lab=[];try{lab=JSON.parse(localStorage.getItem('de4-dun-ok')||'{}').ok||[];}catch(e){}
   for(const a of DUN_APPROVED.concat(lab)){if(!a||!a.seed)continue;const s={seed:a.seed,arch:a.arch||'',floors:a.floors||a.depth||0},k=dunRecKey(s);if(!seen.has(k)){seen.add(k);L.push(s);}}return L;}
-function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||t.depth||0};if(!dunDone(s))return s;}
+function dunSeed(pin){const used=s=>(CAMP.dunSites||[]).some(S=>dunRecKey(S.s)===dunRecKey(s));let t=null;if(pin!==false)try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||t.depth||0};if(!dunDone(s)&&!used(s))return s;}
   /* every new dungeon is a freshly generated random map (approved Lab maps are not used on the war map; a pinned test map still is) */
-  for(let n=0;n<50;n++){if(!CAMP.dunSeed)CAMP.dunSeed=1+Math.floor(Math.random()*999999);const s={seed:CAMP.dunSeed,arch:'',floors:0};if(!dunDone(s))return s;CAMP.dunSeed=0;}return{seed:CAMP.dunSeed,arch:'',floors:0};}
-function dunRec(){const S=dunSite(),s=S?S.s:dunSeed(),k=dunRecKey(s);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177,fv:179};const r=CAMP.dungeons[k];if(!r.fv){r.fv=179;if(!r.floors&&r.bv)r.floors=dunFloorsOld(r.seed);/* made before deeper dungeons: keep its depth */}if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
+  for(let n=0;n<50;n++){const s={seed:1+Math.floor(Math.random()*999999),arch:'',floors:0};if(!dunDone(s)&&!used(s))return s;}return{seed:1+Math.floor(Math.random()*999999),arch:'',floors:0};}
+function dunRec(S0){const S=S0||dunSite(),s=S?S.s:dunSeed(),k=dunRecKey(s);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177,fv:179};const r=CAMP.dungeons[k];if(!r.fv){r.fv=179;if(!r.floors&&r.bv)r.floors=dunFloorsOld(r.seed);/* made before deeper dungeons: keep its depth */}if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
 const dunCache={};function dunGet(seed,arch,floors){const k=seed+':'+(arch||'')+':'+(floors||0);if(!dunCache[k])dunCache[k]=dunGen(seed,{arch,floors:floors||0});return dunCache[k];}
 const dunFloorSt=()=>({open:{},solved:{},dead:{},keys:0,cleared:0,visits:0,seen:{}}),dunLastSt=R=>(R.fl&&R.fl[R.fl.length-1])||R.st;
-/* ---------- where the dungeon is: one site on the war map at a time. It appears beside a castle and stays until its sanctum is claimed
-   (by you or a rival); a week or two later a new one opens beside a different castle, using the next map. The first one opens in your lands.
-   You can send an expedition from the castle it's beside, or from any castle of yours on a road next to it ---------- */
-function dunSite(){if(!CAMP||!CAMP.on&&!CAMP.week)return null;const S=CAMP.dunSite;
-  if(S){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}/* a map pinned in the Lab for testing takes over the current site */
-    if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||t.depth||0};if(!dunDone(s)&&dunRecKey(s)!==dunRecKey(S.s))S.s=s;}return S;}
-  if(CAMP.dunNextWk!=null&&CAMP.week<CAMP.dunNextWk)return null;
-  const first=CAMP.dunNextWk==null;let c=null;
-  if(first){let bv=-1;for(const k of CASTLES)if(k.o===NET.me){const v=garrison(k).reduce((a,r)=>a+(r.troops||0),0);if(v>bv){bv=v;c=k;}}}
-  if(!c){const L=CASTLES.filter(k=>k.id!==CAMP.dunLastC);c=L[Math.floor(Math.random()*L.length)];}if(!c)return null;
-  CAMP.dunSite={c:c.id,s:dunSeed(),wk:CAMP.week};CAMP.dunNextWk=0;
-  if(!first){const D=dunGet(CAMP.dunSite.s.seed,CAMP.dunSite.s.arch,CAMP.dunSite.s.floors);clog(`A dungeon has opened near ${c.n}${D?': '+D.name:''}.`);if(state==='kingdom')showBanner('A new dungeon has opened near '+c.n);}
-  return CAMP.dunSite;}
-function dunSiteClose(why){const S=CAMP.dunSite;if(!S)return;CAMP.dunLastC=S.c;CAMP.dunSite=null;CAMP.dunNextWk=CAMP.week+1+(Math.random()<0.5?0:1);
-  const c=CASTLES[S.c];clog(`${why?why+' ':''}The dungeon near ${c?c.n:'the castle'} falls silent. Another will open somewhere within a week or two.`);}
-/* the castle of yours an expedition can set out from: the site's own castle or one on a road next to it, whichever has the most fit troops */
-function dunFrom(S){const c=CASTLES[S.c];if(!c)return null;let best=null,bv=-1;for(const k of [c,...c.adj.map(i=>CASTLES[i])])if(k.o===NET.me){const v=garrison(k).filter(canMarchGen).reduce((a,r)=>a+(r.troops||0),0)+(k===c?0.5:0);if(v>bv){bv=v;best=k;}}return best;}
-const dunNatNear=(S,n)=>{const c=CASTLES[S.c];return!!c&&[c,...c.adj.map(i=>CASTLES[i])].filter(k=>k.o===n);};
-/* ---------- the entrance on the war table ---------- */
-let dunMark=null,dunMarkPick=null,dunMarkLab=null,dunMarkC=-1,dunMarkT=0;
+/* ---------- where the dungeons are. There is always one "castle" dungeon: it appears beside a castle and stays until its sanctum is claimed
+   (by you or a rival); a week or two later a new one opens beside a different castle, on a fresh map. The first one opens in your lands.
+   On top of that, your armies marching between castles sometimes stumble on a cave beside the road (up to three at once), so several can be on
+   the map together. Each has its own map and its own state. You can send an expedition from a castle of yours beside it: for a castle dungeon,
+   that castle or one on a road next to it; for a road cave, either castle at the ends of that road ---------- */
+const DUN_ROADMAX=3,DUN_ROADP=0.12;
+function dunSites(){if(!CAMP)return[];if(!CAMP.dunSites){CAMP.dunSites=[];CAMP.dunSid=1;}const L=CAMP.dunSites;
+  let M=L.find(S=>S.kind==='castle');
+  if(M){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}/* a map pinned in the Lab for testing takes over the castle dungeon */
+    if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||t.depth||0};if(!dunDone(s)&&dunRecKey(s)!==dunRecKey(M.s)&&!L.some(o=>dunRecKey(o.s)===dunRecKey(s)))M.s=s;}}
+  else if(!(CAMP.dunNextWk!=null&&CAMP.week<CAMP.dunNextWk)){const first=CAMP.dunNextWk==null;let c=null;
+    if(first){let bv=-1;for(const k of CASTLES)if(k.o===NET.me){const v=garrison(k).reduce((a,r)=>a+(r.troops||0),0);if(v>bv){bv=v;c=k;}}}
+    if(!c){const C=CASTLES.filter(k=>k.id!==CAMP.dunLastC&&!L.some(S=>S.c===k.id));c=C[Math.floor(Math.random()*C.length)];}
+    if(c){M={id:CAMP.dunSid++,kind:'castle',c:c.id,near:[c.id,...c.adj],x:c.x+2.7,z:c.z+2.1,s:dunSeed(true),wk:CAMP.week};L.unshift(M);CAMP.dunNextWk=0;
+      if(!first){const D=dunGet(M.s.seed,M.s.arch,M.s.floors);clog(`A dungeon has opened near ${c.n}${D?': '+D.name:''}.`);if(state==='kingdom')showBanner('A new dungeon has opened near '+c.n);}}}
+  return L;}
+const dunSite=()=>dunSites().find(S=>S.kind==='castle')||null;
+const dunSiteName=S=>S.kind==='road'?`the cave on the road between ${CASTLES[S.near[0]].n} and ${CASTLES[S.near[1]].n}`:`the dungeon near ${CASTLES[S.c].n}`;
+const dunSiteRec=rec=>dunSites().find(S=>CAMP.dungeons&&CAMP.dungeons[dunRecKey(S.s)]===rec)||null;
+function dunSiteClose(S,why){const L=dunSites(),i=L.indexOf(S);if(i<0)return;L.splice(i,1);
+  if(S.kind==='castle'){CAMP.dunLastC=S.c;CAMP.dunNextWk=CAMP.week+1+(Math.random()<0.5?0:1);}
+  const nm=dunSiteName(S);clog(`${why?why+' ':''}${nm[0].toUpperCase()+nm.slice(1)} falls silent.${S.kind==='castle'?' Another will open somewhere within a week or two.':''}`);}
+/* an army of yours finishing a stretch of road may find a cave beside it */
+function dunRoadFind(a,A,B){if(!CAMP||CAMP.week<2||CAMP.dunRoadWk===CAMP.week)return;const L=dunSites();if(L.filter(S=>S.kind==='road').length>=DUN_ROADMAX)return;
+  if(L.some(S=>S.kind==='road'&&S.near.includes(A.id)&&S.near.includes(B.id)))return;if(Math.random()>=DUN_ROADP)return;
+  const f=0.35+Math.random()*0.3,dx=B.x-A.x,dz=B.z-A.z,l=Math.hypot(dx,dz)||1,sd=Math.random()<0.5?-1:1,x=A.x+dx*f-dz/l*1.4*sd,z=A.z+dz*f+dx/l*1.4*sd;
+  const S={id:CAMP.dunSid++,kind:'road',c:A.id,near:[A.id,B.id],x,z,s:dunSeed(false),wk:CAMP.week};L.push(S);CAMP.dunRoadWk=CAMP.week;
+  const D=dunGet(S.s.seed,S.s.arch,S.s.floors),who=a.gens[0]?a.gens[0].d.short:'Your army';
+  clog(`${who}'s army finds a cave beside the road between ${A.n} and ${B.n}${D?': '+D.name:''}.`);showBanner('A cave found on the road between '+A.n+' and '+B.n+'!');sfx('blip',600);}
+/* the castle of yours an expedition can set out from: one beside the site, whichever has the most fit troops */
+function dunFrom(S){let best=null,bv=-1;for(const id of S.near){const k=CASTLES[id];if(!k||k.o!==NET.me)continue;const v=garrison(k).filter(canMarchGen).reduce((a,r)=>a+(r.troops||0),0)+(id===S.c?0.5:0);if(v>bv){bv=v;best=k;}}return best;}
+const dunNatNear=(S,n)=>S.near.map(i=>CASTLES[i]).filter(k=>k&&k.o===n);
+/* ---------- the entrances on the war table ---------- */
+let dunMarkPick=null;const DMK={};
 function dunCaveCanvas(){const c=cv(26,20),g=rectFn(c.getContext('2d'));g(2,6,22,14,'#5a5048');g(0,10,26,10,'#4a4038');g(4,3,18,6,'#6e645a');g(8,1,10,4,'#7a7066');
   g(7,8,12,12,'#0e0a12');g(9,6,8,3,'#0e0a12');g(6,17,14,3,'#1a1420');g(10,12,2,2,'#f0c055');g(15,13,2,2,'#f0c055');g(3,8,2,2,'#8a8074');g(21,12,2,3,'#3a322c');return finish(c);}
-function dunMarkTick(now){if(state!=='kingdom'||!CAMP||CAMP.over||(NET&&NET.on)||SK){if(dunMark)dunMark.visible=dunMarkLab.visible=false;if(dunMarkPick)dunMarkPick.visible=false;return;}
-  if(!dunMark){dunMark=card(smat(dunCaveCanvas()),0.5,0.05);dunMark.scale.set(26*PX*1.6,20*PX*1.6,1);kingdom.add(dunMark);dunMarkLab=makeLabel('DUNGEON','#b6a4e6');dunMarkLab.scale.multiplyScalar(0.55);kingdom.add(dunMarkLab);
-    dunMarkPick=new THREE.Mesh(armyPickGeo,armyPickMat);dunMarkPick.userData.dungeon=true;kingdom.add(dunMarkPick);pickables.push(dunMarkPick);}
-  if(now-dunMarkT>1||dunMarkC<0){dunMarkT=now;const S=dunSite();dunMarkC=S?S.c:-1;}
-  const c=CASTLES[dunMarkC];if(!c){dunMark.visible=dunMarkLab.visible=dunMarkPick.visible=false;return;}
-  const x=c.x+2.7,z=c.z+2.1,y=Hk(x,z);dunMark.visible=dunMarkLab.visible=dunMarkPick.visible=true;dunMark.position.set(x,y,z);dunMarkLab.position.set(x,y+1.6+Math.sin(now*2)*0.06,z);dunMarkPick.position.set(x,y+1.1,z);}
+let dunCaveMat=null;
+function dunMarkTick(now){const show=!(state!=='kingdom'||!CAMP||CAMP.over||(NET&&NET.on)||SK),L=show?dunSites():[],ids=new Set(L.map(S=>S.id));
+  for(const k in DMK)if(!ids.has(+k)){const m=DMK[k];kingdom.remove(m.m);kingdom.remove(m.lab);kingdom.remove(m.pick);const i=pickables.indexOf(m.pick);if(i>=0)pickables.splice(i,1);delete DMK[k];}
+  dunMarkPick=null;
+  for(const S of L){let m=DMK[S.id];if(!m){dunCaveMat=dunCaveMat||smat(dunCaveCanvas());m=DMK[S.id]={m:card(dunCaveMat,0.5,0.05),lab:makeLabel(S.kind==='road'?'CAVE':'DUNGEON','#b6a4e6'),pick:new THREE.Mesh(armyPickGeo,armyPickMat)};
+      m.m.scale.set(26*PX*(S.kind==='road'?1.3:1.6),20*PX*(S.kind==='road'?1.3:1.6),1);m.lab.scale.multiplyScalar(0.55);m.pick.userData.dungeon=S.id;kingdom.add(m.m);kingdom.add(m.lab);kingdom.add(m.pick);pickables.push(m.pick);}
+    const y=Hk(S.x,S.z);m.m.position.set(S.x,y,S.z);m.lab.position.set(S.x,y+1.6+Math.sin(now*2+S.id)*0.06,S.z);m.pick.position.set(S.x,y+1.1,S.z);if(!dunMarkPick&&S.kind==='castle')dunMarkPick=m.pick;}}
 campTokens=(f=>now=>{f(now);try{dunMarkTick(now);}catch(e){DE4LOG.err(e,'dunMark');}})(campTokens);
-campClick=(f=>hit=>{if(hit&&hit.userData&&hit.userData.dungeon){const S=dunSite();if(S){const fr=dunFrom(S),c=CASTLES[S.c];if(fr)dunPrepOpen(fr);else{clog(`The dungeon near ${c.n} lies beyond your reach. Hold ${c.n} or a castle on a road next to it to send an expedition.`);showBanner('Hold '+c.n+' or a castle next to it to explore this dungeon',true);}}return;}return f(hit);})(campClick);
+campClick=(f=>hit=>{if(hit&&hit.userData&&hit.userData.dungeon){const S=dunSites().find(S=>S.id===hit.userData.dungeon);if(S){const fr=dunFrom(S);if(fr)dunPrepOpen(fr,S);
+      else{const ns=S.near.slice(0,S.kind==='road'?2:1).map(i=>CASTLES[i].n).join(' or ');clog(`${dunSiteName(S)[0].toUpperCase()+dunSiteName(S).slice(1)} lies beyond your reach. Hold ${ns}${S.kind==='castle'?' or a castle on a road next to it':''} to send an expedition.`);showBanner('Hold '+ns+' to explore this '+(S.kind==='road'?'cave':'dungeon'),true);}}return;}return f(hit);})(campClick);
 /* ---------- expedition preparation ---------- */
 const partyTags=gs=>{const s=new Set();for(const r of gs){(TROOP_TAGS[r.d.troop]||[]).forEach(t=>s.add(t));(SPELL_TAGS[r.d.spell]||[]).forEach(t=>s.add(t));}return s;};
 function dunReqInfo(D,gs){const tg=partyTags(gs),mainG=(D.floors||[D]).flatMap(F=>F.gates.filter(g=>F.nodes[g.near].main&&F.nodes[g.far].main&&GATES[g.k].any));
   return mainG.map(g=>({g,ok:GATES[g.k].any.some(t=>tg.has(t))}));}
-function dunPrepOpen(c){if(!c||c.o!==NET.me){clog('You need a castle beside the dungeon, or on a road next to it.');return;}const R=dunRec(),D=dunGet(R.seed,R.arch,R.floors);if(!D){clog('The dungeon could not be built.');return;}
+function dunPrepOpen(c,S){if(!c||c.o!==NET.me){clog('You need a castle of yours beside the dungeon.');return;}S=S||dunSite();const R=dunRec(S),D=dunGet(R.seed,R.arch,R.floors);DPREP.site=S;DPREP.rec=R;if(!D){clog('The dungeon could not be built.');return;}
   DPREP.open=true;DPREP.c=c;DPREP.D=D;DPREP.pick=new Set(garrison(c).filter(canMarchGen).sort((a,b)=>power(b)-power(a)).slice(0,D.cap));DPREP.hash='';CAMP.sel=null;updateCampPanel();sfx('blip',300);dunPrepDraw();}
 function dunPrepClose(){DPREP.open=false;$('dunp').hidden=true;if(dunBoard)dunBoard.visible=false;}
 function dunPrepToggle(r){if(!canMarchGen(r)){clog(r.d.short+(r.rest>0?' is resting.':' has no troops to bring.'));return;}if(DPREP.pick.has(r))DPREP.pick.delete(r);else if(DPREP.pick.size<DPREP.D.cap)DPREP.pick.add(r);else{showBanner('This dungeon admits '+DPREP.D.cap+' general'+(DPREP.D.cap>1?'s':''));return;}sfx('blip',420);dunPrepDraw();}
-function dunPrepGo(){if(!DPREP.pick.size){showBanner('Choose at least one general');return;}const D=DPREP.D,gs=[...DPREP.pick],c=DPREP.c;dunPrepClose();dunEnter(D,gs,c);}
-function dunPrepDraw(){const D=DPREP.D,c=DPREP.c,R=dunRec(),G=garrison(c),req=dunReqInfo(D,[...DPREP.pick]),st=R.st;
+function dunPrepGo(){if(!DPREP.pick.size){showBanner('Choose at least one general');return;}const D=DPREP.D,gs=[...DPREP.pick],c=DPREP.c,R=DPREP.rec;dunPrepClose();dunEnter(D,gs,c,R);}
+function dunPrepDraw(){const D=DPREP.D,c=DPREP.c,R=DPREP.rec||dunRec(),G=garrison(c),req=dunReqInfo(D,[...DPREP.pick]),st=R.st;
   if(xrActive){$('dunp').hidden=true;dunBoardDraw();return;}
   $('dunp').hidden=false;$('dnName').textContent=D.name;
   $('dnSub').textContent=`Setting out from ${c.n} · ${DARCH[D.arch].n} · danger ${'◆'.repeat(D.diff)} · up to ${D.cap} general${D.cap>1?'s':''} · each brings up to ${D.troopCap} troops`+` · ${D.nfl>1?D.nfl+' floors deep':'one floor'}`+(st.visits?` · visited ${st.visits}×${dunLastSt(R).cleared?' · sanctum '+(dunLastSt(R).cleared===1?'claimed':'plundered by '+NATIONS[dunLastSt(R).cleared].name):''}`:'');
@@ -4426,7 +4442,7 @@ function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN
   clog(`The expedition leaves ${D.name}${why?' ('+why+')':''}: ${lost} troops lost${DUN.gold?', '+DUN.gold+' gold found':''}${dunLastSt(DUN.R).cleared===1?', sanctum claimed':''}.`);DE4LOG.info('dungeon leave '+L.join(', '));
   DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;$('dunSel').hidden=true;
   state='kingdom';kingdom.visible=true;battle.visible=false;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);updateModeUI();updateCampPanel();setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});if(xrActive)vrReset();sfx('fanfare');showBanner(why==='defeat'?'The expedition is driven out':'Back to the war table',why==='defeat');
-  if(done&&CAMP.dunSite&&CAMP.dungeons[dunRecKey(CAMP.dunSite.s)]===R0){dunSiteClose(`${D.name} has been emptied.`);setTimeout(()=>showBanner('The dungeon falls silent. Another will open in a week or two.'),1800);}}
+  {const S=done&&dunSiteRec(R0);if(S){dunSiteClose(S,`${D.name} has been emptied.`);setTimeout(()=>showBanner(S.kind==='castle'?'The dungeon falls silent. Another will open in a week or two.':'The cave falls silent.'),1800);}}}
 /* ---------- the war goes on above: the campaign clock keeps running underground (a week every few minutes). When a battle you're part of breaks
    out up there, the dungeon stops with a warning, you go up and fight it, and come straight back down to where you were ---------- */
 const DUN_TIME=0.075;
@@ -4907,14 +4923,15 @@ function dunRivAI(dt){if(!DUN.riv.length)return;const L=DUN.riv.filter(g=>!g.dow
   else if(G.k==='guard'){/* cut off from the stairs: they dig in and hold this room */A.t=Math.min(A.t,3);}
   else A.goal=null;}
 /* ---------- the off-screen side, run once a week on the war table ---------- */
-function dunWeek(){if(NET.on||SK||DUN)return;const S0=dunSite();if(!S0)return;const rec=dunRec(),D=dunGet(rec.seed,rec.arch,rec.floors);if(!D)return;
-  if(dunLastSt(rec).cleared&&!rec.riv){dunSiteClose(dunLastSt(rec).cleared===1?'':`${NATIONS[dunLastSt(rec).cleared].name} has plundered ${D.name}.`);return;}rec.fl=rec.fl||[rec.st];for(let i=0;i<(D.nfl||1);i++)rec.fl[i]=rec.fl[i]||dunFloorSt();
+function dunWeek(){if(NET.on||SK||DUN)return;for(const S of dunSites().slice())dunWeekSite(S);}
+function dunWeekSite(S0){const rec=dunRec(S0),D=dunGet(rec.seed,rec.arch,rec.floors);if(!D)return;
+  if(dunLastSt(rec).cleared&&!rec.riv){dunSiteClose(S0,dunLastSt(rec).cleared===1?'':`${NATIONS[dunLastSt(rec).cleared].name} has plundered ${D.name}.`);return;}rec.fl=rec.fl||[rec.st];for(let i=0;i<(D.nfl||1);i++)rec.fl[i]=rec.fl[i]||dunFloorSt();
   if(rec.riv){for(const x of rec.riv.gens){const r=GENS[x.gi];if(r&&r.alive)r.rest=Math.max(r.rest||0,1);}dunRivWeek(rec,D);return;}
-  if(CAMP.week>=3)dunRivLaunch(rec,D);
+  if(CAMP.week>=3)dunRivLaunch(rec,D,S0);
   /* nobody has finished it after a while: the nearest rival kingdom moves in to take it, and keeps sending expeditions until it's done */
   if(!rec.riv&&CAMP.week-(S0.wk||0)>=DUN_STALE)dunRivClaim(rec,D,S0);}
 const DUN_STALE=4;
-function dunRivClaim(rec,D,S){const c=CASTLES[S.c];if(!c)return;let best=null,bd=1e9;
+function dunRivClaim(rec,D,S){const c={x:S.x,z:S.z,n:dunSiteName(S).replace(/^the dungeon near /,'')};let best=null,bd=1e9;
   for(const n of NATS){if(isHum(n)||!natLives(n))continue;const pool=[];for(const k of CASTLES)if(k.o===n)for(const r of garrison(k))if(canMarchGen(r)&&r.d.key!==NATIONS[n].ruler&&r.troops>=r.troopsMax*0.3)pool.push(r);if(!pool.length)continue;
     const d=Math.min(...CASTLES.filter(k=>k.o===n).map(k=>Math.hypot(k.x-c.x,k.z-c.z)));if(d<bd){bd=d;best={n,pool};}}
   if(!best)return;const {n,pool}=best,need=new Set(D.reqAll||D.req||[]),gs=[];
@@ -4922,9 +4939,9 @@ function dunRivClaim(rec,D,S){const c=CASTLES[S.c];if(!c)return;let best=null,bd
   for(const r of pool.slice().sort((a,b)=>power(b)-power(a)))if(gs.length<Math.min(5,D.cap)&&!gs.includes(r))gs.push(r);
   rec.riv={nat:n,claim:1,gens:gs.map(r=>{const b=Math.min(r.troops,D.troopCap);r.troops-=b;r.rest=Math.max(r.rest||0,1);return{gi:GENS.indexOf(r),bring:b,men:b,home:r.troops};}),floor:rec.rivFl||0,room:0,keys:0,seen:[0],wk:CAMP.week,gold:0};
   rec.claims=(rec.claims||0)+1;
-  clog(`${NATIONS[n].name} marches on the dungeon near ${c.n} to claim it: ${gs.map(r=>r.d.short).join(', ')} go down into ${D.name}.`);if(state==='kingdom')showBanner(NATIONS[n].name+' moves in to claim the dungeon near '+c.n,true);}
+  clog(`${NATIONS[n].name} marches on ${dunSiteName(S)} to claim it: ${gs.map(r=>r.d.short).join(', ')} go down into ${D.name}.`);if(state==='kingdom')showBanner(NATIONS[n].name+' moves in to claim '+dunSiteName(S),true);}
 weekEconomy=(f=>()=>{const r=f();try{dunWeek();if(DUN&&!DUN.sk){dunHud(true);showBanner('Above ground, week '+CAMP.week+' begins');}}catch(e){DE4LOG.err(e,'dunWeek');}return r;})(weekEconomy);
-function dunRivLaunch(rec,D){const S=CAMP.dunSite;for(const n of NATS.slice().sort(()=>Math.random()-0.5)){if(isHum(n)||!natLives(n)||!hostile(n,NET.me))continue;
+function dunRivLaunch(rec,D,S){S=S||dunSite();for(const n of NATS.slice().sort(()=>Math.random()-0.5)){if(isHum(n)||!natLives(n)||!hostile(n,NET.me))continue;
   const near=S?dunNatNear(S,n):CASTLES.filter(c=>c.o===n);if(!near||!near.length)continue;/* only nations holding the dungeon's castle or one next to it */
   const pool=[];for(const c of near)for(const r of garrison(c))if(canMarchGen(r)&&r.d.key!==NATIONS[n].ruler&&r.troops>=r.troopsMax*0.5)pool.push(r);if(!pool.length)continue;
   pool.sort((a,b)=>power(b)-power(a));const lead=pool[0],ps=gpOf(lead),p=0.025+0.02*(ps.O+1)+0.01*(ps.A+1);if(Math.random()>p)continue;
@@ -5010,7 +5027,7 @@ $('dlCopy').addEventListener('click',()=>{const t=dlExport();const ta=$('dlOut')
 $('dlDl').addEventListener('click',()=>{const b=new Blob([dlExport()],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='de4-dungeon-approvals.txt';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);});
 $('dlClear').addEventListener('click',()=>{if(confirm('Clear every approval and rejection?')){dlSave({ok:[],no:[]});dlList();}});
 /* dungeon HUD and expedition buttons */
-$('dnGo').addEventListener('click',dunPrepGo);$('dnCancel').addEventListener('click',dunPrepClose);$('dnLab').addEventListener('click',()=>{const R=dunRec();DLAB.seed=R.seed;DLAB.arch=R.arch;DLAB.floors=R.floors||0;DLAB.fl=0;dlOpen();});
+$('dnGo').addEventListener('click',dunPrepGo);$('dnCancel').addEventListener('click',dunPrepClose);$('dnLab').addEventListener('click',()=>{const R=DPREP.rec||dunRec();DLAB.seed=R.seed;DLAB.arch=R.arch;DLAB.floors=R.floors||0;DLAB.fl=0;dlOpen();});
 $('dhAct').addEventListener('click',()=>dunAct());$('dhCast').addEventListener('click',()=>dunCastAim());$('dhOrder').addEventListener('click',()=>dunOrder());
 $('dhSend').addEventListener('click',()=>{if(DUN){DUN.sendMode=!DUN.sendMode;dunHud();}});$('dhNext').addEventListener('click',()=>dunQuickSwap());$('dhLeave').addEventListener('click',()=>{dunRetreat();dunHud();});
 
