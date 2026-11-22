@@ -145,6 +145,11 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **The war goes on above (Build 182):**
+  - **Time underground:** the war map's clock keeps running while you're in a dungeon, at a slower rate of a week about every four minutes. The dungeon header shows the current week, and a banner tells you when a new week starts above. Pausing the war map before going down keeps time stopped.
+  - **Courier:** when a battle you're part of breaks out above ground, a little courier in a blue cloak runs down the way you came, holding a sealed note. Nothing can touch him. He hands the note to your general, the dungeon freezes, and a dialog tells you who is attacking where. "To battle!" (or a trigger in VR) takes you up to fight it as normal. When the battle is over you're back underground, exactly where you were, on the same floor.
+  - **Undefended castles:** a castle with nobody fit to defend it falls without a battle, and you just get the news below.
+  - **Generals underground are away:** they don't defend their castle while they're down there. If their castle falls while they're below, they head for your nearest castle when they come up. Troops their castle raised while they were away are kept.
 - **Rivals claim neglected dungeons (Build 181):** if a dungeon is still unfinished four weeks after it opened, the nearest rival kingdom moves in to claim it, wherever its castles are.
   - **The expedition:** it sends up to five generals (never more than the dungeon admits). It picks someone able to handle each required obstacle first, then its strongest.
   - **Determined:** a claiming army doesn't give up after a quiet week. It fights through every guard group, and it hacks past obstacles it has no ability for, losing men doing it.
