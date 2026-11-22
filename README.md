@@ -145,6 +145,10 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Dungeons appear on the map (Build 180):** there is now one dungeon on the war map at a time, sitting beside a castle.
+  - **How long it stays:** it stays put until its sanctum is claimed, by you or plundered by a rival. Then it falls silent, and a week or two later a new one opens beside a different castle (any owner, unclaimed castles included), using the next map. The first dungeon of a campaign opens in your lands.
+  - **Who can enter:** you can send an expedition from the castle it's beside, or from any of your castles on a road next to it, whichever has the most fit troops. If you hold neither, clicking it tells you which castle to take. Rival expeditions only come from nations that hold the dungeon's castle or one next to it.
+  - **Lab test maps:** a map pinned with "Test on war map" takes over the current dungeon in place.
 - **Deeper dungeons (Build 179):**
   - **Depth:** dungeons can now be up to 10 floors deep. The seed decides: most are 3–6 floors, about one in six reaches 9 or 10, and a few are still 1–2. Every floor is built and validated like before. The Lab's Floors setting goes up to 10, and the Lab's rival-floor picker lists every floor.
   - **Deeper means harder:** from depth 4 down, monsters gain about 6% health and damage per floor (up to +60%), and elites get more common, with more of them per group.
