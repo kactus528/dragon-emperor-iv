@@ -697,7 +697,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 177';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 178';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1872,6 +1872,7 @@ function campClick(hit){
   if(!hit){if(!CAMP.target){CAMP.sel=null;updateCampPanel();}return;}
   const c=hit.userData.castle,a=hit.userData.army;
   const S=CAMP.sel,ownArmy=S&&S.army&&S.army.nat===NET.me;
+  if(S&&((c&&S.castle===c)||(a&&S.army===a))){CAMP.sel=null;CAMP.target=false;CAMP.picked.clear();sfx('blip',260);updateCampPanel();return;}/* pointing at what's already selected lets go of it */
   const freshCastle=c&&c.o===NET.me&&garrison(c).some(canMarchGen);
   const canMarch=S&&((S.castle&&S.castle.o===NET.me&&CAMP.picked.size)||ownArmy);
   if(c&&S&&(CAMP.target||canMarch)&&!(S.castle===c)){
@@ -4133,10 +4134,16 @@ const dwx=i=>(i+0.5-DGW/2)*DT,dwz=j=>(j+0.5-DGH/2)*DT,dtx=x=>Math.floor(x/DT+DGW
 const dmen=u=>u.m?(u.hp>0?1:0):Math.max(0,Math.ceil(u.hp/STATS[u.t].hp-1e-6));
 const dAs=t=>MON[t]?MON[t].as:t,dMult=(a,b)=>(MULT[dAs(a)]||{})[dAs(b)]??1;
 /* which dungeon the test entrance opens: the Lab's "use for test entrance" pick, else the curated approved list, else one random seed per campaign */
-function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed)return{seed:t.seed,arch:t.arch||'',floors:t.floors||0};
-  if(DUN_APPROVED.length){const a=DUN_APPROVED[(CAMP.dunPick=CAMP.dunPick??Math.floor(Math.random()*DUN_APPROVED.length))%DUN_APPROVED.length];return{seed:a.seed,arch:a.arch||'',floors:a.floors||0};}
-  if(!CAMP.dunSeed)CAMP.dunSeed=1+Math.floor(Math.random()*999999);return{seed:CAMP.dunSeed,arch:''};}
-function dunRec(){const s=dunSeed(),k=s.seed+':'+s.arch+':'+(s.floors||0);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177};const r=CAMP.dungeons[k];if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
+/* which dungeon the war-table entrance leads to. Once its sanctum has been claimed (by you or a rival) it is finished, and the entrance moves on
+   to the next approved map: the ones built into the game, then the ones approved in this browser's Dungeon Lab, in order, wrapping round.
+   When every approved map is finished (or none are approved) it falls back to a fresh generated dungeon. */
+const dunRecKey=s=>s.seed+':'+(s.arch||'')+':'+(s.floors||0),dunDone=s=>{const r=CAMP.dungeons&&CAMP.dungeons[dunRecKey(s)];return!!(r&&dunLastSt(r).cleared);};
+function dunApprovedList(){const L=[],seen=new Set();let lab=[];try{lab=JSON.parse(localStorage.getItem('de4-dun-ok')||'{}').ok||[];}catch(e){}
+  for(const a of DUN_APPROVED.concat(lab)){if(!a||!a.seed)continue;const s={seed:a.seed,arch:a.arch||'',floors:a.floors||0},k=dunRecKey(s);if(!seen.has(k)){seen.add(k);L.push(s);}}return L;}
+function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||0};if(!dunDone(s))return s;}
+  const A=dunApprovedList();if(A.length){CAMP.dunPick=CAMP.dunPick??0;for(let i=0;i<A.length;i++){const s=A[(CAMP.dunPick+i)%A.length];if(!dunDone(s)){CAMP.dunPick=(CAMP.dunPick+i)%A.length;return s;}}}
+  for(let n=0;n<50;n++){if(!CAMP.dunSeed)CAMP.dunSeed=1+Math.floor(Math.random()*999999);const s={seed:CAMP.dunSeed,arch:'',floors:0};if(!dunDone(s))return s;CAMP.dunSeed=0;}return{seed:CAMP.dunSeed,arch:'',floors:0};}
+function dunRec(){const s=dunSeed(),k=dunRecKey(s);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177};const r=CAMP.dungeons[k];if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
 const dunCache={};function dunGet(seed,arch,floors){const k=seed+':'+(arch||'')+':'+(floors||0);if(!dunCache[k])dunCache[k]=dunGen(seed,{arch,floors:floors||0});return dunCache[k];}
 const dunFloorSt=()=>({open:{},solved:{},dead:{},keys:0,cleared:0,visits:0,seen:{}}),dunLastSt=R=>(R.fl&&R.fl[R.fl.length-1])||R.st;
 /* ---------- the entrance on the war table: beside your castle with the most troops ---------- */
@@ -4386,13 +4393,14 @@ function dunGenMake(r,side,x,z,bring,men,home){const g={r,side,home,bring,x,z,fa
 function dunUnit(side,t,men,x,z,o){[x,z]=dSnap(x,z);const u=Object.assign({side,pal:side===1?2:side===2?1:0,t,hp:men*ST(t).hp,men0:men,x,z,cd:Math.random(),tgt:null,tT:0,face:side?1:0,walk:Math.random()*3,st:'alive',task:null,fly:!!FLY[t],sp:null},o);
   const M=u.m?dunMMat(u,0,true):dunUMat(u.pal,t,0,side?1:0);u.sp=card(M.m,0.5,0.02,0.45);u.sp.scale.set(M.w,M.h,1);u.sp.position.set(x,0,z);dunG.add(u.sp);DUN.us.push(u);return u;}
 function dunSurvivors(g){return DUN.us.filter(u=>u.g===g&&u.st==='alive').reduce((a,u)=>a+dmen(u),0);}
-function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}
+function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}const done=!!dunLastSt(DUN.R).cleared,oldK=dunRecKey(DUN.R);
   for(const g of DUN.party){const sv=g.out!=null?g.out:dunSurvivors(g);g.r.troops=g.home+sv;lost+=g.bring-sv;if(g.r.hp<=0)g.r.hp=1;L.push(g.r.d.short+' '+sv+'/'+g.bring);}
   for(const b of DUN.bench){const m=b.men??b.bring;b.r.troops=b.home+m;lost+=b.bring-m;L.push(b.r.d.short+' '+m+'/'+b.bring);}
   dunRivSave();
   clog(`The expedition leaves ${D.name}${why?' ('+why+')':''}: ${lost} troops lost${DUN.gold?', '+DUN.gold+' gold found':''}${dunLastSt(DUN.R).cleared===1?', sanctum claimed':''}.`);DE4LOG.info('dungeon leave '+L.join(', '));
   DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;$('dunSel').hidden=true;
-  state='kingdom';kingdom.visible=true;battle.visible=false;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);updateModeUI();updateCampPanel();setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});if(xrActive)vrReset();sfx('fanfare');showBanner(why==='defeat'?'The expedition is driven out':'Back to the war table',why==='defeat');}
+  state='kingdom';kingdom.visible=true;battle.visible=false;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);updateModeUI();updateCampPanel();setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});if(xrActive)vrReset();sfx('fanfare');showBanner(why==='defeat'?'The expedition is driven out':'Back to the war table',why==='defeat');
+  if(done)try{const R2=dunRec();if(dunRecKey(R2)!==oldK){const D2=dunGet(R2.seed,R2.arch,R2.floors);if(D2){clog(`${D.name} is finished. The entrance now leads to ${D2.name}.`);setTimeout(()=>showBanner('A new dungeon awaits: '+D2.name),1800);}}}catch(e){DE4LOG.err(e,'dunNext');}}
 /* ---------- grid movement, collision and flow fields ---------- */
 function dPass(x,z,fly){const i=dtx(x),j=dtz(z);if(i<0||j<0||i>=DGW||j>=DGH)return false;const k=j*DGW+i,t=DUN.T[k];if(!t)return false;if(DUN.gb[k])return false;return t===1||(t===2&&fly);}
 function dFree(x,z,r,fly){return dPass(x-r,z-r,fly)&&dPass(x+r,z-r,fly)&&dPass(x-r,z+r,fly)&&dPass(x+r,z+r,fly);}
