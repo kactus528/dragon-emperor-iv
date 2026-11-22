@@ -697,7 +697,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 180';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 181';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4871,7 +4871,19 @@ function dunRivAI(dt){if(!DUN.riv.length)return;const L=DUN.riv.filter(g=>!g.dow
 function dunWeek(){if(NET.on||SK||DUN)return;const S0=dunSite();if(!S0)return;const rec=dunRec(),D=dunGet(rec.seed,rec.arch,rec.floors);if(!D)return;
   if(dunLastSt(rec).cleared&&!rec.riv){dunSiteClose(dunLastSt(rec).cleared===1?'':`${NATIONS[dunLastSt(rec).cleared].name} has plundered ${D.name}.`);return;}rec.fl=rec.fl||[rec.st];for(let i=0;i<(D.nfl||1);i++)rec.fl[i]=rec.fl[i]||dunFloorSt();
   if(rec.riv){for(const x of rec.riv.gens){const r=GENS[x.gi];if(r&&r.alive)r.rest=Math.max(r.rest||0,1);}dunRivWeek(rec,D);return;}
-  if(CAMP.week>=3)dunRivLaunch(rec,D);}
+  if(CAMP.week>=3)dunRivLaunch(rec,D);
+  /* nobody has finished it after a while: the nearest rival kingdom moves in to take it, and keeps sending expeditions until it's done */
+  if(!rec.riv&&CAMP.week-(S0.wk||0)>=DUN_STALE)dunRivClaim(rec,D,S0);}
+const DUN_STALE=4;
+function dunRivClaim(rec,D,S){const c=CASTLES[S.c];if(!c)return;let best=null,bd=1e9;
+  for(const n of NATS){if(isHum(n)||!natLives(n))continue;const pool=[];for(const k of CASTLES)if(k.o===n)for(const r of garrison(k))if(canMarchGen(r)&&r.d.key!==NATIONS[n].ruler&&r.troops>=r.troopsMax*0.3)pool.push(r);if(!pool.length)continue;
+    const d=Math.min(...CASTLES.filter(k=>k.o===n).map(k=>Math.hypot(k.x-c.x,k.z-c.z)));if(d<bd){bd=d;best={n,pool};}}
+  if(!best)return;const {n,pool}=best,need=new Set(D.reqAll||D.req||[]),gs=[];
+  for(const t of need)if(!gs.some(r=>partyTags([r]).has(t))){const r=pool.filter(r=>!gs.includes(r)&&partyTags([r]).has(t)).sort((a,b)=>power(b)-power(a))[0];if(r&&gs.length<Math.min(5,D.cap))gs.push(r);}/* bring someone for each obstacle */
+  for(const r of pool.slice().sort((a,b)=>power(b)-power(a)))if(gs.length<Math.min(5,D.cap)&&!gs.includes(r))gs.push(r);
+  rec.riv={nat:n,claim:1,gens:gs.map(r=>{const b=Math.min(r.troops,D.troopCap);r.troops-=b;r.rest=Math.max(r.rest||0,1);return{gi:GENS.indexOf(r),bring:b,men:b,home:r.troops};}),floor:rec.rivFl||0,room:0,keys:0,seen:[0],wk:CAMP.week,gold:0};
+  rec.claims=(rec.claims||0)+1;
+  clog(`${NATIONS[n].name} marches on the dungeon near ${c.n} to claim it: ${gs.map(r=>r.d.short).join(', ')} go down into ${D.name}.`);if(state==='kingdom')showBanner(NATIONS[n].name+' moves in to claim the dungeon near '+c.n,true);}
 weekEconomy=(f=>()=>{const r=f();try{dunWeek();}catch(e){DE4LOG.err(e,'dunWeek');}return r;})(weekEconomy);
 function dunRivLaunch(rec,D){const S=CAMP.dunSite;for(const n of NATS.slice().sort(()=>Math.random()-0.5)){if(isHum(n)||!natLives(n)||!hostile(n,NET.me))continue;
   const near=S?dunNatNear(S,n):CASTLES.filter(c=>c.o===n);if(!near||!near.length)continue;/* only nations holding the dungeon's castle or one next to it */
@@ -4884,18 +4896,18 @@ function dunRivWeek(rec,D0){const R=rec.riv,FL=R.floor||0,D=D0.floors?D0.floors[
   const rs=G.map(x=>GENS[x.gi]),tags=partyTags(rs),ps=gpOf(rs[0]),men=()=>G.reduce((a,x)=>a+x.men,0),bring=G.reduce((a,x)=>a+x.bring,0);let acts=0,fought=false;
   const lose=n=>{const t=men();if(!t)return;for(const x of G)x.men=Math.max(0,Math.round(x.men-n*x.men/t));};
   const reach=()=>{const Rr=new Set([R.room]);let ch=true;while(ch){ch=false;for(const e of D.edges){const a=Rr.has(e.a),b=Rr.has(e.b);if(a===b)continue;const g=e.gate!=null?D.gates[e.gate]:null;let ok=!g||!!st.solved[g.id];
-      if(!ok&&acts<3){if(g.k==='lock'&&R.keys>0){R.keys--;ok=true;}else if(g.k==='plates')ok=true;else if(GATES[g.k].any&&GATES[g.k].any.some(t=>tags.has(t)))ok=true;if(ok){st.solved[g.id]=1;acts++;}}
+      if(!ok&&acts<3){if(g.k==='lock'&&R.keys>0){R.keys--;ok=true;}else if(g.k==='plates')ok=true;else if(GATES[g.k].any&&GATES[g.k].any.some(t=>tags.has(t)))ok=true;else if(R.claim){ok=true;lose(men()*0.08);}/* a claiming army hacks through the hard way */if(ok){st.solved[g.id]=1;acts++;}}
       if(ok){Rr.add(a?e.b:e.a);ch=true;}}}return Rr;};
   let Rr=reach();for(const e of D.ents)if(e.k==='key'&&!st.open[e.id]&&Rr.has(e.room)){st.open[e.id]=1;R.keys++;Rr=reach();}
-  for(const en of D.encs){if(st.dead[en.id]||!Rr.has(en.room))continue;const th=en.units.reduce((a,u)=>a+(u.pw||u.men),0),ratio=men()/Math.max(1,th);if(ratio<1&&ps.A<0.3)continue;
+  for(const en of D.encs){if(st.dead[en.id]||!Rr.has(en.room))continue;const th=en.units.reduce((a,u)=>a+(u.pw||u.men),0),ratio=men()/Math.max(1,th);if(ratio<1&&ps.A<0.3&&!R.claim)continue;
     fought=true;if(ratio>=1){st.dead[en.id]=1;lose(th*0.45/ratio);R.room=en.room;}else{lose(men()*0.35);R.ret=1;}break;}
   const guarded=id=>D.encs.some(en=>en.room===id&&!st.dead[en.id]);
   for(const e of D.ents)if(e.k==='chest'&&!st.open[e.id]&&Rr.has(e.room)&&!guarded(e.room)){st.open[e.id]=1;addGold(R.nat,e.gold||20);R.gold+=e.gold||20;R.room=e.room;}
   const S=D.nodes.find(n=>n.role==='sanctum'),boss=D.encs.find(c=>c.boss),alt=D.ents.find(e=>e.k==='altar');
   if(S&&!st.cleared&&Rr.has(S.id)&&(!boss||st.dead[boss.id])){st.cleared=R.nat;addGold(R.nat,alt.gold||100);R.gold+=alt.gold||100;R.room=S.id;clog(`Rumour: ${NATIONS[R.nat].name} has plundered the sanctum of ${D.name}.`);}
   R.seen=[...new Set([...(R.seen||[]),...Rr])];
-  {const SR=D.nodes.find(n=>n.role==='stairs');if(SR&&Rr.has(SR.id)&&!R.ret&&D0.floors&&FL<D0.nfl-1&&men()>=bring*0.5){R.floor=FL+1;R.room=0;R.keys=0;R.seen=[0];R.wk=CAMP.week;return;}}
-  if(R.ret||men()<bring*(0.35-0.15*ps.A)||st.cleared||(!fought&&!acts&&CAMP.week-R.wk>=2)){for(const x of G)dunRivHome(GENS[x.gi],x.home,x.men);clog(`${NATIONS[R.nat].name}'s expedition returns from ${D.name}${R.gold?' with '+R.gold+' gold':''}.`);rec.riv=null;}}
+  {const SR=D.nodes.find(n=>n.role==='stairs');if(SR&&Rr.has(SR.id)&&!R.ret&&D0.floors&&FL<D0.nfl-1&&men()>=bring*(R.claim?0.2:0.5)){R.floor=FL+1;R.room=0;R.keys=0;R.seen=[0];R.wk=CAMP.week;return;}}
+  if(R.claim&&!R.ret&&!st.cleared&&men()>=bring*0.2){/* keeps going */}else if(R.ret||men()<bring*(0.35-0.15*ps.A)||st.cleared||(!fought&&!acts&&CAMP.week-R.wk>=2)){if(R.claim&&!st.cleared)rec.rivFl=FL;for(const x of G)dunRivHome(GENS[x.gi],x.home,x.men);clog(`${NATIONS[R.nat].name}'s expedition returns from ${D.name}${R.gold?' with '+R.gold+' gold':''}.`);rec.riv=null;}}
 /* ---------- the dungeon map (M, the Map button, or right stick click in VR): rooms you have entered, who is where ---------- */
 function dunMapToggle(){if(!DUN)return;if(xrActive){if(!DUN.mapB){const c=cv(DGW*6,DGH*6);DUN.mapC=c;DUN.mapT=tex(c,true);DUN.mapB=new THREE.Mesh(new THREE.PlaneGeometry(DGW*DT*0.55,DGH*DT*0.55),new THREE.MeshBasicMaterial({map:DUN.mapT,transparent:true,depthTest:false}));DUN.mapB.renderOrder=15;dunG.add(DUN.mapB);DUN.mapB.visible=false;}
     DUN.mapB.visible=!DUN.mapB.visible;}else $('dunMap').hidden=!$('dunMap').hidden;DUN.mapHash='';dunMapDraw();sfx('blip',600);}

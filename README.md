@@ -145,6 +145,11 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Rivals claim neglected dungeons (Build 181):** if a dungeon is still unfinished four weeks after it opened, the nearest rival kingdom moves in to claim it, wherever its castles are.
+  - **The expedition:** it sends up to five generals (never more than the dungeon admits). It picks someone able to handle each required obstacle first, then its strongest.
+  - **Determined:** a claiming army doesn't give up after a quiet week. It fights through every guard group, and it hacks past obstacles it has no ability for, losing men doing it.
+  - **Fresh waves:** if it's beaten back, a fresh expedition goes in the next week and starts from the deepest floor the last one reached. Kills stay dead, so each wave gets further.
+  - **Racing them:** once it plunders the sanctum the dungeon closes as usual, and the next one opens elsewhere a week or two later. You can still go in and race them; you'll meet them down there.
 - **Dungeons appear on the map (Build 180):** there is now one dungeon on the war map at a time, sitting beside a castle.
   - **How long it stays:** it stays put until its sanctum is claimed, by you or plundered by a rival. Then it falls silent, and a week or two later a new one opens beside a different castle (any owner, unclaimed castles included), using the next map. The first dungeon of a campaign opens in your lands.
   - **Who can enter:** you can send an expedition from the castle it's beside, or from any of your castles on a road next to it, whichever has the most fit troops. If you hold neither, clicking it tells you which castle to take. Rival expeditions only come from nations that hold the dungeon's castle or one next to it.
