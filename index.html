@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 182';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 183';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1585,7 +1585,7 @@ function nearestOwned(nat,from){const seen=new Set([from]),q=[from];while(q.leng
 function initCampaign(){if(CAMP){CAMP.gold=null;CAMP.merch=null;CAMP.offers=[];CAMP.fx=[];}if(merchSp)merchSp.visible=false;if(merchTok)merchTok.visible=false;
   CAMP.armies.forEach(a=>{kingdom.remove(a.tok);kingdom.remove(a.pick);dropLabel(a);const i=pickables.indexOf(a.pick);if(i>=0)pickables.splice(i,1);});
   if(endCard){kingdom.remove(endCard);endCard=null;}
-  Object.assign(CAMP,{vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
+  Object.assign(CAMP,{dunSite:null,dunNextWk:null,dunLastC:null,dungeons:{},dunPick:undefined,dunSeed:0,/* a new campaign starts with a fresh dungeon, not the last campaign's */vault:[],feed:[],endShown:false,won:null,on:true,week:1,t:0,speed:1,paused:false,armies:[],aiT:0,log:'',sel:null,target:false,picked:new Set(),over:false});
   CASTLES.forEach(c=>{c.o=c.o0;c.fort=c.cap?1:0;c.task='rest';});
   GENS=GENDEFS.map(mkRec);const at=(k,cn)=>{GENS.find(r=>r.d.key===k).loc=CASTLES.findIndex(c=>c.n===cn);};
   for(const r of GENS){r.loy=r.d.key==='kaelen'?100:70;if(r.nat==='wander'){r.alive=false;r.loc=null;}}
@@ -4354,8 +4354,8 @@ function dunGateMesh(g){const G={g,objs:[],x:dwx(g.x),z:dwz(g.y),fade:-1},parked
   return G;}
 function dunBridge(g){if(g.k!=='chasm')return;for(const [x,y] of g.tiles){DUN.T[y*DGW+x]=1;const m=new THREE.Mesh(new THREE.BoxGeometry(DT*0.96,0.1,DT*0.96),new THREE.MeshBasicMaterial({color:((x+y)&1)?0x7a5432:0x6a4628}));m.position.set(dwx(x),0.05,dwz(y));dunG.add(m);}}
 /* ---------- entering and leaving ---------- */
-function dunEnter(D,gs,c,rec0,o){o=o||{};const rec=rec0||dunRec();rec.st.visits++;if(!o.sk)for(const r of gs)r.inDun=true;
-  rec.st.seen=rec.st.seen||{};rec.fl=rec.fl||[rec.st];for(let i=0;i<(D.nfl||1);i++)rec.fl[i]=rec.fl[i]||dunFloorSt();DUN={D,D0:D,fl:0,R:rec,st:rec.st,c,T:D.T.slice(),gb:new Int16Array(DGW*DGH),party:[],riv:[],allG:[],us:[],proj:[],ai:0,t:0,mv:{x:0,z:0},goal:null,aim:{valid:false},leaveArm:0,flow:new Map(),gold:0,lost:0,sendMode:false,sk:!!o.sk,mscale:o.mscale??1};
+function dunEnter(D,gs,c,rec0,o){o=o||{};const rec=rec0||dunRec();rec.st.visits++;if(!o.sk)for(const r of gs)r.inDun=true;const done0=!!dunLastSt(rec).cleared;
+  rec.st.seen=rec.st.seen||{};rec.fl=rec.fl||[rec.st];for(let i=0;i<(D.nfl||1);i++)rec.fl[i]=rec.fl[i]||dunFloorSt();DUN={D,D0:D,fl:0,R:rec,st:rec.st,c,T:D.T.slice(),gb:new Int16Array(DGW*DGH),party:[],riv:[],allG:[],us:[],proj:[],ai:0,t:0,mv:{x:0,z:0},goal:null,aim:{valid:false},leaveArm:0,flow:new Map(),gold:0,lost:0,sendMode:false,sk:!!o.sk,mscale:o.mscale??1,done0};
   dunBuildScene();dunRegions();
   const E=D.nodes[0];DUN.bench=gs.map(r=>{const bring=DUN.sk?r.troops:Math.min(r.troops,D.troopCap);r.troops-=bring;return{r,bring,home:r.troops};});DUN.rally={x:dwx(E.tx),z:dwz(E.ty)+0.6};
   dunDeploy(DUN.bench.shift(),true);
@@ -4419,7 +4419,7 @@ function dunGenMake(r,side,x,z,bring,men,home){const g={r,side,home,bring,x,z,fa
 function dunUnit(side,t,men,x,z,o){[x,z]=dSnap(x,z);const u=Object.assign({side,pal:side===1?2:side===2?1:0,t,hp:men*ST(t).hp,men0:men,x,z,cd:Math.random(),tgt:null,tT:0,face:side?1:0,walk:Math.random()*3,st:'alive',task:null,fly:!!FLY[t],sp:null},o);
   const M=u.m?dunMMat(u,0,true):dunUMat(u.pal,t,0,side?1:0);u.sp=card(M.m,0.5,0.02,0.45);u.sp.scale.set(M.w,M.h,1);u.sp.position.set(x,0,z);dunG.add(u.sp);DUN.us.push(u);return u;}
 function dunSurvivors(g){return DUN.us.filter(u=>u.g===g&&u.st==='alive').reduce((a,u)=>a+dmen(u),0);}
-function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}DUN.R.deep=Math.max(DUN.R.deep||0,DUN.maxFl||0);const done=!!dunLastSt(DUN.R).cleared,oldK=dunRecKey(DUN.R);
+function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN.sk){dunSkLeave(why);return;}DUN.R.deep=Math.max(DUN.R.deep||0,DUN.maxFl||0);const done=!!dunLastSt(DUN.R).cleared&&!DUN.done0,R0=DUN.R;/* only a sanctum claimed during this visit closes the site here */
   for(const r of GENS)if(r.inDun){r.inDun=false;const c=CASTLES[r.loc];if(c&&c.o!==r.nat){const k=nearestOwned(r.nat,c.id);if(k!==null){r.loc=k;clog(`${r.d.short} comes up to find ${c.n} lost, and makes for ${CASTLES[k].n}.`);}}}
   for(const g of DUN.party){const sv=g.out!=null?g.out:dunSurvivors(g);g.r.troops=Math.max(g.home,g.r.troops)+sv;lost+=g.bring-sv;if(g.r.hp<=0)g.r.hp=1;L.push(g.r.d.short+' '+sv+'/'+g.bring);}
   for(const b of DUN.bench){const m=b.men??b.bring;b.r.troops=Math.max(b.home,b.r.troops)+m;lost+=b.bring-m;L.push(b.r.d.short+' '+m+'/'+b.bring);}
@@ -4427,7 +4427,7 @@ function dunLeave(why){if(!DUN)return;const D=DUN.D;let lost=0;const L=[];if(DUN
   clog(`The expedition leaves ${D.name}${why?' ('+why+')':''}: ${lost} troops lost${DUN.gold?', '+DUN.gold+' gold found':''}${dunLastSt(DUN.R).cleared===1?', sanctum claimed':''}.`);DE4LOG.info('dungeon leave '+L.join(', '));
   DUN=null;dunG.visible=false;while(dunG.children.length)dunG.remove(dunG.children[0]);$('dunHud').hidden=true;$('dunMap').hidden=true;$('dunSel').hidden=true;
   state='kingdom';kingdom.visible=true;battle.visible=false;kingdom.scale.setScalar(KS);kingdom.position.set(0,0,0);updateModeUI();updateCampPanel();setOrbitGoal({theta:0,phi:0.78,r:84,ty:0,tx:0,tz:0});if(xrActive)vrReset();sfx('fanfare');showBanner(why==='defeat'?'The expedition is driven out':'Back to the war table',why==='defeat');
-  if(done&&CAMP.dunSite&&dunRecKey(CAMP.dunSite.s)===oldK){dunSiteClose(`${D.name} has been emptied.`);setTimeout(()=>showBanner('The dungeon falls silent. Another will open in a week or two.'),1800);}}
+  if(done&&CAMP.dunSite&&CAMP.dungeons[dunRecKey(CAMP.dunSite.s)]===R0){dunSiteClose(`${D.name} has been emptied.`);setTimeout(()=>showBanner('The dungeon falls silent. Another will open in a week or two.'),1800);}}
 /* ---------- the war goes on above: the campaign clock keeps running underground (a week every few minutes). When a battle you're part of breaks
    out up there, the dungeon stops with a warning, you go up and fight it, and come straight back down to where you were ---------- */
 const DUN_TIME=0.075;
