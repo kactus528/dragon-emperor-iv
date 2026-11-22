@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 186';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 187';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1806,12 +1806,19 @@ function applyCampaignBattle(win){
     if(r.d.key===NATIONS[pN].ruler&&isHum(pN)&&DIFF.rescue&&CASTLES.some(c=>c.o===pN)){const h=nearestOwned(pN,ctx.kind==='castle'?ctx.castle.id:ctx.att.from);r.rescued=h;r.hp=Math.max(8,r.d.hp*0.25);r.troops=Math.round(r.troopsMax*0.2);clog(r.d.short+"'s bodyguard cuts "+(r.d.key==='ysolde'?'her':'him')+' free and carries '+(r.d.key==='ysolde'?'her':'him')+' to safety!');}
     else{r.alive=false;if(r.enemyJoin){delete r.enemyJoin;defectors.push(r);}else{r.prisonerOf=B.eNat;delete r.recLost;}}}});
   B.e.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0){if(NET.on&&isHum(B.eNat)&&r.d.key===NATIONS[B.eNat].ruler&&DIFF.rescue&&CASTLES.some(c=>c.o===B.eNat)){r.rescued=nearestOwned(B.eNat,ctx.kind==='castle'?ctx.castle.id:ctx.att.from);r.hp=Math.max(8,r.d.hp*0.25);r.troops=Math.round(r.troopsMax*0.2);clog(r.d.short+' is cut free by '+(r.d.key==='ysolde'?'her':'his')+' bodyguard!');}else{r.alive=false;r.prisonerOf=pN;}}});
+  /* generals who changed sides during this battle (a captured general who turned traitor, or a prisoner you persuaded) get the same treatment as
+     everyone else: if they were captured again, or went back over, before the battle ended, their new record must not stay alive as well.
+     Before Build 187 it did, which could leave the same general alive on both sides */
+  newP.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1){r.alive=false;if(r.enemyJoin){delete r.enemyJoin;defectors.push(r);}else{r.prisonerOf=B.eNat;delete r.recLost;}}});
+  newE.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0){r.alive=false;r.prisonerOf=pN;}});
+  /* a general should only ever be alive once: if two live records share a key, the newer one is the real one */
+  {const seen=new Map();for(let i=GENS.length-1;i>=0;i--){const r=GENS[i];if(!r.alive||r.d.boss)continue;const k=r.d.key;if(seen.has(k)){r.alive=false;delete r.prisonerOf;DE4LOG.info('duplicate general retired: '+k);}else seen.set(k,r);}}
   [...B.p,...B.e,...newP,...newE].forEach(r=>{r.out=false;r.captor=null;r.turned=false;});
   if(pAtt){ctx.extraA=newP;ctx.extraD=newE;}else{ctx.extraA=newE;ctx.extraD=newP;}
   {const Wn=win?[...B.p,...newP]:[...B.e,...newE],Ls=win?[...B.e,...newE]:[...B.p,...newP];if(DIFF.marchRest){for(const r of [...Wn,...Ls])if(r.alive)r.rest=Math.max(r.rest||0,2);}else{for(const r of Wn)r.rest=0;for(const r of Ls)if(r.alive)r.rest=1;}}
   resolveOutcome(ctx,pAtt?win:!win);
   {const anchor=B.e.find(x=>x.alive&&x.loc!=null);for(const r of defectors){const nr=turnRec(r,1,B.eNat);nr.loy=50;GENS.push(nr);joinWith(nr,anchor,B.eNat);clog(`${r.d.short} has gone over to ${NATIONS[B.eNat].name}.`);}}
-  for(const r of B.e)if(r.recLost){delete r.recLost;}
+  for(const r of [...B.e,...newE])if(r.recLost){delete r.recLost;}
   for(const r of [...B.p,...B.e])if(r.rescued!==undefined){const h=r.rescued;delete r.rescued;if(h!==null&&CASTLES[h].o===r.nat){r.loc=h;refreshCastle(CASTLES[h]);}else{const n=nearestOwned(r.nat,0);if(n!==null)r.loc=n;}}
 }
 /* ---------- campaign UI ---------- */
