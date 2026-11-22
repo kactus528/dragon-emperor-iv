@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 184';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 185';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -4141,13 +4141,13 @@ const dwx=i=>(i+0.5-DGW/2)*DT,dwz=j=>(j+0.5-DGH/2)*DT,dtx=x=>Math.floor(x/DT+DGW
 const dmen=u=>u.m?(u.hp>0?1:0):Math.max(0,Math.ceil(u.hp/STATS[u.t].hp-1e-6));
 const dAs=t=>MON[t]?MON[t].as:t,dMult=(a,b)=>(MULT[dAs(a)]||{})[dAs(b)]??1;
 /* which dungeon the test entrance opens: the Lab's "use for test entrance" pick, else the curated approved list, else one random seed per campaign */
-/* which map a new dungeon uses: a random one of the approved maps not yet finished (built in, or approved in this browser's Dungeon Lab).
+/* which map a new dungeon uses: a fresh random seed, validated by the generator like every map.
    When every approved map is finished (or none are approved) it falls back to a fresh generated dungeon. */
 const dunRecKey=s=>s.seed+':'+(s.arch||'')+':'+(s.floors||0),dunDone=s=>{const r=CAMP.dungeons&&CAMP.dungeons[dunRecKey(s)];return!!(r&&dunLastSt(r).cleared);};
 function dunApprovedList(){const L=[],seen=new Set();let lab=[];try{lab=JSON.parse(localStorage.getItem('de4-dun-ok')||'{}').ok||[];}catch(e){}
   for(const a of DUN_APPROVED.concat(lab)){if(!a||!a.seed)continue;const s={seed:a.seed,arch:a.arch||'',floors:a.floors||a.depth||0},k=dunRecKey(s);if(!seen.has(k)){seen.add(k);L.push(s);}}return L;}
 function dunSeed(){let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}if(t&&t.seed){const s={seed:t.seed,arch:t.arch||'',floors:t.floors||t.depth||0};if(!dunDone(s))return s;}
-  /* a random unfinished approved map (not in order) */const A=dunApprovedList().filter(s=>!dunDone(s));if(A.length)return A[Math.floor(Math.random()*A.length)];
+  /* every new dungeon is a freshly generated random map (approved Lab maps are not used on the war map; a pinned test map still is) */
   for(let n=0;n<50;n++){if(!CAMP.dunSeed)CAMP.dunSeed=1+Math.floor(Math.random()*999999);const s={seed:CAMP.dunSeed,arch:'',floors:0};if(!dunDone(s))return s;CAMP.dunSeed=0;}return{seed:CAMP.dunSeed,arch:'',floors:0};}
 function dunRec(){const S=dunSite(),s=S?S.s:dunSeed(),k=dunRecKey(s);CAMP.dungeons=CAMP.dungeons||{};if(!CAMP.dungeons[k])CAMP.dungeons[k]={seed:s.seed,arch:s.arch,floors:s.floors||0,st:{open:{},solved:{},dead:{},keys:0,cleared:0,visits:0},bv:177,fv:179};const r=CAMP.dungeons[k];if(!r.fv){r.fv=179;if(!r.floors&&r.bv)r.floors=dunFloorsOld(r.seed);/* made before deeper dungeons: keep its depth */}if(r.bv!==177){/* Build 177 swapped troop guards for bestiary monsters: old kill records no longer match */r.bv=177;for(const s of[r.st].concat(r.fl||[]))if(s)s.dead={};}return r;}
 const dunCache={};function dunGet(seed,arch,floors){const k=seed+':'+(arch||'')+':'+(floors||0);if(!dunCache[k])dunCache[k]=dunGen(seed,{arch,floors:floors||0});return dunCache[k];}
@@ -4995,7 +4995,7 @@ function dlVerdict(ok){const D=DLAB.D;if(!D)return;const V=dlLoad(),rec={seed:D.
   const same=a=>!(a.seed===D.seed&&(a.arch||'')===(DLAB.arch||D.arch)&&(a.floors||0)===(DLAB.floors||0));V.ok=V.ok.filter(same);V.no=V.no.filter(same);(ok?V.ok:V.no).push(rec);dlSave(V);$('dlNote').value='';sfx('blip',ok?520:220);DLAB.seed++;dlShow();}
 function dlExport(){const V=dlLoad();return 'DE4 DUNGEON APPROVALS v1 · '+BUILD+'\napproved: '+JSON.stringify(V.ok)+'\nrejected: '+JSON.stringify(V.no);}
 function dlList(){const V=dlLoad();let t=null;try{t=JSON.parse(localStorage.getItem('de4-dun-test')||'null');}catch(e){}
-  $('dlList').innerHTML=`<p>${V.ok.length} approved · ${V.no.length} rejected${t?` · test entrance uses seed ${t.seed} <button id="dlUntest">reset</button>`:' · test entrance: '+(DUN_APPROVED.length?'built-in approved list':'random seed per campaign')}</p>`+
+  $('dlList').innerHTML=`<p>${V.ok.length} approved · ${V.no.length} rejected${t?` · test entrance uses seed ${t.seed} <button id="dlUntest">reset</button>`:' · war map: a new random map for each dungeon'}</p>`+
     (DUN_APPROVED.length?'<p>Built in: '+DUN_APPROVED.map(a=>{const D=dunGen(a.seed,{arch:a.arch,floors:a.floors||0});return a.seed+(D&&D.hash===a.hash?' ✓':' <b class="no">changed</b>');}).join(' · ')+'</p>':'')+
     V.ok.map(a=>`<span class="ok">✓ ${a.seed}${a.note?' “'+a.note+'”':''}</span>`).join(' ')+' '+V.no.map(a=>`<span class="no">✗ ${a.seed}${a.note?' “'+a.note+'”':''}</span>`).join(' ');
   $('dlOut').value=dlExport();const u=$('dlUntest');if(u)u.onclick=()=>{try{localStorage.removeItem('de4-dun-test');}catch(e){}dlList();};}

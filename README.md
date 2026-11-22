@@ -145,6 +145,7 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Fresh maps only (Build 185):** every new dungeon on the war map is a freshly generated random map, still validated like every map. Maps approved in the Lab are no longer used on the war map. They stay available in the Lab, and a map pinned with "Test on war map" still goes first.
 - **Random dungeon maps (Build 184):** each new dungeon now uses a random map, not the next one in order. It's one of the approved maps not finished yet (built in, or approved in this browser's Lab), and once those are used up a freshly generated one. A map pinned with "Test on war map" still takes priority.
 - **Dungeon site fixes (Build 183):**
   - **New campaigns:** starting a new campaign (from the title screen or "fight again") now clears the previous campaign's dungeon site and dungeon records. Before, a new campaign could carry over a dungeon that was already finished, or a "next dungeon in week N" timer from the old one.
