@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 187';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 188';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1802,20 +1802,23 @@ function applyCampaignBattle(win){
   const newP=roster[0].filter(r=>!B.p.includes(r)),newE=roster[1].filter(r=>!B.e.includes(r));
   newP.forEach(r=>{r.nat=pN;r.alive=true;GENS.push(r);});newE.forEach(r=>{r.nat=B.eNat;r.alive=true;GENS.push(r);});
   const defectors=[];
-  B.p.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1){
+  /* the side that wins the battle frees its own generals the enemy captured during it. They come back hurt, with no troops, and need a few weeks before they can march */
+  const freed=[],free=r=>{r.hp=Math.max(5,Math.round(r.d.hp*0.3));r.troops=0;r.rest=Math.max(r.rest||0,3);delete r.enemyJoin;delete r.recLost;freed.push(r);};
+  B.p.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1&&win)free(r);else if(r.captor===1){
     if(r.d.key===NATIONS[pN].ruler&&isHum(pN)&&DIFF.rescue&&CASTLES.some(c=>c.o===pN)){const h=nearestOwned(pN,ctx.kind==='castle'?ctx.castle.id:ctx.att.from);r.rescued=h;r.hp=Math.max(8,r.d.hp*0.25);r.troops=Math.round(r.troopsMax*0.2);clog(r.d.short+"'s bodyguard cuts "+(r.d.key==='ysolde'?'her':'him')+' free and carries '+(r.d.key==='ysolde'?'her':'him')+' to safety!');}
     else{r.alive=false;if(r.enemyJoin){delete r.enemyJoin;defectors.push(r);}else{r.prisonerOf=B.eNat;delete r.recLost;}}}});
-  B.e.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0){if(NET.on&&isHum(B.eNat)&&r.d.key===NATIONS[B.eNat].ruler&&DIFF.rescue&&CASTLES.some(c=>c.o===B.eNat)){r.rescued=nearestOwned(B.eNat,ctx.kind==='castle'?ctx.castle.id:ctx.att.from);r.hp=Math.max(8,r.d.hp*0.25);r.troops=Math.round(r.troopsMax*0.2);clog(r.d.short+' is cut free by '+(r.d.key==='ysolde'?'her':'his')+' bodyguard!');}else{r.alive=false;r.prisonerOf=pN;}}});
+  B.e.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0&&!win)free(r);else if(r.captor===0){if(NET.on&&isHum(B.eNat)&&r.d.key===NATIONS[B.eNat].ruler&&DIFF.rescue&&CASTLES.some(c=>c.o===B.eNat)){r.rescued=nearestOwned(B.eNat,ctx.kind==='castle'?ctx.castle.id:ctx.att.from);r.hp=Math.max(8,r.d.hp*0.25);r.troops=Math.round(r.troopsMax*0.2);clog(r.d.short+' is cut free by '+(r.d.key==='ysolde'?'her':'his')+' bodyguard!');}else{r.alive=false;r.prisonerOf=pN;}}});
   /* generals who changed sides during this battle (a captured general who turned traitor, or a prisoner you persuaded) get the same treatment as
      everyone else: if they were captured again, or went back over, before the battle ended, their new record must not stay alive as well.
      Before Build 187 it did, which could leave the same general alive on both sides */
-  newP.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1){r.alive=false;if(r.enemyJoin){delete r.enemyJoin;defectors.push(r);}else{r.prisonerOf=B.eNat;delete r.recLost;}}});
-  newE.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0){r.alive=false;r.prisonerOf=pN;}});
+  newP.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===1&&win)free(r);else if(r.captor===1){r.alive=false;if(r.enemyJoin){delete r.enemyJoin;defectors.push(r);}else{r.prisonerOf=B.eNat;delete r.recLost;}}});
+  newE.forEach(r=>{if(r.turned)r.alive=false;else if(r.captor===0&&!win)free(r);else if(r.captor===0){r.alive=false;r.prisonerOf=pN;}});
   /* a general should only ever be alive once: if two live records share a key, the newer one is the real one */
   {const seen=new Map();for(let i=GENS.length-1;i>=0;i--){const r=GENS[i];if(!r.alive||r.d.boss)continue;const k=r.d.key;if(seen.has(k)){r.alive=false;delete r.prisonerOf;DE4LOG.info('duplicate general retired: '+k);}else seen.set(k,r);}}
   [...B.p,...B.e,...newP,...newE].forEach(r=>{r.out=false;r.captor=null;r.turned=false;});
   if(pAtt){ctx.extraA=newP;ctx.extraD=newE;}else{ctx.extraA=newE;ctx.extraD=newP;}
-  {const Wn=win?[...B.p,...newP]:[...B.e,...newE],Ls=win?[...B.e,...newE]:[...B.p,...newP];if(DIFF.marchRest){for(const r of [...Wn,...Ls])if(r.alive)r.rest=Math.max(r.rest||0,2);}else{for(const r of Wn)r.rest=0;for(const r of Ls)if(r.alive)r.rest=1;}}
+  {const Wn=win?[...B.p,...newP]:[...B.e,...newE],Ls=win?[...B.e,...newE]:[...B.p,...newP];if(DIFF.marchRest){for(const r of [...Wn,...Ls])if(r.alive)r.rest=Math.max(r.rest||0,2);}else{for(const r of Wn)r.rest=0;for(const r of Ls)if(r.alive)r.rest=1;}for(const r of freed)r.rest=Math.max(r.rest||0,3);}
+  for(const r of freed)clog(`${r.d.short} is freed when ${NATIONS[r.nat].name} wins the battle, but needs time to recover.`);
   resolveOutcome(ctx,pAtt?win:!win);
   {const anchor=B.e.find(x=>x.alive&&x.loc!=null);for(const r of defectors){const nr=turnRec(r,1,B.eNat);nr.loy=50;GENS.push(nr);joinWith(nr,anchor,B.eNat);clog(`${r.d.short} has gone over to ${NATIONS[B.eNat].name}.`);}}
   for(const r of [...B.e,...newE])if(r.recLost){delete r.recLost;}
@@ -3272,12 +3275,12 @@ function endBattle(win,why){const bN=pendingBattle&&pendingBattle.ctx&&pendingBa
     for(const r of roster[1].filter(x=>x.captor===0&&!x.turned)){if(r.d.key===NATIONS[r.nat].ruler||r.d.key==='vorgrath'||r.d.boss)continue;
       const ch=clamp(DIFF.persuade*(tookCastle?1:0.85)+(r.tried>=0?-0.1:0),0.15,0.9);
       if(Math.random()<ch){r.turned=true;roster[0].push(turnRec(r,0,P0N()));recruits.push(r.d.short);}else{r.recLost=true;refused.push(r.d.short);}}
-    if(recruits.length||refused.length)DE4LOG.info('post-battle recruitment: joined '+(recruits.join(',')||'-')+' executed '+(refused.join(',')||'-'));}
+    if(recruits.length||refused.length)DE4LOG.info('post-battle recruitment: joined '+(recruits.join(',')||'-')+' kept prisoner '+(refused.join(',')||'-'));}
   const defected=[],perished=[];
   if(!win&&pendingBattle&&pendingBattle.ctx.kind!=='skirmish'){for(const r of roster[0].filter(x=>x.captor===1&&!x.turned)){if(r.d.key===NATIONS[P0N()].ruler)continue;
       if(Math.random()<enemyRecruitCh())(r.enemyJoin=true,defected.push(r.d.short));else{r.recLost=true;perished.push(r.d.short);}}
     if(defected.length||perished.length)DE4LOG.info('enemy recruitment: turned '+(defected.join(',')||'-')+' lost '+(perished.join(',')||'-'));}
-  const caps=roster[1].filter(r=>r.captor===0&&!r.turned&&!r.recLost).map(r=>r.d.short),lost=roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);
+  const caps=win?roster[1].filter(r=>r.captor===0&&!r.turned).map(r=>r.d.short):[],lost=win?[]:roster[0].filter(r=>r.captor===1&&!r.turned).map(r=>r.d.short);/* the winner frees its own captured generals */
   NET.caps1=caps;NET.lost0=lost;
   const where=pendingBattle&&pendingBattle.ctx.kind==='castle'?pendingBattle.ctx.castle.n:SK?BIOMES[lastType].name:'the road',grown=[...roster[0]].filter(r=>r.lvl).map(r=>r.d.short+' Lv '+r.lvl);
   const eName=pendingBattle?NATIONS[pendingBattle.eNat].name:'the enemy';
@@ -3290,12 +3293,12 @@ function endBattle(win,why){const bN=pendingBattle&&pendingBattle.ctx&&pendingBa
    if(bN){const w=win?0:1,gw=30+Math.floor(BST.kills[w]/8)+35*(win?caps.length:lost.length)+(cst&&cst.o!==cBefore?50:0),gl=Math.floor(BST.kills[1-w]/16);addGold(bN[w],gw);addGold(bN[1-w],gl);NET.goldB=win?[gw,gl]:[gl,gw];spoils.push(['good','Gold: +'+NET.goldB[0]+' (you now have '+goldOf(bN[0])+')']);}
    if(why==='surrender'){const t=roster[0].filter(r=>r.alive!==false&&!r.out).reduce((a,r)=>a+r.troops,0);spoils.push(['bad','You yielded the field. Your generals march home with '+t+' troops.']);}
    for(const n of recruits)spoils.push(['good','⚑ '+n+' swears loyalty and joins your army!']);
-   for(const n of refused)spoils.push(['bad',n+' refuses to serve you and is executed.']);
+   for(const n of refused)spoils.push(['bad',n+' refuses to serve you and is taken prisoner.']);
    for(const n of defected)spoils.push(['bad',n+' goes over to '+eName+'.']);
-   for(const n of perished)spoils.push(['bad',n+' refuses to serve '+eName+' and is executed.']);
+   for(const n of perished)spoils.push(['bad',n+' refuses to serve '+eName+' and is taken prisoner.']);
    if(caps.length)spoils.push(['','Prisoners taken: '+caps.join(', ')]);
    const rows=gens.map(g=>{const r=g.r;let tag='',cls='';
-     if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?'Rescued':'Captured';cls='bad';}
+     if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?(win?'Freed':'Rescued'):'Captured';cls=r.alive&&win?'':'bad';}
      const v0=g.sn?g.sn.lvl+Math.min(0.999,g.sn.xp/xpNeed(g.sn.lvl)):r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl)),v1=r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl));
      return{r,tag,cls,v0,v1,gain:g.sn?Math.round(xpTot(r.lvl,r.xp)-xpTot(g.sn.lvl,g.sn.xp)):0,lv0:g.sn?g.sn.lvl:r.lvl,shownLv:g.sn?g.sn.lvl:r.lvl};});
    for(const x of rows)if(x.r.lvl>x.lv0)spoils.push(['big',x.r.d.short+' is now '+rankOf(x.r.lvl)+' · leads '+x.r.troopsMax+' troops']);
