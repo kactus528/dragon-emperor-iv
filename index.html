@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 188';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 189';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -3298,7 +3298,7 @@ function endBattle(win,why){const bN=pendingBattle&&pendingBattle.ctx&&pendingBa
    for(const n of perished)spoils.push(['bad',n+' refuses to serve '+eName+' and is taken prisoner.']);
    if(caps.length)spoils.push(['','Prisoners taken: '+caps.join(', ')]);
    const rows=gens.map(g=>{const r=g.r;let tag='',cls='';
-     if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?(win?'Freed':'Rescued'):'Captured';cls=r.alive&&win?'':'bad';}
+     if(!g.sn){tag='Joined';cls='new';}else if(g.def){tag='Defected';cls='bad';}else if(g.cap){tag=r.alive?(win?'Freed':'Rescued'):r.prisonerOf?'Captured':'Defected';cls=r.alive&&win?'':'bad';}/* Captured only if taken prisoner; Defected if they went over after the battle */
      const v0=g.sn?g.sn.lvl+Math.min(0.999,g.sn.xp/xpNeed(g.sn.lvl)):r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl)),v1=r.lvl+Math.min(0.999,r.xp/xpNeed(r.lvl));
      return{r,tag,cls,v0,v1,gain:g.sn?Math.round(xpTot(r.lvl,r.xp)-xpTot(g.sn.lvl,g.sn.xp)):0,lv0:g.sn?g.sn.lvl:r.lvl,shownLv:g.sn?g.sn.lvl:r.lvl};});
    for(const x of rows)if(x.r.lvl>x.lv0)spoils.push(['big',x.r.d.short+' is now '+rankOf(x.r.lvl)+' · leads '+x.r.troopsMax+' troops']);
