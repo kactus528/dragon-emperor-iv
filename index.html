@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 190';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 191';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1253,7 +1253,9 @@ function flyAlt(u){const lx=u.x+(u.vx||0)*0.45,lz=u.z+(u.vz||0)*0.45,gy=Hb(u.x,u
   const a=u.fa===undefined?tg:u.fa;u.fa=a+(tg-a)*(tg>a?0.14:0.05);return u.fa;}
 function writeUnit(u,f){u.f=f;const o=u.uid*16;UMAT.fill(0,o,o+16);UMAT[o+15]=1;
   if(!u.vis||(u.hid&&TAC.on&&u.side!==0&&u.state==='alive')){UMAT[o+13]=-999;return;}
-  UMAT[o]=USCL;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y+(u.wall||0)+(FLY[u.type]&&u.state!=='dying'?flyAlt(u)+Math.sin(u.walk*2+u.i+performance.now()/1000*2.6)*0.22:0);UMAT[o+14]=u.z;
+  /* flyers turn to face the way they fly (they swoop back and forth over the lines), so a dragon never flies tail-first or breathes fire out of the wrong end */
+  let sx=USCL;if(FLY[u.type]&&u.state==='alive'){const base=u.side===0?1:-1,vx=u.vx||0;if(Math.abs(vx)>0.35)u.fx=vx>0?1:-1;if(u.fx&&u.fx!==base)sx=-USCL;}
+  UMAT[o]=sx;UMAT[o+5]=USCL;UMAT[o+10]=USCL;UMAT[o+12]=u.x;UMAT[o+13]=Hb(u.x,u.z)+u.y+(u.wall||0)+(FLY[u.type]&&u.state!=='dying'?flyAlt(u)+Math.sin(u.walk*2+u.i+performance.now()/1000*2.6)*0.22:0);UMAT[o+14]=u.z;
   const idx=(sidePal[u.side]*NT+TI[u.type])*4+f;UCELL[u.uid*2]=idx%ATL_C;UCELL[u.uid*2+1]=ATL_R-1-Math.floor(idx/ATL_C);}
 units.forEach(u=>writeUnit(u,0));
 /* spatial grid for targeting and spacing */
@@ -1926,7 +1928,9 @@ const hudC=cv(768,240),hudX=hudC.getContext('2d'),hudT=tex(hudC,true);
 const vrHud=new THREE.Mesh(new THREE.PlaneGeometry(48,15),new THREE.MeshBasicMaterial({map:hudT,transparent:true}));
 vrHud.position.set(0,40,-40);vrHud.rotation.x=-0.25;vrHud.visible=false;world.add(vrHud);
 const ctrls=[],laserGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]);
-for(let i=0;i<2;i++){const c=renderer.xr.getController(i);c.addEventListener('connected',e=>{c.userData.hand=e.data&&e.data.handedness;});c.addEventListener('selectstart',()=>xrSelect(c.userData.hand||'right'));c.addEventListener('squeezestart',()=>{grabbing.add(c);initGrab();});c.addEventListener('squeezeend',()=>{grabbing.delete(c);initGrab();});
+for(let i=0;i<2;i++){const c=renderer.xr.getController(i);c.addEventListener('connected',e=>{c.userData.hand=e.data&&e.data.handedness;});c.addEventListener('disconnected',()=>{c.userData.hand=null;});
+  /* which hand pulled the trigger comes from the event itself: after a controller drops out and reconnects (sleep, tracking loss) the remembered hand could go stale, and then both triggers acted as the left one (pause) */
+  c.addEventListener('selectstart',e=>{const hd=e.data&&e.data.handedness;if(hd==='left'||hd==='right')c.userData.hand=hd;xrSelect(hd==='left'||hd==='right'?hd:(c.userData.hand||'right'));});c.addEventListener('squeezestart',()=>{grabbing.add(c);initGrab();});c.addEventListener('squeezeend',()=>{grabbing.delete(c);initGrab();});
   const m=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.018,0.09),new THREE.MeshBasicMaterial({color:i?0xf0c055:0x5b8cff}));m.position.z=-0.04;c.add(m);const lz=new THREE.Line(laserGeo,new THREE.LineBasicMaterial({color:0xf0c055}));lz.visible=false;c.add(lz);c.userData.laser=lz;ctrls.push(c);scene.add(c);}
 
 /* ================= AUDIO ================= */

@@ -145,6 +145,9 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Dragons face forward, triggers fixed (Build 191):**
+  - **Flyers:** dragons and harpies in battle now turn to face the way they're flying, so a dragon no longer flies tail-first or breathes fire out of the wrong end.
+  - **VR triggers:** the game now reads which hand pulled the trigger from the trigger event itself. Before, after a controller dropped out and reconnected (headset sleep, tracking loss), both triggers could act as the left one and pause the war map, instead of the right one selecting.
 - **Troops learn from the lava (Build 190):** on volcano maps, troops no longer keep piling into the lava at the same spot.
   - **Danger marks:** where soldiers have gone over the edge, or where molten rock from an eruption is burning on the ground, paths now cost more. After a few losses the rest of the army takes another way, such as the other bridge or around the burning patch.
   - **Lasts a while:** the mark from a fall fades after about 25 seconds, and burning patches count while they're still hot.
