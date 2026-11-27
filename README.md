@@ -145,6 +145,12 @@ Every nation has gold (you start with 60). The amount shows in the war-table bar
 - **Crowds slow a hunting general:** a general seeking a duel cannot dash when six or more enemy soldiers are packed around him or in his way, moves at half to 70% speed, and is now and then jostled to a crawl. With a clear road ahead he runs and dashes at full speed.
 - **Cursor on walls:** the battlefield cursor now sits on top of a castle wall when you point at it, instead of sinking through.
 - **Spell-ready cursor:** the cursor, laser and wrist hint only light up when you have enough magic for your general's spell (Dragon's Breath and Eclipse cost 2 charges).
+- **Troops learn from the lava (Build 190):** on volcano maps, troops no longer keep piling into the lava at the same spot.
+  - **Danger marks:** where soldiers have gone over the edge, or where molten rock from an eruption is burning on the ground, paths now cost more. After a few losses the rest of the army takes another way, such as the other bridge or around the burning patch.
+  - **Lasts a while:** the mark from a fall fades after about 25 seconds, and burning patches count while they're still hot.
+  - **Keeping back:** troops near a spot where others fell keep back from the edge, so crowd pushes send far fewer over.
+  - **No straight lines into lava:** close-range moves no longer go in a straight line into the lava.
+  - **Result:** in test battles on the volcano map, losses to lava dropped from about 45 per battle to about 18. Some still go over in the first crush at a bridge, as intended.
 - **Results labels (Build 189):** after a battle, a general is listed as "Captured" only if they were taken prisoner. One who went over to the other side, during the battle or after it, is listed as "Defected".
 - **Winning frees captured generals (Build 188):**
   - **Freed generals:** if one of your generals is captured during a battle and you go on to win it, they're freed, and the same goes for the enemy when they win. Freed generals come back hurt (30% health) with no troops, and can't march for three weeks while they recover. The results screen marks them "Freed".

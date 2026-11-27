@@ -699,7 +699,7 @@ html.phone #dunHud .dhkeys{display:none}html.phone #dunHud button{padding:10px 1
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const BUILD='Build 189';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
+const BUILD='Build 190';DE4LOG.ctx=()=>{try{return BUILD+' '+state+'/'+phase+(MOD&&MOD!=='none'?' '+MOD:'');}catch(e){return BUILD;}};DE4LOG.info('script start '+BUILD);
 const DIFFS={
   squire:{name:'Squire',blurb:'A gentle war. Rivals fight each other and Kaelen is always rescued.',eDmg:0.78,eMP:1.55,counter:0.3,chal:40,tell:0.95,aiP:0.3,aiT:3.5,bias:-0.25,rival:0.6,peace:10,recHP:0.5,recTr:0.6,turn:0.1,persuade:0.72,xp:1.5,rescue:true,seekR:1.5,duelWin:5},
   knight:{name:'Knight',blurb:'The intended war. Fair odds, and Kaelen is rescued if captured.',eDmg:0.9,eMP:1.3,counter:0.45,chal:28,tell:0.85,aiP:0.4,aiT:3,bias:0,rival:0.4,peace:6,recHP:0.4,recTr:0.5,turn:0.2,persuade:0.6,xp:1.25,rescue:true,seekR:1.25,duelWin:4},
@@ -1284,13 +1284,22 @@ function dijkstra(F,src){F.fill(1e9);const H=[];
   for(const k of src){if(F[k]>0){F[k]=0;push(k,0);}}
   while(H.length){const[d,k]=pop();if(d>F[k]+1e-6)continue;const cx=k%GW,cz=(k/GW)|0;
     for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const n=z*GW+x;if(BLK(n))continue;
-      if(ox&&oz&&(BLK(cz*GW+x)||BLK(z*GW+cx)))continue;const nd=d+(ox&&oz?1.414:1)*(NAV[n]===2?1.8:1);if(nd<F[n]){F[n]=nd;push(n,nd);}}}}
+      if(ox&&oz&&(BLK(cz*GW+x)||BLK(z*GW+cx)))continue;const nd=d+(ox&&oz?1.414:1)*(NAV[n]===2?1.8:1)+LDG[n];if(nd<F[n]){F[n]=nd;push(n,nd);}}}}
+/* lava memory: where troops have gone over the edge, and where molten rock is burning on the ground, paths cost more, so after a few losses the
+   rest of the army takes another way round (the other bridge, or around a burning patch) instead of piling into the same spot */
+const LDG=new Float32Array(GW*GD),LFALLS=[];let ldgOn=false;
+function lavaMark(x,z){if(LFALLS.length>=48)LFALLS.shift();LFALLS.push({x,z,t:25});}
+function lavaDanger(){const had=ldgOn;LDG.fill(0);ldgOn=false;if(typeof LAVA_ON!=='function'||!LAVA_ON())return had;
+  const add=(x,z,rad,v)=>{const cx=gcx(x),cz=gcz(z),R=Math.ceil(rad/GC);for(let oz=-R;oz<=R;oz++)for(let ox=-R;ox<=R;ox++){const X=cx+ox,Z=cz+oz;if(X<0||Z<0||X>=GW||Z>=GD)continue;const wx=(X+0.5)*GC-FW/2-5,wz=(Z+0.5)*GC-FD/2-5,dd=Math.hypot(wx-x,wz-z);if(dd>rad)continue;LDG[Z*GW+X]+=v*(1-0.5*dd/rad);ldgOn=true;}};
+  for(const f of LFALLS)add(f.x,f.z,4.5,5*Math.min(1,f.t/10));
+  if(typeof LPATCH!=='undefined')for(const q of LPATCH){const heat=q.t/q.T;if(heat<0.15)continue;add(q.x,q.z,q.r+(q.m?2:1),(q.m?8:2.5)*heat);}
+  return true;}
 const LF=new Float64Array(GW*GD);/* while the gate stands, a third of the attackers go for the ladders or the breach instead */
 const chaseF=u=>SIEGE&&SIEGE.lfOn&&u.side===SIEGE.att&&u.i%3===1?LF:FF[u.side];
-function computeFields(){for(let s=0;s<2;s++){let src=[];const G=GB[1-s];for(let k=0;k<G.length;k++)if(G[k].length)src.push(k);const g=fg[1-s];if(g.rec&&!g.dead&&!g.captured)src.push(gcz(g.z)*GW+gcx(g.x));if(SIEGE&&SIEGE.hp>0&&s===SIEGE.att&&!SIEGE.open){const way=(SIEGE.ladZ&&SIEGE.ladZ.length)||SIEGE.breached;SIEGE.lfOn=!!way;if(way)dijkstra(LF,src);src=SIEGE.app;}else if(SIEGE&&s===SIEGE.att)SIEGE.lfOn=false;dijkstra(FF[s],src);}
+function computeFields(){if(lavaDanger())PTF.clear();for(let s=0;s<2;s++){let src=[];const G=GB[1-s];for(let k=0;k<G.length;k++)if(G[k].length)src.push(k);const g=fg[1-s];if(g.rec&&!g.dead&&!g.captured)src.push(gcz(g.z)*GW+gcx(g.x));if(SIEGE&&SIEGE.hp>0&&s===SIEGE.att&&!SIEGE.open){const way=(SIEGE.ladZ&&SIEGE.ladZ.length)||SIEGE.breached;SIEGE.lfOn=!!way;if(way)dijkstra(LF,src);src=SIEGE.app;}else if(SIEGE&&s===SIEGE.att)SIEGE.lfOn=false;dijkstra(FF[s],src);}
   if(pursuit){const g=fg[pursuit.L];dijkstra(PF,[gcz(g.z)*GW+gcx(g.x)]);}
   for(let s=0;s<2;s++)if(seekDuel[s]&&fg[1-s].rec)dijkstra(GF[s],[gcz(fg[1-s].z)*GW+gcx(fg[1-s].x)]);}
-function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!F||d<(F.pt?1.4:3.5))return[dx/d,dz/d];
+function navDir(e,tx,tz,F){const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz)||1;if(!F||(d<(F.pt?1.4:3.5)&&!(ldgOn||LAVA.rivers.length||LAVA.pools.length?lavaDist(e.x+dx/d*1.6,e.z+dz/d*1.6)<LAVA_BUF+0.5:false)))return[dx/d,dz/d];/* close by, go straight, unless straight is into the lava */
   const cx=gcx(e.x),cz=gcz(e.z);let best=F[cz*GW+cx],bx=0,bz=0;
   for(let oz=-1;oz<=1;oz++)for(let ox=-1;ox<=1;ox++){if(!ox&&!oz)continue;const x=cx+ox,z=cz+oz;if(x<0||z<0||x>=GW||z>=GD)continue;const k=z*GW+x;if(BLK(k))continue;
     if(ox&&oz&&(BLK(cz*GW+x)||BLK(z*GW+cx)))continue;if(F[k]<best-1e-3){best=F[k];bx=ox;bz=oz;}}
@@ -2149,7 +2158,7 @@ function lavaCoolTick(dt){lcAcc+=dt;if(lcAcc<0.1)return;const st=lcAcc;lcAcc=0;c
 function addLavaSplat(x,z,sc){if(lavaDist(x,z)<0.1)return false;const D=ldecals[(Math.random()*ldecals.length)|0];_de.set(-Math.PI/2,0,Math.random()*6.28);_dq.setFromEuler(_de);_dp.set(x,Hb(x,z)+0.075,z);_ds.set(sc,sc,1);_dm.compose(_dp,_dq,_ds);
   D.m.setMatrixAt(D.i,_dm);D.gen[D.i]=++lcGen;D.m.setColorAt(D.i,lavaHeatCol(1,_lc));D.m.instanceColor.needsUpdate=true;LCOOL.push({D,i:D.i,g:lcGen,t:0});
   D.i=(D.i+1)%LDEC_N;D.n=Math.min(LDEC_N,D.n+1);D.m.count=D.n;D.m.instanceMatrix.needsUpdate=true;return true;}
-function clearBlood(){LCOOL.length=0;volWarned=false;if(typeof LPATCH!=='undefined'){for(const h of LPATCH)if(h.m)h.m.visible=false;LPATCH.length=0;}for(const D of decals){D.i=0;D.n=0;D.m.count=0;}for(const D of ldecals){D.i=0;D.n=0;D.m.count=0;}}
+function clearBlood(){LCOOL.length=0;volWarned=false;if(typeof LPATCH!=='undefined'){for(const h of LPATCH)if(h.m)h.m.visible=false;LPATCH.length=0;LFALLS.length=0;}for(const D of decals){D.i=0;D.n=0;D.m.count=0;}for(const D of ldecals){D.i=0;D.n=0;D.m.count=0;}}
 function setBlood(v){blood=clamp(v,0,1);try{localStorage.setItem('de4-blood',String(Math.round(blood*100)));}catch(e){}const r=document.getElementById('bloodR'),b=document.getElementById('bloodV');if(r)r.value=Math.round(blood*100);if(b)b.textContent=blood?Math.round(blood*100)+'%':'Off';}
 const tcloud=[{t:0,n:0},{t:0,n:0}];
 const cloudTex=(()=>{const c=cv(256,128),x=c.getContext('2d');for(const[cx,cy,r,col]of[[70,78,40,'#3b3550'],[128,60,52,'#4a4363'],[188,76,42,'#3b3550'],[105,90,36,'#2c2740'],[160,92,38,'#2c2740'],[128,48,34,'#5a5278']]){const g=x.createRadialGradient(cx,cy-r*0.3,r*0.2,cx,cy,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(30,26,44,0.0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();}return tex(c,true);})();
@@ -2505,7 +2514,7 @@ function LAVA_ON(){return LAVA.rivers.length>0||LAVA.pools.length>0;}
 /* a soldier goes into the lava: thrown in by a foe, pushed by the crowd, or a flyer that drops out of the sky. The body flies in and
    lavaSplash fires where it lands */
 function lavaShove(T,att){lavaFall(T,false);}
-function lavaFall(T,fly){if(T.state!=='alive')return;const[dx,dz]=lavaDir(T.x,T.z);T.lavaDeath=true;const d=Math.max(0.6,lavaDist(T.x,T.z)+0.8);
+function lavaFall(T,fly){if(T.state!=='alive')return;const[dx,dz]=lavaDir(T.x,T.z);T.lavaDeath=true;if(!fly)lavaMark(T.x,T.z);const d=Math.max(0.6,lavaDist(T.x,T.z)+0.8);
   if(fly)kill(T,T.x-dx*0.2,T.z-dz*0.2,0.6,1);else kill(T,T.x-dx*2,T.z-dz*2,Math.min(9,3.2+d*2.2),4);sfx('scream');}
 /* the splash: a big burst of molten rock, a few globs that land on the bank and leave burning patches, and a thin wisp of smoke */
 function lavaSplash(x,z){const y=Hb(x,z)+0.2;sfx('splash');
@@ -2575,12 +2584,13 @@ function lavaStuck(st){for(let s=0;s<2;s++){for(const u of alive[s]){if((u.state
       u.lavaSt=(u.lavaSt||0)+st;const[dx,dz]=lavaDir(u.x,u.z),nx=u.x-dx*0.5,nz=u.z-dz*0.5;if(navAt(nx,nz)!==1){u.x=nx;u.z=nz;}if(u.lavaSt>1.5&&lavaDist(u.x,u.z)<LAVA_BUF)lavaDrop(u);}
     const g=fg[s];if(okGen(g)&&!g.flee){const d=lavaDist(g.x,g.z);if(d<LAVA_BUF){const[dx,dz]=lavaDir(g.x,g.z);for(let k=0;k<6&&lavaDist(g.x,g.z)<LAVA_BUF;k++){g.x-=dx*0.4;g.z-=dz*0.4;}}}}}
 function lavaDrop(u){u.lavaSt=0;if(u.state==='flee')u.state='alive';lavaFall(u,false);}
-function lavaTick(dt){lavaAcc+=dt;if(lavaAcc<0.25)return;const st=Math.min(0.5,lavaAcc);lavaAcc=0;if(!LAVA_ON())return;if(state==='battle'&&phase!=='taunt'&&phase!=='plan'&&phase!=='select')lavaStuck(st);if(phase!=='fight')return;
+function lavaTick(dt){lavaAcc+=dt;if(lavaAcc<0.25)return;const st=Math.min(0.5,lavaAcc);lavaAcc=0;if(!LAVA_ON())return;for(let i=LFALLS.length-1;i>=0;i--){LFALLS[i].t-=st;if(LFALLS[i].t<=0)LFALLS.splice(i,1);}if(state==='battle'&&phase!=='taunt'&&phase!=='plan'&&phase!=='select')lavaStuck(st);if(phase!=='fight')return;
   volT-=st;volT2-=st;if(volT<=0){volT=R(12,18);volcanoBomb('troop');}if(volT2<=0){volT2=R(16,24);volcanoBomb('random');}
   for(let s=0;s<2;s++)for(const u of alive[s]){if(u.state!=='alive')continue;const d=lavaDist(u.x,u.z);
     if(FLY[u.type]){if(d<0&&Math.random()<st*0.006)lavaFall(u,true);continue;}
     if(d>LAVA_BUF+1.3)continue;let n=0;for(let q=0;q<2;q++)for(const v of alive[q]){if(v!==u&&v.state==='alive'&&Math.abs(v.x-u.x)<2.2&&Math.abs(v.z-u.z)<2.2)n++;}
-    const pr=0.0016*Math.max(0,n-5)*(d<LAVA_BUF+0.4?1.5:1);if(pr>0&&Math.random()<pr*st)lavaFall(u,false);}}
+    const wary=Math.min(0.85,LDG[gcz(u.z)*GW+gcx(u.x)]/12);/* once others have gone over here, the rest keep back from the edge */
+    const pr=0.0016*Math.max(0,n-5)*(d<LAVA_BUF+0.4?1.5:1)*(1-wary);if(pr>0&&Math.random()<pr*st)lavaFall(u,false);}}
 function hit(T,dmg,att,raw){
   if(!raw&&T.state==='alive'&&att.uid!==undefined&&!T.wall&&!FLY[T.type]&&!FLY[att.type]&&(LAVA.rivers.length||LAVA.pools.length)&&Math.hypot(att.x-T.x,att.z-T.z)<2.2&&lavaDist(T.x,T.z)<LAVA_BUF+0.9&&Math.random()<0.07){lavaShove(T,att);return;}
   if(T.state!=='alive')return;hitsAcc++;if(T.wall)dmg*=0.4;const s=att.side!=null?att.side:1-T.side;
